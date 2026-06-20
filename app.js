@@ -1,5 +1,5 @@
 // ==========================================================================
-// 1. GLOBAL PRODUCTION CONFIGURATIONS & STATE REGISTRY (VERSION 33)
+// 1. GLOBAL PRODUCTION CONFIGURATIONS & STATE REGISTRY (VERSION 34)
 // ==========================================================================
 let deferredPrompt = null;
 let installPromptSupported = false; 
@@ -7,7 +7,6 @@ let cart = [];
 
 let isConsoleViewActive = false;
 let currentLiveMenuCache = {}; 
-let stagedMenuItems = new Set(); // 🚀 NEW: Unbreakable memory array for mobile
 const ROUTING_SECRET_PIN = "validatefoodies2026"; 
 
 const pwaModal = document.getElementById('pwa-modal');
@@ -19,9 +18,8 @@ const body = document.body;
 const updateSplash = document.getElementById('update-splash');
 const splashText = document.getElementById('splash-text');
 
-// MASTER CATALOG DATA CONTAINER
+// MASTER CATALOG DATA CONTAINER (102 Items)
 const MASTER_MENU = [
-    // ROLLS
     { id: "roll_1", title: "Dahi Bread Roll", details: "15/- per pc.", category: "ROLLS" },
     { id: "roll_2", title: "Bread Roll", details: "80/- per plate (8 pc.)", category: "ROLLS" },
     { id: "roll_3", title: "Spring Roll", details: "25/- per pc.", category: "ROLLS" },
@@ -35,7 +33,6 @@ const MASTER_MENU = [
     { id: "roll_11", title: "Chicken Egg Roll", details: "70/- per pc.", category: "ROLLS" },
     { id: "roll_12", title: "Chicken Egg Mayonaise Roll", details: "75/-", category: "ROLLS" },
 
-    // PAKODI
     { id: "pak_1", title: "Pyaaz ki Pakodi", details: "60 (250gm)", category: "PAKODI" },
     { id: "pak_2", title: "Paalak ki pakodi", details: "60 (250gm)", category: "PAKODI" },
     { id: "pak_3", title: "Gobhi ki pajkodi", details: "60 (250gm)", category: "PAKODI" },
@@ -44,12 +41,10 @@ const MASTER_MENU = [
     { id: "pak_6", title: "Egg pakodi", details: "10/- per pc", category: "PAKODI" },
     { id: "pak_7", title: "Moong daal ke mongode (pakodi)", details: "75 (250gm)", category: "PAKODI" },
 
-    // SANDWICH
     { id: "sand_1", title: "Veg Grilled Mayonaise Sandwich", details: "55/- (2 pc)", category: "SANDWICH" },
     { id: "sand_2", title: "Veg Cheese Sandwich", details: "60/- (2 pc)", category: "SANDWICH" },
     { id: "sand_3", title: "Veg Sandwich", details: "18/- per pc", category: "SANDWICH" },
 
-    // SNACKS
     { id: "snack_1", title: "Chocolate Croissant", details: "48 per pc", category: "SNACKS" },
     { id: "snack_2", title: "Zingy Parcel (Paneer)", details: "60 per pc", category: "SNACKS" },
     { id: "snack_3", title: "Pizza Puff", details: "18 per pc", category: "SNACKS" },
@@ -76,7 +71,6 @@ const MASTER_MENU = [
     { id: "snack_24", title: "Paneer Tikka", details: "240 per plate", category: "SNACKS" },
     { id: "snack_25", title: "Paneer Malai Tikka", details: "260 per plate", category: "SNACKS" },
 
-    // CHINESE
     { id: "chin_1", title: "Honey Chilli Potato", details: "90 per plate", category: "CHINESE" },
     { id: "chin_2", title: "Chowmein", details: "80 per plate", category: "CHINESE" },
     { id: "chin_3", title: "Macaroni", details: "80 per plate", category: "CHINESE" },
@@ -89,23 +83,19 @@ const MASTER_MENU = [
     { id: "chin_10", title: "Chicken momos", details: "100 per plate (10 pc)", category: "CHINESE" },
     { id: "chin_11", title: "White Pasta", details: "100 per plate", category: "CHINESE" },
 
-    // KEBEBS
     { id: "keb_1", title: "Veg. Seekh Kebab", details: "15 per pc", category: "KEBEBS" },
     { id: "keb_2", title: "Veg Kebab", details: "17 per pc", category: "KEBEBS" },
     { id: "keb_3", title: "Dahi ke kebab", details: "25 per pc", category: "KEBEBS" },
     { id: "keb_4", title: "Hariyali kebab", details: "25 per pc", category: "KEBEBS" },
 
-    // CAKE (Egg-Less)
     { id: "cake_1", title: "Tutti Frutti Cup Cake", details: "18 per pc", category: "CAKE (Egg-Less)" },
     { id: "cake_2", title: "Chocolate Cup Cake", details: "20 per pc", category: "CAKE (Egg-Less)" },
     { id: "cake_3", title: "Chocolava Cup Cake", details: "38 per pc", category: "CAKE (Egg-Less)" },
 
-    // SHAKES
     { id: "shake_1", title: "Mango Shake", details: "30", category: "SHAKES" },
     { id: "shake_2", title: "Lassi", details: "45", category: "SHAKES" },
     { id: "shake_3", title: "Panna", details: "12", category: "SHAKES" },
 
-    // COMBOS
     { id: "trad_1", title: "Chokha Baati", details: "50 per plate (2 pc)", category: "COMBOS" },
     { id: "trad_2", title: "Chole Aloo Kulche", details: "70 per plate", category: "COMBOS" },
     { id: "trad_3", title: "Chole Bhature", details: "60 per plate", category: "COMBOS" },
@@ -114,13 +104,11 @@ const MASTER_MENU = [
     { id: "trad_6", title: "Idli Sambhar", details: "55 per plate (4 pc)", category: "COMBOS" },
     { id: "trad_7", title: "Pav Bhaaji", details: "60 per plate", category: "COMBOS" },
 
-    // SWEETS
     { id: "sweet_1", title: "Gulab Jamun", details: "20", category: "SWEETS" },
     { id: "sweet_2", title: "Kheer", details: "80", category: "SWEETS" },
     { id: "sweet_3", title: "Sweet Rice", details: "90", category: "SWEETS" },
     { id: "sweet_4", title: "Shrikhand", details: "85 (250 gm)", category: "SWEETS" },
 
-    // SABZI
     { id: "sabzi_1", title: "Shaahi Paneer", details: "300", category: "SABZI" },
     { id: "sabzi_2", title: "Paneer Masala", details: "220", category: "SABZI" },
     { id: "sabzi_3", title: "Paneer Angara", details: "280", category: "SABZI" },
@@ -128,7 +116,6 @@ const MASTER_MENU = [
     { id: "sabzi_5", title: "Palak Paneer", details: "200", category: "SABZI" },
     { id: "sabzi_6", title: "Matar Paneer", details: "200", category: "SABZI" },
 
-    // NON-VEG
     { id: "nv_1", title: "Chichen Afghani", details: "500", category: "NON-VEG" },
     { id: "nv_2", title: "Roasted Chicken", details: "340", category: "NON-VEG" },
     { id: "nv_3", title: "Chilli Chicken", details: "440", category: "NON-VEG" },
@@ -143,7 +130,6 @@ const MASTER_MENU = [
     { id: "nv_12", title: "Chicken Masala", details: "400", category: "NON-VEG" },
     { id: "nv_13", title: "Butter Chicken", details: "500", category: "NON-VEG" },
 
-    // RICE
     { id: "rice_1", title: "Plain Rice", details: "90", category: "RICE" },
     { id: "rice_2", title: "Jeera Rice", details: "120", category: "RICE" },
     { id: "rice_3", title: "Matar Pulao", details: "140", category: "RICE" },
@@ -161,7 +147,8 @@ const splashFailSafeGuard = setTimeout(() => {
 // ==========================================================================
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js?v=33')
+        // 🚀 Bumped to v34 to force a completely clean load
+        navigator.serviceWorker.register('sw.js?v=34')
             .then(reg => {
                 console.log('PWA core components initialized.');
 
@@ -385,7 +372,7 @@ const cartBtn = document.getElementById('cart-btn');
 database.ref('daily_live_menu').on('value', (snapshot) => {
     currentLiveMenuCache = snapshot.val() || {};
 
-    // Do NOT wipe user's unsaved check states during background updates
+    // Refresh Kitchen Console UI only if it's currently open
     if (isConsoleViewActive) {
         initializeKitchenInventoryMatrix();
     }
@@ -610,7 +597,7 @@ function submitOrder() {
 }
 
 // ==========================================================================
-// 🚀 9. ADMINISTRATIVE WORKSPACE - JAVASCRIPT STATE MEMORY ENGINE (V33)
+// 🚀 9. KITCHEN CONSOLE DASHBOARD - PURE HTML FORM PARADIGM (VERSION 34)
 // ==========================================================================
 function authenticateConsoleAccess() {
     if (isConsoleViewActive) {
@@ -638,9 +625,6 @@ function authenticateConsoleAccess() {
         document.getElementById('header-title-text').innerText = "Kitchen Console";
         document.getElementById('view-toggle-action').innerText = "Exit";
         document.getElementById('view-toggle-action').style.backgroundColor = "#DC2626";
-        
-        // 🚀 CRITICAL: Initialize the JavaScript Set memory exactly once per console open
-        stagedMenuItems = new Set(Object.keys(currentLiveMenuCache));
         
         initializeKitchenOrderStream();
         initializeKitchenInventoryMatrix();
@@ -676,9 +660,6 @@ function submitConsolePIN() {
         document.getElementById('view-toggle-action').innerText = "Exit";
         document.getElementById('view-toggle-action').style.backgroundColor = "#DC2626";
         
-        // 🚀 CRITICAL: Initialize the JavaScript Set memory exactly once per console open
-        stagedMenuItems = new Set(Object.keys(currentLiveMenuCache));
-
         initializeKitchenOrderStream();
         initializeKitchenInventoryMatrix();
     } else {
@@ -688,6 +669,7 @@ function submitConsolePIN() {
     }
 }
 
+// 🚀 FIXED: Pure HTML element generation. Zero database manipulation on checkbox clicks!
 function initializeKitchenInventoryMatrix() {
     const inventoryContainer = document.getElementById('kitchen-inventory-container');
     if (!isConsoleViewActive) return;
@@ -700,14 +682,24 @@ function initializeKitchenInventoryMatrix() {
             border: 1px solid #E5E7EB; display: flex; justify-content: space-between; align-items: center; text-align: left; margin-bottom: 2px;
         `;
 
-        const isLive = !!currentLiveMenuCache[item.id];
+        // Safely determine if this item is currently pushed to the live database
+        let liveRecord = null;
+        if (currentLiveMenuCache) {
+            if (currentLiveMenuCache[item.id]) {
+                liveRecord = currentLiveMenuCache[item.id];
+            } else {
+                Object.values(currentLiveMenuCache).forEach(record => {
+                    if (record && record.id === item.id) liveRecord = record;
+                });
+            }
+        }
         
-        // 🚀 NEW: Checkbox visuals are generated purely from our secure background Set memory
-        const isStaged = stagedMenuItems.has(item.id); 
-
+        const isLive = !!liveRecord;
         let stockToggleHTML = '';
+        
+        // Show stock toggle button ONLY if it's an active live item
         if (isLive) {
-            const isOutOfStock = currentLiveMenuCache[item.id].isOutOfStock || false;
+            const isOutOfStock = liveRecord.isOutOfStock || false;
             const stockLabel = isOutOfStock ? "Out of Stock" : "In Stock";
             const stockColor = isOutOfStock ? "#EF4444" : "#10B981";
             stockToggleHTML = `
@@ -717,6 +709,7 @@ function initializeKitchenInventoryMatrix() {
             `;
         }
 
+        // Expanded checkbox physical size to 26px for cleaner mobile tapping
         gridRow.innerHTML = `
             <div style="flex-grow: 1; padding-right: 8px;">
                 <div style="font-size: 14px; font-weight: 600; color: #111827;">${item.title}</div>
@@ -724,61 +717,45 @@ function initializeKitchenInventoryMatrix() {
             </div>
             <div style="display: flex; align-items: center; flex-shrink: 0;">
                 ${stockToggleHTML}
-                <input type="checkbox" data-id="${item.id}" ${isStaged ? 'checked' : ''} onchange="handleConsoleCheckboxAction(this, '${item.id}')" style="width: 20px; height: 20px; accent-color: #FF4B3A; cursor: pointer;">
+                <input type="checkbox" class="console-checkbox" data-id="${item.id}" ${isLive ? 'checked' : ''} style="width: 26px; height: 26px; accent-color: #FF4B3A; cursor: pointer;">
             </div>
         `;
         inventoryContainer.appendChild(gridRow);
     });
 }
 
-// 🚀 FIXED: Instantly saves checked states into memory so no DOM drops can delete them
-function handleConsoleCheckboxAction(checkboxElement, itemId) {
-    const isChecked = checkboxElement.checked;
-    const wasAlreadyLive = !!currentLiveMenuCache[itemId];
-
-    if (!isChecked && wasAlreadyLive) {
-        const targetItem = MASTER_MENU.find(m => m.id === itemId);
-        const doubleCheck = confirm(`⚠️ Remove from Live Menu:\n\nAre you sure you want to remove "${targetItem.title}" from today's live menu?`);
-        
-        if (doubleCheck) {
-            stagedMenuItems.delete(itemId); // Purge from memory instantly
-            database.ref(`daily_live_menu/${itemId}`).remove()
-                .catch(() => alert("Network transmission failure."));
-        } else {
-            checkboxElement.checked = true; // Undo visually
-            stagedMenuItems.add(itemId);    // Protect in memory
-        }
-    } else if (isChecked) {
-        stagedMenuItems.add(itemId); // Successfully staged for publish
-    } else {
-        stagedMenuItems.delete(itemId); // Unstaged before publish
-    }
-}
-
 function toggleLiveItemStockState(itemId, currentOutOfStockFlag) {
+    // Only toggles the active stock flag for the customer UI
     database.ref(`daily_live_menu/${itemId}`).update({ isOutOfStock: !currentOutOfStockFlag })
         .catch(() => alert("Failed to modify live inventory property flag."));
 }
 
-// 🚀 FIXED: Reads exclusively from the solid JavaScript Memory Set
+// 🚀 FIXED: Directly queries the exact state of HTML checkboxes on the screen
 function previewSelectedLiveMenu() {
     const previewList = document.getElementById('menu-preview-list');
     previewList.innerHTML = '';
+    let selectedCount = 0;
 
-    if (stagedMenuItems.size === 0) {
+    const checkboxes = document.querySelectorAll('.console-checkbox');
+    
+    checkboxes.forEach(chk => {
+        if (chk.checked) {
+            selectedCount++;
+            const itemId = chk.getAttribute('data-id');
+            const targetItem = MASTER_MENU.find(m => m.id === itemId);
+            if (targetItem) {
+                const lineItem = document.createElement('div');
+                lineItem.style.cssText = "font-size: 13px; font-weight: 600; color: #111827; display: flex; align-items: center; gap: 6px;";
+                lineItem.innerHTML = `<span>🟢</span> ${targetItem.title} <span style="font-size:10px; font-weight:400; color:#6B7280;">(${targetItem.category})</span>`;
+                previewList.appendChild(lineItem);
+            }
+        }
+    });
+
+    if (selectedCount === 0) {
         alert("⚠️ Menu empty:\n\nPlease select at least one item before posting today's menu!");
         return;
     }
-
-    stagedMenuItems.forEach(itemId => {
-        const item = MASTER_MENU.find(m => m.id === itemId);
-        if (item) {
-            const lineItem = document.createElement('div');
-            lineItem.style.cssText = "font-size: 13px; font-weight: 600; color: #111827; display: flex; align-items: center; gap: 6px;";
-            lineItem.innerHTML = `<span>🟢</span> ${item.title} <span style="font-size:10px; font-weight:400; color:#6B7280;">(${item.category})</span>`;
-            previewList.appendChild(lineItem);
-        }
-    });
 
     document.getElementById('menu-confirm-overlay').style.display = 'block';
     document.getElementById('menu-confirm-modal').style.display = 'flex';
@@ -789,30 +766,48 @@ function closeMenuConfirmModal() {
     document.getElementById('menu-confirm-modal').style.display = 'none';
 }
 
-// 🚀 FIXED: Builds payload exclusively from the Javascript Set memory
+// 🚀 FIXED: Collects every checked box into one unbreakable JSON payload batch
 function publishSelectedLiveMenu() {
     const activePayload = {};
+    const checkboxes = document.querySelectorAll('.console-checkbox');
+    let addedCount = 0;
 
-    stagedMenuItems.forEach(itemId => {
-        const targetItem = MASTER_MENU.find(m => m.id === itemId);
-        if (targetItem) {
-            const alreadyLive = currentLiveMenuCache[itemId];
-            const currentStockState = alreadyLive ? alreadyLive.isOutOfStock : false;
+    checkboxes.forEach(chk => {
+        if (chk.checked) {
+            const itemId = chk.getAttribute('data-id');
+            const targetItem = MASTER_MENU.find(m => m.id === itemId);
+            
+            if (targetItem) {
+                // Determine if this item was ALREADY live to preserve its In/Out of Stock button state
+                let isOutOfStock = false;
+                if (currentLiveMenuCache) {
+                    if (currentLiveMenuCache[itemId]) {
+                        isOutOfStock = currentLiveMenuCache[itemId].isOutOfStock || false;
+                    } else {
+                        Object.values(currentLiveMenuCache).forEach(record => {
+                            if (record && record.id === itemId) isOutOfStock = record.isOutOfStock || false;
+                        });
+                    }
+                }
 
-            activePayload[itemId] = {
-                id: targetItem.id,
-                title: targetItem.title,
-                details: targetItem.details,
-                category: targetItem.category,
-                isOutOfStock: currentStockState
-            };
+                activePayload[itemId] = {
+                    id: targetItem.id,
+                    title: targetItem.title,
+                    details: targetItem.details,
+                    category: targetItem.category,
+                    isOutOfStock: isOutOfStock
+                };
+                addedCount++;
+            }
         }
     });
 
-    // Write atomic batch update to server
+    if (addedCount === 0) return;
+
+    // Execute atomic full replacement to Firebase
     database.ref('daily_live_menu').set(activePayload)
         .then(() => {
-            alert(`🚀 Success!\n\n${stagedMenuItems.size} items have been securely published to the live menu.`);
+            alert(`🚀 Success!\n\n${addedCount} items have been securely published to the live menu.`);
             closeMenuConfirmModal();
         })
         .catch((err) => {
