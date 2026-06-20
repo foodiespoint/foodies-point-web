@@ -41,9 +41,6 @@ function triggerNativeInstall() {
     
     deferredPrompt.prompt();
     deferredPrompt.userChoice.then((choiceResult) => {
-        if (choiceResult.outcome === 'accepted') {
-            console.log('App generation pipeline accepted.');
-        }
         deferredPrompt = null; 
         dismissMandatoryModal(); 
     });
@@ -75,20 +72,24 @@ function dismissMandatoryModal() {
 }
 
 // ==========================================================================
-// 2. CENTERED MANDATORY NOTIFICATION COERCION ENGINE (FIRST INTERACTION)
+// 2. CENTERED MANDATORY NOTIFICATION ACCESS WALL (FIRST TOUCH INTERCEPT)
 // ==========================================================================
 function initNotificationGestureCheck() {
     if (!('Notification' in window)) return;
 
-    // If permission is already granted, skip the blocker entirely
+    // If permission is already granted, skip completely
     if (Notification.permission === 'granted') return;
 
-    // Set up one-time gesture interception. The absolute millisecond they touch the screen, lock it down!
-    const triggerBlocker = () => {
+    // Trigger the blocker on the very first screen interaction
+    const triggerBlocker = (event) => {
+        // Safety: If they are touching the installation modal button, don't overlap the notifications modal yet
+        if (pwaModal && pwaModal.style.display === 'flex') return;
+
         if (Notification.permission !== 'granted') {
             showNotificationModal();
         }
     };
+    
     window.addEventListener('click', triggerBlocker, { once: true });
     window.addEventListener('touchstart', triggerBlocker, { once: true });
 }
@@ -97,22 +98,24 @@ function showNotificationModal() {
     if (notifModal && notifOverlay) {
         notifModal.style.display = 'flex';
         notifOverlay.style.display = 'block';
-        body.classList.add('stop-scrolling'); // Lock screen from closing or bypass scrolling
+        body.classList.add('stop-scrolling'); // Lock app scrolling context
     }
 }
 
 function acceptNotificationModal() {
-    // Hide our custom centered layout window structure
     if (notifModal && notifOverlay) {
         notifModal.style.display = 'none';
         notifOverlay.style.display = 'none';
         body.classList.remove('stop-scrolling');
     }
 
-    // Instantly fire the official browser permission prompt using the gesture validation token
+    // Fire the official native browser permission prompt directly
     Notification.requestPermission().then((permission) => {
         if (permission === 'granted') {
             triggerInstantNotification('🍕 Alerts Enabled! Your live tracking is active.');
+        } else {
+            // If they didn't accept, re-arm the gesture check so it locks on their next click/refresh
+            initNotificationGestureCheck();
         }
     });
 }
@@ -131,7 +134,7 @@ function triggerInstantNotification(messageText) {
     }
 }
 
-// If install window wasn't triggered on load, initialize gesture checks instantly
+// If install window wasn't triggered on load, initialize gesture check immediately
 window.addEventListener('DOMContentLoaded', () => {
     const isAlreadyInstalled = localStorage.getItem('pwa_installed_successfully');
     if (isAlreadyInstalled === 'true' || !deferredPrompt) {
@@ -140,7 +143,7 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 // ==========================================
-// 3. FIREBASE INFRASTRUCTURE COMPILATION
+// 3. FIREBASE INITIALIZATION
 // ==========================================
 const firebaseConfig = {
     databaseURL: "https://foodiespoint-6760-default-rtdb.asia-southeast1.firebasedatabase.app/"
@@ -219,6 +222,7 @@ function openCheckout() {
     summaryDiv.innerHTML = summaryHTML;
 }
 
+// Reset view conditions
 function closeCheckout() { 
     document.getElementById('checkout-modal').style.display = 'none'; 
     body.classList.remove('stop-scrolling'); 
