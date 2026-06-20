@@ -7,33 +7,27 @@
     <link rel="manifest" href="manifest.json">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
-        /* Base application canvas styles */
         body { font-family: 'Poppins', sans-serif; background-color: #F5F5F8; margin: 0; padding: 0; color: #2D2D2D; transition: overflow 0.3s ease; }
         .header { background-color: #FF4B3A; color: white; padding: 16px; text-align: center; font-size: 20px; font-weight: bold; position: sticky; top: 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1); z-index: 10; }
         .container { padding: 16px; padding-bottom: 120px; }
         #menu-container { display: flex; flex-direction: column; gap: 12px; }
         #cart-btn { position: fixed; bottom: 20px; left: 20px; right: 20px; background-color: #FF4B3A; color: white; text-align: center; padding: 16px; border-radius: 30px; font-weight: bold; font-size: 16px; box-shadow: 0 4px 10px rgba(255, 75, 58, 0.4); display: none; cursor: pointer; z-index: 5; }
         
-        /* Checkout Sheet UI Design */
         #checkout-modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.5); z-index: 200; justify-content: center; align-items: flex-end; }
         .modal-content { background-color: white; width: 100%; border-radius: 24px 24px 0 0; padding: 24px; box-sizing: border-box; max-height: 80vh; overflow-y: auto; }
         .input-field { width: 100%; padding: 12px; margin-top: 8px; margin-bottom: 16px; border: 1px solid #E0E0E0; border-radius: 8px; font-family: 'Poppins', sans-serif; box-sizing: border-box; }
         .submit-btn { width: 100%; background-color: #27AE60; color: white; padding: 16px; border: none; border-radius: 12px; font-weight: bold; font-size: 16px; cursor: pointer; }
         .close-btn { background: none; border: none; color: #828282; font-size: 14px; margin-bottom: 16px; cursor: pointer; padding: 0; }
         
-        /* Universal Blockers (Shared Styles for PWA & Notification Modals) */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.7); display: none; }
         .centered-blocker { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background-color: #FFFFFF; width: 85%; max-width: 320px; padding: 24px; border-radius: 24px; box-shadow: 0 15px 40px rgba(0,0,0,0.3); display: none; flex-direction: column; align-items: center; justify-content: center; animation: zoomIn 0.3s ease-out; }
         @keyframes zoomIn { from { transform: translate(-50%, -50%) scale(0.8); opacity: 0; } to { transform: translate(-50%, -50%) scale(1); opacity: 1; } }
-
-        /* System utilities */
         .stop-scrolling { height: 100%; overflow: hidden; }
     </style>
 </head>
 <body>
 
     <div class="header">Foodies Point</div>
-    
     <div class="container">
         <h3>Today's Live Menu</h3>
         <div id="menu-container"><p>Loading the kitchen's live menu...</p></div>
