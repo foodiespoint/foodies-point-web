@@ -2,7 +2,7 @@
 // FOODIES POINT - SERVICE WORKER (PRODUCTION ENGINE V7)
 // ==========================================================================
 
-const CACHE_NAME = 'foodies-cache-v8';
+const CACHE_NAME = 'foodies-cache-v9';
 
 // Core asset paths mapped directly to your GitHub repository layout
 const ASSETS = [
