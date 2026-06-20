@@ -28,6 +28,10 @@
         #checkout-modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(17, 24, 39, 0.7); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); z-index: 200; justify-content: center; align-items: flex-end; }
         .modal-content { background-color: #FFFFFF; width: 100%; max-width: 500px; border-radius: 30px 30px 0 0; padding: 28px 24px; box-sizing: border-box; max-height: 85vh; overflow-y: auto; box-shadow: 0 -10px 30px rgba(0,0,0,0.1); }
         
+        /* Form Field Grid Utilities */
+        .name-row { display: flex; gap: 12px; width: 100%; box-sizing: border-box; }
+        .name-column { flex: 1; }
+        
         .input-label { font-size: 12px; font-weight: 600; color: #4B5563; letter-spacing: 0.5px; display: block; margin-bottom: 6px; }
         .input-field { width: 100%; padding: 14px 16px; margin-top: 2px; margin-bottom: 20px; border: 1.5px solid #E5E7EB; border-radius: 14px; font-family: 'Poppins', sans-serif; font-size: 15px; color: #1F2937; background-color: #F9FAFB; box-sizing: border-box; outline: none; transition: all 0.2s ease; }
         .input-field:focus { border-color: #FF4B3A; background-color: #FFFFFF; box-shadow: 0 0 0 4px rgba(255, 75, 58, 0.1); }
@@ -71,11 +75,19 @@
             <h3 style="margin-top: 4px; font-size: 20px; font-weight: 700; color: #111827; letter-spacing: -0.4px;">Review Order</h3>
             <div id="cart-summary" style="margin-bottom: 24px; font-size: 14px; color: #4B5563; background-color: #F9FAFB; padding: 16px; border-radius: 14px; border: 1px dashed #E5E7EB; line-height: 1.6;"></div>
             
-            <label class="input-label">YOUR NAME</label>
-            <input type="text" id="customer-name" class="input-field" placeholder="Enter your full name">
+            <div class="name-row">
+                <div class="name-column">
+                    <label class="input-label">FIRST NAME</label>
+                    <input type="text" id="customer-first-name" class="input-field" placeholder="e.g. John">
+                </div>
+                <div class="name-column">
+                    <label class="input-label">LAST NAME</label>
+                    <input type="text" id="customer-last-name" class="input-field" placeholder="e.g. Doe">
+                </div>
+            </div>
             
             <label class="input-label">PHONE NUMBER</label>
-            <input type="tel" id="customer-phone" class="input-field" placeholder="Enter 10-digit mobile number">
+            <input type="tel" id="customer-phone" class="input-field" placeholder="10-digit mobile number" maxlength="10" oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 10);">
             
             <button class="submit-btn" onclick="submitOrder()">Place Order</button>
         </div>
