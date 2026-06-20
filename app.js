@@ -15,7 +15,7 @@ const splashText = document.getElementById('splash-text');
 
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-        // Appending v16 query token to force the browser to update scripts instantly
+        // Appending v16 parameters to skip proxy caches cleanly
         navigator.serviceWorker.register('sw.js?v=16')
             .then(reg => {
                 console.log('PWA core components initialized.');
@@ -205,13 +205,14 @@ function isKitchenBlackoutActive() {
 }
 
 function enforceBlackoutUILayout() {
+    // 🚀 SAFETY CHECK: Do not override layout structures if the active session is viewing the console panel
+    if (isConsoleViewActive) return;
+
     const historyContainer = document.getElementById('history-container');
-    
     localStorage.removeItem('foodies_tracked_orders');
     cart = [];
     if (cartBtn) cartBtn.style.display = 'none';
     
-    // Updated text copy alignment containing your corrections
     menuContainer.innerHTML = `
         <div style="text-align: center; padding: 32px 16px; background-color: #FFFFFF; border-radius: 18px; border: 1px dashed #E5E7EB; width: 100%; box-sizing: border-box;">
             <div style="font-size: 32px; margin-bottom: 8px;">⏰</div>
@@ -311,7 +312,7 @@ function listenToOrderHistory() {
     
     trackList.forEach(orderId => {
         database.ref(`orders/${orderId}`).on('value', (snapshot) => {
-            if (isKitchenBlackoutActive()) return; 
+            if (isKitchenBlackoutActive() || isConsoleViewActive) return; 
             
             const order = snapshot.val();
             if (!order) return;
@@ -476,6 +477,163 @@ function submitOrder() {
     }).catch(() => { alert("Error sending order. Try again."); });
 }
 
+// ==========================================================================
+// 🚀 9. NEW: ADMINISTRATIVE KITCHEN CONSOLE OPERATIONS ENGINE
+// ==========================================================================
+let isConsoleViewActive = false;
+const ROUTING_SECRET_PIN = "1234"; 
+
+function authenticateConsoleAccess() {
+    // If already inside the panel view layer, clicking exit behaves as a reversal toggle switch
+    if (isConsoleViewActive) {
+        isConsoleViewActive = false;
+        document.getElementById('kitchen-view-layout').style.display = 'none';
+        document.getElementById('customer-view-layout').style.display = 'flex';
+        document.getElementById('header-title-text').innerText = "Foodies Point";
+        document.getElementById('view-toggle-action').innerText = "Console";
+        document.getElementById('view-toggle-action').style.backgroundColor = "rgba(255,255,255,0.2)";
+        
+        // Re-evaluate client data states
+        if (isKitchenBlackoutActive()) {
+            enforceBlackoutUILayout();
+        } else {
+            window.location.reload(); 
+        }
+        return;
+    }
+
+    const verificationInput = prompt("🔑 Access Authorization Required:\n\nPlease enter the Kitchen Console PIN:");
+    if (verificationInput === null) return; 
+
+    if (verificationInput === ROUTING_SECRET_PIN) {
+        isConsoleViewActive = true;
+        document.getElementById('customer-view-layout').style.display = 'none';
+        if (cartBtn) cartBtn.style.display = 'none';
+        
+        document.getElementById('kitchen-view-layout').style.display = 'flex';
+        document.getElementById('header-title-text').innerText = "Kitchen Console";
+        document.getElementById('view-toggle-action').innerText = "Exit";
+        document.getElementById('view-toggle-action').style.backgroundColor = "#DC2626";
+        
+        // Open live admin sync pipelines
+        initializeKitchenOrderStream();
+        initializeKitchenInventoryMatrix();
+    } else {
+        alert("❌ Authentication Failed: Invalid authorization token provided.");
+    }
+}
+
+// Sub-Module A: Master Realtime Order Management Pipeline
+function initializeKitchenOrderStream() {
+    const ordersContainer = document.getElementById('kitchen-orders-container');
+    
+    database.ref('orders').orderByChild('timestamp').on('value', (snapshot) => {
+        if (!isConsoleViewActive) return;
+        ordersContainer.innerHTML = '';
+        
+        const trackingList = [];
+        snapshot.forEach((child) => {
+            const rawOrder = child.val();
+            if (!rawOrder.archived) {
+                trackingList.push(rawOrder);
+            }
+        });
+
+        if (trackingList.length === 0) {
+            ordersContainer.innerHTML = '<p style="text-align: center; color: #6B7280; font-size: 13px; margin-top: 20px;">No active orders found today.</p>';
+            return;
+        }
+
+        // Sort descending to keep newest tickets at top
+        trackingList.sort((a, b) => b.timestamp - a.timestamp);
+
+        trackingList.forEach((order) => {
+            const rowItem = document.createElement('div');
+            
+            let statusBadgeColor = "#D97706";
+            let statusLabel = "PENDING";
+            if (order.status === "ACCEPTED") { statusBadgeColor = "#10B981"; statusLabel = "ACCEPTED"; }
+            if (order.status === "REJECTED") { statusBadgeColor = "#EF4444"; statusLabel = "REJECTED"; }
+
+            rowItem.style.cssText = `
+                background-color: #FFFFFF; padding: 14px; border-radius: 14px;
+                box-shadow: 0 4px 10px rgba(0,0,0,0.02); border-left: 5px solid ${statusBadgeColor};
+                display: flex; flex-direction: column; gap: 8px;
+            `;
+
+            rowItem.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                    <div>
+                        <div style="font-size: 14px; font-weight: 700; color: #111827;">${order.customerName}</div>
+                        <div style="font-size: 11px; color: #4B5563; font-weight: 500;">📞 ${order.customerPhone}</div>
+                    </div>
+                    <span style="font-size: 10px; font-weight: 700; color: white; background-color: ${statusBadgeColor}; padding: 3px 8px; border-radius: 6px;">${statusLabel}</span>
+                </div>
+                <div style="font-size: 13px; color: #374151; font-weight: 500; line-height: 1.4; background-color: #F9FAFB; padding: 8px; border-radius: 8px;">
+                    ${order.items}
+                </div>
+                <div style="display: flex; gap: 8px; margin-top: 4px;">
+                    <button onclick="updateTicketStatus('${order.id}', 'ACCEPTED')" style="flex: 1; background-color: #10B981; color: white; border: none; padding: 8px; border-radius: 8px; font-weight: 600; font-size: 11px; cursor: pointer;">✓ Accept</button>
+                    <button onclick="updateTicketStatus('${order.id}', 'REJECTED')" style="flex: 1; background-color: #EF4444; color: white; border: none; padding: 8px; border-radius: 8px; font-weight: 600; font-size: 11px; cursor: pointer;">✕ Reject</button>
+                    <button onclick="archiveTicket('${order.id}')" style="background-color: #6B7280; color: white; border: none; padding: 8px 12px; border-radius: 8px; font-weight: 600; font-size: 11px; cursor: pointer;">Archive</button>
+                </div>
+            `;
+            ordersContainer.appendChild(rowItem);
+        });
+    });
+}
+
+function updateTicketStatus(ticketId, targetState) {
+    database.ref(`orders/${ticketId}`).update({ status: targetState })
+        .catch(() => alert("Network transmission failure updating database node state."));
+}
+
+function archiveTicket(ticketId) {
+    database.ref(`orders/${ticketId}`).update({ archived: true })
+        .catch(() => alert("Failed to archive target order file."));
+}
+
+// Sub-Module B: Master Menu Inventory Availablity Management Pipeline
+function initializeKitchenInventoryMatrix() {
+    const inventoryContainer = document.getElementById('kitchen-inventory-container');
+    
+    database.ref('daily_live_menu').on('value', (snapshot) => {
+        if (!isConsoleViewActive) return;
+        inventoryContainer.innerHTML = '';
+        
+        snapshot.forEach((child) => {
+            const item = child.val();
+            const gridRow = document.createElement('div');
+            
+            const isInStock = !item.isOutOfStock;
+            const contextBtnLabel = isInStock ? "In Stock" : "Out of Stock";
+            const contextBtnColor = isInStock ? "#10B981" : "#EF4444";
+
+            gridRow.style.cssText = `
+                background-color: #F9FAFB; padding: 12px; border-radius: 12px;
+                border: 1px solid #E5E7EB; display: flex; justify-content: space-between; align-items: center;
+            `;
+
+            gridRow.innerHTML = `
+                <div>
+                    <div style="font-size: 14px; font-weight: 600; color: #111827;">${item.title}</div>
+                    <div style="font-size: 11px; color: #6B7280;">${item.category} • ${item.details}</div>
+                </div>
+                <button onclick="toggleItemStockState('${item.id}', ${item.isOutOfStock || false})" style="background-color: ${contextBtnColor}; color: white; border: none; padding: 6px 12px; border-radius: 8px; font-size: 11px; font-weight: 600; cursor: pointer; min-width: 100px;">
+                    ${contextBtnLabel}
+                </button>
+            `;
+            inventoryContainer.appendChild(gridRow);
+        });
+    });
+}
+
+function toggleItemStockState(itemId, currentFlagValue) {
+    database.ref(`daily_live_menu/${itemId}`).update({ isOutOfStock: !currentFlagValue })
+        .catch(() => alert("Failed to mutate current target inventory flag data."));
+}
+
+// Global Startup Core Execution Handlers
 window.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => {
         if (!installPromptSupported) {
