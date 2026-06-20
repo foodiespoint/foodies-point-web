@@ -1,5 +1,5 @@
 // ==========================================================================
-// 1. PWA REGISTRATION & AUTO-RELOAD LIFECYCLE (VERSION 9)
+// 1. PWA REGISTRATION & AUTO-RELOAD LIFECYCLE (VERSION 10)
 // ==========================================================================
 let deferredPrompt = null;
 let installPromptSupported = false; 
@@ -12,17 +12,15 @@ const body = document.body;
 
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-        // Registered with v9 cache-busting URL parameter
-        navigator.serviceWorker.register('sw.js?v=9')
+        // 🚀 BUMPED TO V10: Syncs layout structure revisions safely across the network layer
+        navigator.serviceWorker.register('sw.js?v=10')
             .then(reg => {
                 console.log('PWA Service Worker registered successfully.');
-                // Force an active check against GitHub files on load
                 reg.update(); 
             })
             .catch(err => console.error('Worker registration failure:', err));
     });
 
-    // 🚀 AUTO-RELOAD ENGINE: Refreshes the view automatically when a new worker updates
     let refreshing = false;
     navigator.serviceWorker.addEventListener('controllerchange', () => {
         if (!refreshing) {
@@ -283,7 +281,7 @@ function listenToOrderHistory() {
 }
 
 // ==========================================
-// 6. BASKET ENGINE LOGIC (WITH PER-PLATE LIMITATIONS)
+// 6. BASKET ENGINE LOGIC
 // ==========================================
 function addToCart(id, title, details) {
     const existingItem = cart.find(i => i.id === id);
@@ -319,6 +317,7 @@ function openCheckout() {
     summaryDiv.innerHTML = summaryHTML;
 }
 
+// Reset visibility matrix safely
 function closeCheckout() { 
     document.getElementById('checkout-modal').style.display = 'none'; 
     body.classList.remove('stop-scrolling'); 
@@ -328,14 +327,23 @@ function closeCheckout() {
 // 7. DOWNSTREAM DATABASE DISPATCH TO KITCHEN
 // ==========================================
 function submitOrder() {
-    const name = document.getElementById('customer-name').value.trim();
+    // 🚀 UPDATED: Form input extraction maps to distinct fields
+    const firstName = document.getElementById('customer-first-name').value.trim();
+    const lastName = document.getElementById('customer-last-name').value.trim();
     const phone = document.getElementById('customer-phone').value.trim();
 
-    if (name === "" || phone === "") {
-        alert("Please enter your name and phone number.");
+    if (firstName === "" || lastName === "") {
+        alert("Please enter both your First Name and Last Name.");
+        return;
+    }
+    if (phone === "" || phone.length !== 10) {
+        alert("Please enter a valid 10-digit mobile number.");
         return;
     }
     if (cart.length === 0) return;
+
+    // Concatenate strings cleanly so it saves inside your standard Kitchen node row structure seamlessly
+    const completeFullName = `${firstName} ${lastName}`;
 
     const itemSummaryString = cart.map(item => {
         return item.details.toLowerCase().includes("per plate") 
@@ -348,7 +356,7 @@ function submitOrder() {
 
     const customerPayload = {
         id: newOrderRef.key,
-        customerName: name,
+        customerName: completeFullName, // Saves perfectly formatted string to database
         customerPhone: phone,
         items: itemSummaryString,
         status: "PENDING",
@@ -367,7 +375,10 @@ function submitOrder() {
         cart = [];
         cartBtn.style.display = 'none';
         closeCheckout();
-        document.getElementById('customer-name').value = '';
+        
+        // Reset split text inputs cleanly
+        document.getElementById('customer-first-name').value = '';
+        document.getElementById('customer-last-name').value = '';
         document.getElementById('customer-phone').value = '';
     }).catch(() => { alert("Error sending order. Try again."); });
 }
