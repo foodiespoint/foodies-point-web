@@ -1,8 +1,8 @@
 // ==========================================================================
-// FOODIES POINT - SERVICE WORKER (PRODUCTION ENGINE V24)
+// FOODIES POINT - SERVICE WORKER (PRODUCTION ENGINE V26)
 // ==========================================================================
 
-const CACHE_NAME = 'foodies-cache-v24';
+const CACHE_NAME = 'foodies-cache-v25';
 
 const ASSETS = [
   '',
@@ -16,21 +16,26 @@ self.addEventListener('install', (event) => {
     event.waitUntil(
         caches.open(CACHE_NAME)
             .then((cache) => {
-                console.log('PWA Cache Engine V24: Saving complete production array engine asset structures');
+                console.log('PWA Cache Engine V26: Saving production configuration assets');
                 return cache.addAll(ASSETS);
             })
-            .then(() => self.skipWaiting())
+            .then(() => self.skipWaiting()) // Force immediate install takeover
     );
 });
 
+// 🚀 FIXED: Cleans out old caches cleanly and claims client tabs instantly
 self.addEventListener('activate', (event) => {
     event.waitUntil(
-        caches.open(CACHE_NAME)
-            .then((cache) => {
-                console.log('PWA Cache Engine V24: Dropping deprecated menu data indices...');
-                return cache.addAll(ASSETS);
-            })
-            .then(() => self.skipWaiting())
+        caches.keys().then((keys) => {
+            return Promise.all(
+                keys.map((key) => {
+                    if (key !== CACHE_NAME) {
+                        console.log('PWA Cache Engine V26: Purging legacy cache container assets:', key);
+                        return caches.delete(key);
+                    }
+                })
+            );
+        }).then(() => self.clients.claim()) // Tells app.js that update is fully active
     );
 });
 
