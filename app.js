@@ -1,5 +1,5 @@
 // ==========================================================================
-// 1. PWA REGISTRATION & AGGRESSIVE INSTALL (WITH CACHE-BUSTING V8)
+// 1. PWA REGISTRATION & AUTO-RELOAD LIFECYCLE (VERSION 9)
 // ==========================================================================
 let deferredPrompt = null;
 let installPromptSupported = false; 
@@ -12,13 +12,23 @@ const body = document.body;
 
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-        // 🚀 BUMPED TO V8: Forces the phone to download the new item validation rules instantly
-        navigator.serviceWorker.register('sw.js?v=8')
+        // Registered with v9 cache-busting URL parameter
+        navigator.serviceWorker.register('sw.js?v=9')
             .then(reg => {
-                console.log('PWA Service Worker engine running cleanly.');
+                console.log('PWA Service Worker registered successfully.');
+                // Force an active check against GitHub files on load
                 reg.update(); 
             })
             .catch(err => console.error('Worker registration failure:', err));
+    });
+
+    // 🚀 AUTO-RELOAD ENGINE: Refreshes the view automatically when a new worker updates
+    let refreshing = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (!refreshing) {
+            refreshing = true;
+            window.location.reload();
+        }
     });
 }
 
@@ -28,7 +38,6 @@ window.addEventListener('beforeinstallprompt', (e) => {
     installPromptSupported = true; 
     
     const isAlreadyInstalled = localStorage.getItem('pwa_installed_successfully');
-    
     if (isAlreadyInstalled !== 'true') {
         showMandatoryModal();
     } else {
@@ -279,11 +288,10 @@ function listenToOrderHistory() {
 function addToCart(id, title, details) {
     const existingItem = cart.find(i => i.id === id);
     
-    // 🛑 BUSINESS VALIDATION RULE: Limit "per plate" items to a maximum quantity of 5
     if (details.toLowerCase().includes("per plate")) {
         if (existingItem && existingItem.quantity >= 5) {
             alert(`⚠️ Order Limit Exceeded:\n\nYou can only order a maximum of 5 plates for ${title} per single dispatch!`);
-            return; // Completely blocks the thread from adding more items
+            return; 
         }
     }
 
