@@ -2,7 +2,7 @@
 // FOODIES POINT - SERVICE WORKER (FIXED PATH MAPPINGS)
 // ==========================================================================
 
-const CACHE_NAME = 'foodies-cache-v5';
+const CACHE_NAME = 'foodies-cache-v6';
 
 const ASSETS = [
   '',
