@@ -1,5 +1,5 @@
 // ==========================================================================
-// 1. PWA LIFECYCLE HANDSHAKE & SPLASH SCREEN SYSTEM (VERSION 13)
+// 1. PWA LIFECYCLE HANDSHAKE & SPLASH SCREEN SYSTEM (VERSION 14)
 // ==========================================================================
 let deferredPrompt = null;
 let installPromptSupported = false; 
@@ -15,8 +15,8 @@ const splashText = document.getElementById('splash-text');
 
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-        // 🚀 BUMPED TO V13: Bypasses legacy cache layers for strict time filters
-        navigator.serviceWorker.register('sw.js?v=13')
+        // 🚀 BUMPED TO V14: Forces your app to dump the broken timezone logic cache instantly
+        navigator.serviceWorker.register('sw.js?v=14')
             .then(reg => {
                 console.log('PWA core components initialized.');
                 let versionUpgradeDetected = false;
@@ -180,18 +180,28 @@ firebase.initializeApp(firebaseConfig);
 const database = firebase.database();
 
 // ==========================================
-// 4. 🚀 CRITICAL NEW: CHRONOLOGICAL LOCKOUT ENGINE
+// 4. 🚀 FIXED: BULLETPROOF IST TIMEZONE LOCKOUT ENGINE
 // ==========================================
 function isKitchenBlackoutActive() {
     const now = new Date();
     
-    // Evaluate exact local time contexts matching your Indian target audience base
-    const currentHour = now.getHours();
-    const currentMinute = now.getMinutes();
+    // Force JavaScript to format the time parameters strictly using Indian Standard Time (IST)
+    const istFormatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'Asia/Kolkata',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+    });
+    
+    // Example format conversion output: "20:50" -> ["20", "50"]
+    const istTimeParts = istFormatter.format(now).split(':');
+    const currentHour = parseInt(istTimeParts[0], 10);
+    const currentMinute = parseInt(istTimeParts[1], 10);
+    
     const totalMinutesPassed = (currentHour * 60) + currentMinute;
     
-    const lockStartMinutes = 18 * 60;       // 6:00 PM exact
-    const lockReleaseMinutes = (21 * 60) + 30; // 9:30 PM exact
+    const lockStartMinutes = 18 * 60;          // 18:00 (6:00 PM)
+    const lockReleaseMinutes = (21 * 60) + 30;    // 21:30 (9:30 PM)
     
     return (totalMinutesPassed >= lockStartMinutes && totalMinutesPassed < lockReleaseMinutes);
 }
@@ -199,14 +209,12 @@ function isKitchenBlackoutActive() {
 function enforceBlackoutUILayout() {
     const historyContainer = document.getElementById('history-container');
     
-    // Wipe local storage order arrays instantly upon cross-over matching rules
     localStorage.removeItem('foodies_tracked_orders');
     cart = [];
     if (cartBtn) cartBtn.style.display = 'none';
     
-    // Inject holding layout into panels
     menuContainer.innerHTML = `
-        <div style="text-align: center; padding: 32px 16px; background-color: #FFFFFF; border-radius: 18px; border: 1px dashed #E5E7EB;">
+        <div style="text-align: center; padding: 32px 16px; background-color: #FFFFFF; border-radius: 18px; border: 1px dashed #E5E7EB; width: 100%; box-sizing: border-box;">
             <div style="font-size: 32px; margin-bottom: 8px;">⏰</div>
             <div style="font-weight: 700; font-size: 15px; color: #111827;">Kitchen Closed for Today</div>
             <div style="color: #6B7280; font-size: 13px; margin-top: 4px; line-height: 1.5;">The menu has been cleared. Tomorrow's live menu will be available exactly after 9:30 PM IST.</div>
@@ -223,14 +231,13 @@ function enforceBlackoutUILayout() {
 }
 
 // ==========================================
-// 5. MAIN DATA pipelines: LIVE MENU CONTROLLER
+// 5. MAIN DATA PIPELINES: LIVE MENU CONTROLLER
 // ==========================================
 const menuContainer = document.getElementById('menu-container');
 const cartBtn = document.getElementById('cart-btn');
 let cart = [];
 
 database.ref('daily_live_menu').on('value', (snapshot) => {
-    // 🚀 INTERCEPT: Check temporal constraint windows before building menu blocks
     if (isKitchenBlackoutActive()) {
         enforceBlackoutUILayout();
         return;
@@ -286,7 +293,6 @@ database.ref('daily_live_menu').on('value', (snapshot) => {
 // 6. PRESENT DAY REALTIME HISTORY SCANNER MODULE
 // ==========================================
 function listenToOrderHistory() {
-    // 🚀 INTERCEPT: Instantly block history checks if layout sits inside blackout window
     if (isKitchenBlackoutActive()) {
         enforceBlackoutUILayout();
         return;
@@ -306,7 +312,7 @@ function listenToOrderHistory() {
     
     trackList.forEach(orderId => {
         database.ref(`orders/${orderId}`).on('value', (snapshot) => {
-            if (isKitchenBlackoutActive()) return; // Break parsing execution early
+            if (isKitchenBlackoutActive()) return; 
             
             const order = snapshot.val();
             if (!order) return;
@@ -471,7 +477,6 @@ function submitOrder() {
     }).catch(() => { alert("Error sending order. Try again."); });
 }
 
-// Global Execution Loops
 window.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => {
         if (!installPromptSupported) {
@@ -481,7 +486,6 @@ window.addEventListener('DOMContentLoaded', () => {
     
     listenToOrderHistory();
     
-    // 🚀 BACKGROUND MONITOR: Run a clock check every 30 seconds to lock runtime views actively
     setInterval(() => {
         if (isKitchenBlackoutActive()) {
             enforceBlackoutUILayout();
