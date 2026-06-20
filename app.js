@@ -1,8 +1,8 @@
 // ==========================================================================
-// 1. PWA INITIALIZATION & ROUTING HOOKS
+// 1. PWA REGISTRATION & SCREEN-BLOCKING INSTALL FUNCTIONALITY
 // ==========================================================================
 let deferredPrompt = null;
-let installPromptSupported = false; // Flag to prevent notification modal overlap
+let installPromptSupported = false; 
 
 const pwaModal = document.getElementById('pwa-modal');
 const pwaOverlay = document.getElementById('pwa-overlay');
@@ -18,11 +18,10 @@ if ('serviceWorker' in navigator) {
     });
 }
 
-// Intercept installation capabilities token cleanly
 window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault(); 
     deferredPrompt = e;  
-    installPromptSupported = true; // Mark installation system as active
+    installPromptSupported = true; 
     
     const isAlreadyInstalled = localStorage.getItem('pwa_installed_successfully');
     const pwaLastSeen = localStorage.getItem('pwa_prompt_last_seen');
@@ -32,10 +31,10 @@ window.addEventListener('beforeinstallprompt', (e) => {
         if (!pwaLastSeen || (now - pwaLastSeen) > (24 * 60 * 60 * 1000)) {
             showMandatoryModal();
         } else {
-            initNotificationGestureCheck(); // Fallback if 24hr rule blocks it
+            initNotificationGestureCheck(); 
         }
     } else {
-        initNotificationGestureCheck(); // Fallback if already running standalone
+        initNotificationGestureCheck(); 
     }
 });
 
@@ -70,8 +69,6 @@ function dismissMandatoryModal() {
         pwaModal.style.display = 'none';
         pwaOverlay.style.display = 'none';
         body.classList.remove('stop-scrolling'); 
-        
-        // Pass programmatic execution to notification system cleanly
         initNotificationGestureCheck();
     }
 }
@@ -83,11 +80,8 @@ function initNotificationGestureCheck() {
     if (!('Notification' in window)) return;
     if (Notification.permission === 'granted') return;
 
-    // Armed tracking handlers waiting for clean execution
     const triggerBlocker = () => {
-        // Double-check safety to ensure install layer isn't open
         if (pwaModal && pwaModal.style.display === 'flex') return;
-
         if (Notification.permission !== 'granted') {
             showNotificationModal();
         }
@@ -116,7 +110,6 @@ function acceptNotificationModal() {
         if (permission === 'granted') {
             triggerInstantNotification('🍕 Alerts Enabled! Your live tracking is active.');
         } else {
-            // Re-arm if they hit block/close so it catches them on the next touch interface interaction
             initNotificationGestureCheck();
         }
     });
@@ -136,7 +129,6 @@ function triggerInstantNotification(messageText) {
     }
 }
 
-// TIMEOUT GATEKEEPER: If beforeinstallprompt hasn't fired in 2 seconds, run notifications
 window.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => {
         if (!installPromptSupported) {
@@ -146,7 +138,7 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 // ==========================================
-// 3. FIREBASE REALTIME DATABASES MODULES
+// 3. FIREBASE INITIALIZATION
 // ==========================================
 const firebaseConfig = {
     databaseURL: "https://foodiespoint-6760-default-rtdb.asia-southeast1.firebasedatabase.app/"
@@ -155,7 +147,7 @@ firebase.initializeApp(firebaseConfig);
 const database = firebase.database();
 
 // ==========================================
-// 4. MAIN DATA PIPELINES & SHOPPING CARTS
+// 4. DATA PIPELINES & INTERFACE REFERENCES
 // ==========================================
 const menuContainer = document.getElementById('menu-container');
 const cartBtn = document.getElementById('cart-btn');
@@ -167,40 +159,55 @@ database.ref('daily_live_menu').on('value', (snapshot) => {
     snapshot.forEach((child) => menuItems.push(child.val()));
 
     if (menuItems.length === 0) {
-        menuContainer.innerHTML = '<p>The kitchen has not posted a menu yet today.</p>';
+        menuContainer.innerHTML = '<p style="text-align: center; color: #9CA3AF; margin-top: 20px;">The kitchen has not posted a menu yet today.</p>';
         return;
     }
 
     menuItems.forEach((item) => {
         const card = document.createElement('div');
-        card.style.backgroundColor = '#FFFFFF';
-        card.style.padding = '16px';
-        card.style.borderRadius = '16px';
-        card.style.boxShadow = '0 2px 4px rgba(0,0,0,0.05)';
-        card.style.marginBottom = '12px';
         
-        const opacity = item.isOutOfStock ? '0.5' : '1.0';
-        const stockStatus = item.isOutOfStock ? '<span style="color: red; font-size: 12px; font-weight: bold;">OUT OF STOCK</span>' : '';
-        const buttonHTML = item.isOutOfStock 
-            ? `<button disabled style="background-color: #E0E0E0; color: #828282; padding: 8px 16px; border: none; border-radius: 8px; font-weight: bold;">Unavailable</button>`
-            : `<button onclick="addToCart('${item.id}', '${item.title}', '${item.details}')" style="background-color: #FF4B3A; color: white; padding: 8px 16px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">+ Add</button>`;
+        // High-readability card engine styling variables
+        const isStocked = !item.isOutOfStock;
+        const opacitySetting = isStocked ? '1.0' : '0.6';
+        
+        // Premium Badge markup injection
+        const badgeHTML = isStocked 
+            ? `<span style="background-color: #EEF2F6; color: #4B5563; font-size: 10px; font-weight: 600; padding: 4px 8px; border-radius: 6px; letter-spacing: 0.3px; text-transform: uppercase;">${item.category}</span>`
+            : `<span style="background-color: #FEE2E2; color: #EF4444; font-size: 10px; font-weight: 700; padding: 4px 8px; border-radius: 6px; letter-spacing: 0.3px;">OUT OF STOCK</span>`;
+            
+        // Native button style markup state handling
+        const actionButtonHTML = isStocked
+            ? `<button onclick="addToCart('${item.id}', '${item.title}', '${item.details}')" style="background-color: #FF4B3A; color: white; padding: 8px 16px; border: none; border-radius: 10px; font-weight: 600; font-size: 13px; cursor: pointer; box-shadow: 0 4px 10px rgba(255, 75, 58, 0.15); transition: transform 0.1s ease;">+ Add</button>`
+            : `<button disabled style="background-color: #F3F4F6; color: #9CA3AF; padding: 8px 14px; border: none; border-radius: 10px; font-weight: 500; font-size: 13px;">N/A</button>`;
+
+        // Card rendering logic block
+        card.style.cssText = `
+            background-color: #FFFFFF;
+            padding: 16px;
+            border-radius: 18px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+            border: 1px solid #F3F4F6;
+            opacity: ${opacitySetting};
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        `;
 
         card.innerHTML = `
-            <div style="opacity: ${opacity}; display: flex; justify-content: space-between; align-items: center;">
-                <div style="flex-grow: 1; padding-right: 12px;">
-                    <div style="color: #FF4B3A; font-size: 10px; font-weight: bold; text-transform: uppercase;">
-                        ${item.category} ${stockStatus}
-                    </div>
-                    <div style="font-size: 16px; font-weight: bold; margin-top: 4px;">${item.title}</div>
-                    <div style="color: #828282; font-size: 13px; margin-top: 2px;">${item.details}</div>
-                </div>
-                <div>${buttonHTML}</div>
+            <div style="flex-grow: 1; padding-right: 16px;">
+                <div style="margin-bottom: 6px; display: inline-block;">${badgeHTML}</div>
+                <div style="font-size: 16px; font-weight: 600; color: #111827; letter-spacing: -0.3px; margin-top: 2px;">${item.title}</div>
+                <div style="color: #6B7280; font-size: 13px; margin-top: 3px; line-height: 1.4;">${item.details}</div>
             </div>
+            <div style="flex-shrink: 0;">${actionButtonHTML}</div>
         `;
         menuContainer.appendChild(card);
     });
 });
 
+// ==========================================
+// 5. BASKET ENGINE LOGIC
+// ==========================================
 function addToCart(id, title, details) {
     const existingItem = cart.find(i => i.id === id);
     if (existingItem) {
@@ -210,15 +217,20 @@ function addToCart(id, title, details) {
     }
     const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
     cartBtn.style.display = 'block';
-    cartBtn.innerText = `View Cart (${totalItems} items)`;
+    cartBtn.innerText = `View Order (${totalItems} items)`;
 }
 
 function openCheckout() {
     document.getElementById('checkout-modal').style.display = 'flex';
     body.classList.add('stop-scrolling'); 
     const summaryDiv = document.getElementById('cart-summary');
-    let summaryHTML = '<strong>Your Items:</strong><br>';
-    cart.forEach(item => { summaryHTML += `- ${item.quantity}x ${item.title}<br>`; });
+    let summaryHTML = '<div style="font-weight: 600; color: #111827; margin-bottom: 8px; font-size: 15px;">Selected Items:</div>';
+    cart.forEach(item => { 
+        summaryHTML += `<div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+            <span>🟢 ${item.title}</span>
+            <span style="font-weight: 600; color: #111827;">x${item.quantity}</span>
+        </div>`; 
+    });
     summaryDiv.innerHTML = summaryHTML;
 }
 
@@ -227,6 +239,9 @@ function closeCheckout() {
     body.classList.remove('stop-scrolling'); 
 }
 
+// ==========================================
+// 6. DOWNSTREAM DATABASE DISPATCH TO KITCHEN
+// ==========================================
 function submitOrder() {
     const name = document.getElementById('customer-name').value.trim();
     const phone = document.getElementById('customer-phone').value.trim();
