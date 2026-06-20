@@ -1,5 +1,5 @@
 // ==========================================================================
-// 1. PWA LIFECYCLE HANDSHAKE & SPLASH SCREEN SYSTEM (VERSION 26)
+// 1. PWA LIFECYCLE HANDSHAKE & SPLASH SCREEN SYSTEM (VERSION 27)
 // ==========================================================================
 let deferredPrompt = null;
 let installPromptSupported = false; 
@@ -13,26 +13,33 @@ const body = document.body;
 const updateSplash = document.getElementById('update-splash');
 const splashText = document.getElementById('splash-text');
 
-// 🚀 NEW: Hard Fail-Safe Timeout. Forcibly dismisses splash after 4 seconds max
+// 🛡️ ABSOLUTE FAIL-SAFE: Forcibly drops the splash screen after 4 seconds no matter what
 const splashFailSafeGuard = setTimeout(() => {
-    console.warn("Handshake fail-safe timeout triggered. Forcibly dismissing splash screen layer.");
+    console.warn("Handshake fail-safe triggered. Forcibly clearing splash screen layer.");
     dismissUpdateSplashScreen();
 }, 4000);
 
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-        // Registered with v26 query strings to flush out the broken v25 activation loops
-        navigator.serviceWorker.register('sw.js?v=26')
+        // Bumbed to v27 query string to force CDN cache eviction
+        navigator.serviceWorker.register('sw.js?v=27')
             .then(reg => {
                 console.log('PWA core components initialized.');
-                let versionUpgradeDetected = false;
 
+                // 🚀 OPTIMIZATION: If this is a fresh install or data was cleared, there is no controller.
+                // We bypass all update checks and dismiss the splash screen instantly!
+                if (!navigator.serviceWorker.controller) {
+                    console.log("Fresh install detected. Dissolving splash screen instantly.");
+                    dismissUpdateSplashScreen();
+                    return;
+                }
+
+                // Otherwise, for returning users, check for background updates from GitHub
+                let versionUpgradeDetected = false;
                 reg.onupdatefound = () => {
-                    if (navigator.serviceWorker.controller) {
-                        versionUpgradeDetected = true;
-                        if (splashText) {
-                            splashText.innerHTML = "New update found!<br><span style='color:#FF4B3A; font-size:14px; font-weight:500;'>Installing assets... Please do not close the app.</span>";
-                        }
+                    versionUpgradeDetected = true;
+                    if (splashText) {
+                        splashText.innerHTML = "New update found!<br><span style='color:#FF4B3A; font-size:14px; font-weight:500;'>Installing assets... Please do not close the app.</span>";
                     }
                 };
 
@@ -64,9 +71,7 @@ if ('serviceWorker' in navigator) {
 }
 
 function dismissUpdateSplashScreen() {
-    // Clear our fail-safe timer if it dismissed cleanly on its own
-    clearTimeout(splashFailSafeGuard);
-    
+    clearTimeout(splashFailSafeGuard); // Clear backup guard timer
     if (updateSplash) {
         updateSplash.style.transition = "opacity 0.4s ease, visibility 0.4s";
         updateSplash.style.opacity = "0";
@@ -122,9 +127,9 @@ function dismissMandatoryModal() {
     }
 }
 
-// ==========================================================================
+// ==========================================
 // 2. CENTERED MANDATORY NOTIFICATION POPUP ENGINE
-// ==========================================================================
+// ==========================================
 function initNotificationGestureCheck() {
     if (!('Notification' in window)) return;
     if (Notification.permission === 'granted') return;
@@ -468,7 +473,7 @@ function submitOrder() {
 }
 
 // ==========================================================================
-// 9. ADMINISTRATIVE MASTER MENU CONTROL ENGINE (PRODUCTION CATALOG V26)
+// 9. ADMINISTRATIVE MASTER MENU CONTROL ENGINE (PRODUCTION CATALOG V27)
 // ==========================================================================
 let isConsoleViewActive = false;
 const ROUTING_SECRET_PIN = "validatefoodies2026"; 
