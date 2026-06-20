@@ -135,6 +135,9 @@ window.addEventListener('DOMContentLoaded', () => {
             initNotificationGestureCheck();
         }
     }, 2000);
+    
+    // Boot up the real-time device history tracking scanner engine
+    listenToOrderHistory();
 });
 
 // ==========================================
@@ -147,7 +150,7 @@ firebase.initializeApp(firebaseConfig);
 const database = firebase.database();
 
 // ==========================================
-// 4. DATA PIPELINES & INTERFACE REFERENCES
+// 4. MAIN DATA PIPELINES: LIVE MENU CONTROLLER
 // ==========================================
 const menuContainer = document.getElementById('menu-container');
 const cartBtn = document.getElementById('cart-btn');
@@ -165,22 +168,17 @@ database.ref('daily_live_menu').on('value', (snapshot) => {
 
     menuItems.forEach((item) => {
         const card = document.createElement('div');
-        
-        // High-readability card engine styling variables
         const isStocked = !item.isOutOfStock;
         const opacitySetting = isStocked ? '1.0' : '0.6';
         
-        // Premium Badge markup injection
         const badgeHTML = isStocked 
             ? `<span style="background-color: #EEF2F6; color: #4B5563; font-size: 10px; font-weight: 600; padding: 4px 8px; border-radius: 6px; letter-spacing: 0.3px; text-transform: uppercase;">${item.category}</span>`
             : `<span style="background-color: #FEE2E2; color: #EF4444; font-size: 10px; font-weight: 700; padding: 4px 8px; border-radius: 6px; letter-spacing: 0.3px;">OUT OF STOCK</span>`;
             
-        // Native button style markup state handling
         const actionButtonHTML = isStocked
-            ? `<button onclick="addToCart('${item.id}', '${item.title}', '${item.details}')" style="background-color: #FF4B3A; color: white; padding: 8px 16px; border: none; border-radius: 10px; font-weight: 600; font-size: 13px; cursor: pointer; box-shadow: 0 4px 10px rgba(255, 75, 58, 0.15); transition: transform 0.1s ease;">+ Add</button>`
+            ? `<button onclick="addToCart('${item.id}', '${item.title}', '${item.details}')" style="background-color: #FF4B3A; color: white; padding: 8px 16px; border: none; border-radius: 10px; font-weight: 600; font-size: 13px; cursor: pointer; box-shadow: 0 4px 10px rgba(255, 75, 58, 0.15);">+ Add</button>`
             : `<button disabled style="background-color: #F3F4F6; color: #9CA3AF; padding: 8px 14px; border: none; border-radius: 10px; font-weight: 500; font-size: 13px;">N/A</button>`;
 
-        // Card rendering logic block
         card.style.cssText = `
             background-color: #FFFFFF;
             padding: 16px;
@@ -206,7 +204,84 @@ database.ref('daily_live_menu').on('value', (snapshot) => {
 });
 
 // ==========================================
-// 5. BASKET ENGINE LOGIC
+// 5. PRESENT DAY REALTIME HISTORY SCANNER MODULE
+// ==========================================
+function listenToOrderHistory() {
+    const historyContainer = document.getElementById('history-container');
+    const trackList = JSON.parse(localStorage.getItem('foodies_tracked_orders') || '[]');
+    
+    if (trackList.length === 0) {
+        historyContainer.innerHTML = '<p style="text-align: center; color: #9CA3AF; font-size: 13px; margin-top: 12px;">No orders placed today yet.</p>';
+        return;
+    }
+    
+    if (historyContainer.innerHTML.includes("No orders placed today")) {
+        historyContainer.innerHTML = '';
+    }
+    
+    // Establish deep individual snapshot nodes for state observation loops
+    trackList.forEach(orderId => {
+        database.ref(`orders/${orderId}`).on('value', (snapshot) => {
+            const order = snapshot.val();
+            if (!order) return;
+            
+            let card = document.getElementById(`history-card-${orderId}`);
+            let isNew = false;
+            if (!card) {
+                card = document.createElement('div');
+                card.id = `history-card-${orderId}`;
+                isNew = true;
+            }
+            
+            // Map Kitchen Node strings to specified layout badge parameters
+            let statusText = "On Hold";
+            let badgeColor = "#D97706"; // Default Amber
+            let bgColor = "#FEF3C7";
+            
+            if (order.status === "ACCEPTED") {
+                statusText = "Accepted";
+                badgeColor = "#059669"; // Emerald Green
+                bgColor = "#D1FAE5";
+            } else if (order.status === "REJECTED") {
+                statusText = "Rejected";
+                badgeColor = "#DC2626"; // Crimson Red
+                bgColor = "#FEE2E2";
+            } else if (order.status === "HOLD" || order.status === "PENDING") {
+                statusText = "On Hold";
+                badgeColor = "#D97706";
+                bgColor = "#FEF3C7";
+            }
+            
+            card.style.cssText = `
+                background-color: #F9FAFB;
+                padding: 14px;
+                border-radius: 14px;
+                border: 1px solid #E5E7EB;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            `;
+            
+            card.innerHTML = `
+                <div style="flex-grow: 1; padding-right: 12px;">
+                    <div style="font-size: 13px; font-weight: 600; color: #111827; line-height: 1.4;">${order.items}</div>
+                    <div style="font-size: 11px; color: #9CA3AF; margin-top: 4px;">Ordered at ${new Date(order.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+                </div>
+                <span style="background-color: ${bgColor}; color: ${badgeColor}; font-size: 11px; font-weight: 700; padding: 6px 12px; border-radius: 20px; text-transform: uppercase; white-space: nowrap; letter-spacing: 0.3px;">
+                    ${statusText}
+                </span>
+            `;
+            
+            if (isNew) {
+                // Prepend to place the most recent orders at the top of the history list
+                historyContainer.insertBefore(card, historyContainer.firstChild);
+            }
+        });
+    });
+}
+
+// ==========================================
+// 6. BASKET ENGINE LOGIC
 // ==========================================
 function addToCart(id, title, details) {
     const existingItem = cart.find(i => i.id === id);
@@ -240,7 +315,7 @@ function closeCheckout() {
 }
 
 // ==========================================
-// 6. DOWNSTREAM DATABASE DISPATCH TO KITCHEN
+// 7. DOWNSTREAM DATABASE DISPATCH TO KITCHEN
 // ==========================================
 function submitOrder() {
     const name = document.getElementById('customer-name').value.trim();
@@ -272,6 +347,14 @@ function submitOrder() {
     };
 
     newOrderRef.set(customerPayload).then(() => {
+        // Append unique order key tracking matrix to local storage state
+        let trackList = JSON.parse(localStorage.getItem('foodies_tracked_orders') || '[]');
+        trackList.push(newOrderRef.key);
+        localStorage.setItem('foodies_tracked_orders', JSON.stringify(trackList));
+        
+        // Re-execute status monitoring loops to render new item instantly
+        listenToOrderHistory();
+
         alert("Order dispatched to the kitchen!");
         cart = [];
         cartBtn.style.display = 'none';
