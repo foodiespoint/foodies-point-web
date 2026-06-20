@@ -28,7 +28,6 @@
         #checkout-modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(17, 24, 39, 0.7); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); z-index: 200; justify-content: center; align-items: flex-end; }
         .modal-content { background-color: #FFFFFF; width: 100%; max-width: 500px; border-radius: 30px 30px 0 0; padding: 28px 24px; box-sizing: border-box; max-height: 85vh; overflow-y: auto; box-shadow: 0 -10px 30px rgba(0,0,0,0.1); }
         
-        /* Form Field Grid Utilities */
         .name-row { display: flex; gap: 12px; width: 100%; box-sizing: border-box; }
         .name-column { flex: 1; }
         
@@ -45,6 +44,13 @@
         .blocker-btn { width: 100%; color: white; border: none; padding: 16px; border-radius: 14px; font-weight: 600; font-size: 16px; cursor: pointer; }
         
         .stop-scrolling { height: 100%; overflow: hidden; }
+
+        /* 🚀 NEW: Pulse Keyframe Animation for Update System Spinner */
+        @keyframes pulseSpinner {
+            0% { transform: scale(1); opacity: 0.4; }
+            50% { transform: scale(1.15); opacity: 1; }
+            100% { transform: scale(1); opacity: 0.4; }
+        }
     </style>
 </head>
 <body>
@@ -107,6 +113,12 @@
         <div style="font-weight: 700; font-size: 20px; color: #111827; text-align: center; margin-bottom: 6px; letter-spacing: -0.4px;">Turn on Notifications</div>
         <div style="color: #6B7280; font-size: 13px; text-align: center; margin-bottom: 28px; line-height: 1.5; padding: 0 6px;">You must grant notification permissions to get instant layout updates when your order status changes.</div>
         <button onclick="acceptNotificationModal()" class="blocker-btn" style="background-color: #10B981; box-shadow: 0 6px 20px rgba(16, 185, 129, 0.3);">Allow Alerts</button>
+    </div>
+
+    <div id="update-splash" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: #FFFFFF; z-index: 20000; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+        <div style="font-size: 48px; margin-bottom: 20px; animation: pulseSpinner 1.5s ease-in-out infinite;">⏳</div>
+        <div id="splash-text" style="font-family: 'Poppins', sans-serif; font-weight: 600; font-size: 16px; color: #111827; letter-spacing: -0.2px; text-align: center; padding: 0 24px;">Checking for updates...</div>
+        <div style="font-family: 'Poppins', sans-serif; font-size: 11px; color: #9CA3AF; margin-top: 8px; letter-spacing: 1px;">FOODIES POINT ENGINE</div>
     </div>
 
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
