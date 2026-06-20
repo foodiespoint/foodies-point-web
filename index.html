@@ -9,21 +9,24 @@
     <style>
         body { font-family: 'Poppins', sans-serif; background-color: #F9FAFB; margin: 0; padding: 0; color: #1F2937; transition: overflow 0.3s ease; -webkit-tap-highlight-color: transparent; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
         
-        .header { background-color: #FF4B3A; color: #FFFFFF; padding: 16px; text-align: center; font-size: 22px; font-weight: 700; box-shadow: 0 4px 20px rgba(255, 75, 58, 0.15); z-index: 10; letter-spacing: -0.5px; flex-shrink: 0; }
+        .header { background-color: #FF4B3A; color: #FFFFFF; padding: 16px; text-align: center; font-size: 22px; font-weight: 700; box-shadow: 0 4px 20px rgba(255, 75, 58, 0.15); z-index: 10; letter-spacing: -0.5px; flex-shrink: 0; position: relative; }
         .header::after { content: 'LIVE KITCHEN ACCESS'; display: block; font-size: 10px; font-weight: 600; color: rgba(255,255,255,0.8); letter-spacing: 2px; margin-top: 2px; }
         
-        .app-layout { display: flex; flex-direction: column; flex-grow: 1; height: calc(100vh - 68px); max-width: 500px; margin: 0 auto; width: 100%; box-sizing: border-box; }
+        /* 🚀 NEW: Hidden Administrative Entry Trigger Switch */
+        .admin-trigger-btn { position: absolute; right: 16px; top: 22px; background: rgba(255, 255, 255, 0.2); border: none; color: white; padding: 6px 12px; font-size: 11px; font-weight: 600; border-radius: 8px; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; }
         
+        .app-layout, .kitchen-layout { display: flex; flex-direction: column; flex-grow: 1; height: calc(100vh - 68px); max-width: 500px; margin: 0 auto; width: 100%; box-sizing: border-box; }
+        
+        /* Layout Scroll Panels */
         .top-section { flex: 1.3; overflow-y: auto; padding: 16px; box-sizing: border-box; }
         .bottom-section { flex: 0.9; overflow-y: auto; padding: 16px; background-color: #FFFFFF; border-top: 1px solid #E5E7EB; box-shadow: 0 -4px 15px rgba(0,0,0,0.02); box-sizing: border-box; padding-bottom: 100px; position: relative; }
         
         .section-title { font-size: 15px; font-weight: 700; color: #111827; margin-top: 0; margin-bottom: 14px; letter-spacing: -0.3px; text-transform: uppercase; display: flex; align-items: center; gap: 6px; }
         .section-title-badge { background-color: #FF4B3A; color: white; font-size: 10px; padding: 2px 6px; border-radius: 6px; }
         
-        #menu-container, #history-container { display: flex; flex-direction: column; gap: 12px; }
+        #menu-container, #history-container, #kitchen-orders-container, #kitchen-inventory-container { display: flex; flex-direction: column; gap: 12px; }
         
         #cart-btn { position: fixed; bottom: 24px; left: 16px; right: 16px; max-width: 468px; margin: 0 auto; background: linear-gradient(135deg, #FF4B3A 0%, #FF6B5C 100%); color: #FFFFFF; text-align: center; padding: 18px; border-radius: 18px; font-weight: 600; font-size: 16px; box-shadow: 0 8px 25px rgba(255, 75, 58, 0.35); display: none; cursor: pointer; z-index: 50; border: none; outline: none; letter-spacing: -0.2px; transition: transform 0.1s ease; }
-        #cart-btn:active { transform: scale(0.98); }
         
         #checkout-modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(17, 24, 39, 0.7); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); z-index: 200; justify-content: center; align-items: flex-end; }
         .modal-content { background-color: #FFFFFF; width: 100%; max-width: 500px; border-radius: 30px 30px 0 0; padding: 28px 24px; box-sizing: border-box; max-height: 85vh; overflow-y: auto; box-shadow: 0 -10px 30px rgba(0,0,0,0.1); }
@@ -45,7 +48,6 @@
         
         .stop-scrolling { height: 100%; overflow: hidden; }
 
-        /* 🚀 NEW: Pulse Keyframe Animation for Update System Spinner */
         @keyframes pulseSpinner {
             0% { transform: scale(1); opacity: 0.4; }
             50% { transform: scale(1.15); opacity: 1; }
@@ -55,9 +57,12 @@
 </head>
 <body>
 
-    <div class="header">Foodies Point</div>
+    <div class="header">
+        <span id="header-title-text">Foodies Point</span>
+        <button id="view-toggle-action" class="admin-trigger-btn" onclick="authenticateConsoleAccess()">Console</button>
+    </div>
     
-    <div class="app-layout">
+    <div id="customer-view-layout" class="app-layout">
         <div class="top-section">
             <h3 class="section-title">Today's Menu <span class="section-title-badge" style="background-color:#FF4B3A;">LIVE</span></h3>
             <div id="menu-container">
@@ -75,6 +80,22 @@
     
     <div id="cart-btn" onclick="openCheckout()">View Order (0 items)</div>
     
+    <div id="kitchen-view-layout" class="kitchen-layout" style="display: none;">
+        <div class="top-section" style="flex: 1.2; background-color: #F3F4F6;">
+            <h3 class="section-title">Incoming Live Orders <span class="section-title-badge" style="background-color:#10B981;">REALTIME</span></h3>
+            <div id="kitchen-orders-container">
+                <p style="text-align: center; color: #6B7280; font-size: 13px; margin-top: 10px;">No incoming orders found today...</p>
+            </div>
+        </div>
+        
+        <div class="bottom-section" style="flex: 0.8; padding-bottom: 24px;">
+            <h3 class="section-title">Stock Allocation Manager <span class="section-title-badge" style="background-color:#4B5563;">MENU</span></h3>
+            <div id="kitchen-inventory-container">
+                <p style="text-align: center; color: #9CA3AF; font-size: 13px; margin-top: 12px;">Loading catalog mapping tree...</p>
+            </div>
+        </div>
+    </div>
+
     <div id="checkout-modal">
         <div class="modal-content">
             <button class="close-btn" onclick="closeCheckout()">✕ Close</button>
