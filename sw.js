@@ -2,7 +2,7 @@
 // FOODIES POINT - SERVICE WORKER (PRODUCTION ENGINE V30)
 // ==========================================================================
 
-const CACHE_NAME = 'foodies-cache-v29';
+const CACHE_NAME = 'foodies-cache-v30';
 
 const ASSETS = [
   '',
