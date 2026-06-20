@@ -1,8 +1,8 @@
 // ==========================================================================
-// FOODIES POINT - SERVICE WORKER (PRODUCTION ENGINE V27)
+// FOODIES POINT - SERVICE WORKER (PRODUCTION ENGINE V28)
 // ==========================================================================
 
-const CACHE_NAME = 'foodies-cache-v26';
+const CACHE_NAME = 'foodies-cache-v27';
 
 const ASSETS = [
   '',
@@ -16,7 +16,7 @@ self.addEventListener('install', (event) => {
     event.waitUntil(
         caches.open(CACHE_NAME)
             .then((cache) => {
-                console.log('PWA Cache Engine V27: Committing crash-proof lifecycle assets');
+                console.log('PWA Cache Engine V28: Committing interactive switch modifications');
                 return cache.addAll(ASSETS);
             })
             .then(() => self.skipWaiting())
@@ -29,7 +29,7 @@ self.addEventListener('activate', (event) => {
             return Promise.all(
                 keys.map((key) => {
                     if (key !== CACHE_NAME) {
-                        console.log('PWA Cache Engine V27: Purging old cache layers:', key);
+                        console.log('PWA Cache Engine V28: Purging old cache layers:', key);
                         return caches.delete(key);
                     }
                 })
