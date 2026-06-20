@@ -1,12 +1,15 @@
 // ==========================================================================
-// 1. GLOBAL PRODUCTION CONFIGURATIONS & STATE REGISTRY (VERSION 34)
+// 1. GLOBAL PRODUCTION CONFIGURATIONS & STATE REGISTRY (VERSION 35)
 // ==========================================================================
 let deferredPrompt = null;
 let installPromptSupported = false; 
 let cart = [];
 
+// 🚀 FIXED: Global Memory Vaults to protect against silent Firebase redraws
 let isConsoleViewActive = false;
 let currentLiveMenuCache = {}; 
+let localCheckedState = new Set(); 
+window.pendingPublishPayload = {};
 const ROUTING_SECRET_PIN = "validatefoodies2026"; 
 
 const pwaModal = document.getElementById('pwa-modal');
@@ -18,7 +21,7 @@ const body = document.body;
 const updateSplash = document.getElementById('update-splash');
 const splashText = document.getElementById('splash-text');
 
-// MASTER CATALOG DATA CONTAINER (102 Items)
+// MASTER CATALOG DATA CONTAINER
 const MASTER_MENU = [
     { id: "roll_1", title: "Dahi Bread Roll", details: "15/- per pc.", category: "ROLLS" },
     { id: "roll_2", title: "Bread Roll", details: "80/- per plate (8 pc.)", category: "ROLLS" },
@@ -39,7 +42,7 @@ const MASTER_MENU = [
     { id: "pak_4", title: "Mirch ki pakodi", details: "15 per pc.", category: "PAKODI" },
     { id: "pak_5", title: "Bread Pakoda", details: "20/- per pc.", category: "PAKODI" },
     { id: "pak_6", title: "Egg pakodi", details: "10/- per pc", category: "PAKODI" },
-    { id: "pak_7", title: "Moong daal ke mongode (pakodi)", details: "75 (250gm)", category: "PAKODI" },
+    { id: "pak_7", title: "Moong daal ke mongode", details: "75 (250gm)", category: "PAKODI" },
 
     { id: "sand_1", title: "Veg Grilled Mayonaise Sandwich", details: "55/- (2 pc)", category: "SANDWICH" },
     { id: "sand_2", title: "Veg Cheese Sandwich", details: "60/- (2 pc)", category: "SANDWICH" },
@@ -136,7 +139,6 @@ const MASTER_MENU = [
     { id: "rice_4", title: "Veg. Biryani", details: "180", category: "RICE" }
 ];
 
-// FAIL-SAFE CRASH MONITORING GATE
 const splashFailSafeGuard = setTimeout(() => {
     console.warn("Handshake fail-safe triggered.");
     dismissUpdateSplashScreen();
@@ -147,8 +149,8 @@ const splashFailSafeGuard = setTimeout(() => {
 // ==========================================================================
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-        // 🚀 Bumped to v34 to force a completely clean load
-        navigator.serviceWorker.register('sw.js?v=34')
+        // v35 update forces device to clear old scripts instantly
+        navigator.serviceWorker.register('sw.js?v=35')
             .then(reg => {
                 console.log('PWA core components initialized.');
 
@@ -372,7 +374,6 @@ const cartBtn = document.getElementById('cart-btn');
 database.ref('daily_live_menu').on('value', (snapshot) => {
     currentLiveMenuCache = snapshot.val() || {};
 
-    // Refresh Kitchen Console UI only if it's currently open
     if (isConsoleViewActive) {
         initializeKitchenInventoryMatrix();
     }
@@ -597,7 +598,7 @@ function submitOrder() {
 }
 
 // ==========================================================================
-// 🚀 9. KITCHEN CONSOLE DASHBOARD - PURE HTML FORM PARADIGM (VERSION 34)
+// 🚀 9. KITCHEN CONSOLE DASHBOARD - SECURE MEMORY OVERRIDE (VERSION 35)
 // ==========================================================================
 function authenticateConsoleAccess() {
     if (isConsoleViewActive) {
@@ -669,7 +670,41 @@ function submitConsolePIN() {
     }
 }
 
-// 🚀 FIXED: Pure HTML element generation. Zero database manipulation on checkbox clicks!
+// 🚀 FIXED: Instantly logs every checkbox click into secure JS memory regardless of UI state
+function handleConsoleCheckboxAction(checkboxElement, itemId) {
+    const isChecked = checkboxElement.checked;
+    
+    // Check if item is already successfully pushed live on Firebase
+    let wasAlreadyLive = false;
+    if (currentLiveMenuCache && currentLiveMenuCache[itemId]) {
+        wasAlreadyLive = true;
+    }
+
+    if (isChecked) {
+        // Protect the check mark in local memory instantly
+        localCheckedState.add(itemId);
+    } else {
+        // If unchecking, remove it from memory first
+        localCheckedState.delete(itemId);
+        
+        // If it was already live, trigger the instant remove warning
+        if (wasAlreadyLive) {
+            const targetItem = MASTER_MENU.find(m => m.id === itemId);
+            const doubleCheck = confirm(`⚠️ Remove from Live Menu:\n\nAre you sure you want to remove "${targetItem.title}" from today's live menu?`);
+            
+            if (doubleCheck) {
+                // Delete from live Firebase menu
+                database.ref(`daily_live_menu/${itemId}`).remove()
+                    .catch(() => alert("Network transmission failure."));
+            } else {
+                // User canceled removal. Put the check back visually and into memory!
+                checkboxElement.checked = true;
+                localCheckedState.add(itemId);
+            }
+        }
+    }
+}
+
 function initializeKitchenInventoryMatrix() {
     const inventoryContainer = document.getElementById('kitchen-inventory-container');
     if (!isConsoleViewActive) return;
@@ -682,24 +717,20 @@ function initializeKitchenInventoryMatrix() {
             border: 1px solid #E5E7EB; display: flex; justify-content: space-between; align-items: center; text-align: left; margin-bottom: 2px;
         `;
 
-        // Safely determine if this item is currently pushed to the live database
-        let liveRecord = null;
-        if (currentLiveMenuCache) {
-            if (currentLiveMenuCache[item.id]) {
-                liveRecord = currentLiveMenuCache[item.id];
-            } else {
-                Object.values(currentLiveMenuCache).forEach(record => {
-                    if (record && record.id === item.id) liveRecord = record;
-                });
-            }
+        let isLive = false;
+        let isOutOfStock = false;
+
+        // Check if item exists in Firebase Cache
+        if (currentLiveMenuCache && currentLiveMenuCache[item.id]) {
+            isLive = true;
+            isOutOfStock = currentLiveMenuCache[item.id].isOutOfStock || false;
         }
-        
-        const isLive = !!liveRecord;
+
+        // 🚀 FIXED: The physical checkbox stays checked if it's Live OR if it's protected in Local Memory!
+        const isChecked = isLive || localCheckedState.has(item.id);
+
         let stockToggleHTML = '';
-        
-        // Show stock toggle button ONLY if it's an active live item
         if (isLive) {
-            const isOutOfStock = liveRecord.isOutOfStock || false;
             const stockLabel = isOutOfStock ? "Out of Stock" : "In Stock";
             const stockColor = isOutOfStock ? "#EF4444" : "#10B981";
             stockToggleHTML = `
@@ -709,7 +740,6 @@ function initializeKitchenInventoryMatrix() {
             `;
         }
 
-        // Expanded checkbox physical size to 26px for cleaner mobile tapping
         gridRow.innerHTML = `
             <div style="flex-grow: 1; padding-right: 8px;">
                 <div style="font-size: 14px; font-weight: 600; color: #111827;">${item.title}</div>
@@ -717,7 +747,7 @@ function initializeKitchenInventoryMatrix() {
             </div>
             <div style="display: flex; align-items: center; flex-shrink: 0;">
                 ${stockToggleHTML}
-                <input type="checkbox" class="console-checkbox" data-id="${item.id}" ${isLive ? 'checked' : ''} style="width: 26px; height: 26px; accent-color: #FF4B3A; cursor: pointer;">
+                <input type="checkbox" class="console-checkbox" data-id="${item.id}" ${isChecked ? 'checked' : ''} onchange="handleConsoleCheckboxAction(this, '${item.id}')" style="width: 26px; height: 26px; accent-color: #FF4B3A; cursor: pointer;">
             </div>
         `;
         inventoryContainer.appendChild(gridRow);
@@ -725,13 +755,13 @@ function initializeKitchenInventoryMatrix() {
 }
 
 function toggleLiveItemStockState(itemId, currentOutOfStockFlag) {
-    // Only toggles the active stock flag for the customer UI
     database.ref(`daily_live_menu/${itemId}`).update({ isOutOfStock: !currentOutOfStockFlag })
         .catch(() => alert("Failed to modify live inventory property flag."));
 }
 
-// 🚀 FIXED: Directly queries the exact state of HTML checkboxes on the screen
+// 🚀 FIXED: Build the preview directly from the checkboxes (which are now protected by memory)
 function previewSelectedLiveMenu() {
+    window.pendingPublishPayload = {}; // Clear global payload
     const previewList = document.getElementById('menu-preview-list');
     previewList.innerHTML = '';
     let selectedCount = 0;
@@ -740,10 +770,26 @@ function previewSelectedLiveMenu() {
     
     checkboxes.forEach(chk => {
         if (chk.checked) {
-            selectedCount++;
             const itemId = chk.getAttribute('data-id');
             const targetItem = MASTER_MENU.find(m => m.id === itemId);
             if (targetItem) {
+                selectedCount++;
+                
+                // Inherit stock state if it was already live
+                let isOutOfStock = false;
+                if (currentLiveMenuCache && currentLiveMenuCache[itemId]) {
+                    isOutOfStock = currentLiveMenuCache[itemId].isOutOfStock || false;
+                }
+
+                // Push to global payload ready to send
+                window.pendingPublishPayload[itemId] = {
+                    id: targetItem.id,
+                    title: targetItem.title,
+                    details: targetItem.details,
+                    category: targetItem.category,
+                    isOutOfStock: isOutOfStock
+                };
+
                 const lineItem = document.createElement('div');
                 lineItem.style.cssText = "font-size: 13px; font-weight: 600; color: #111827; display: flex; align-items: center; gap: 6px;";
                 lineItem.innerHTML = `<span>🟢</span> ${targetItem.title} <span style="font-size:10px; font-weight:400; color:#6B7280;">(${targetItem.category})</span>`;
@@ -766,48 +812,14 @@ function closeMenuConfirmModal() {
     document.getElementById('menu-confirm-modal').style.display = 'none';
 }
 
-// 🚀 FIXED: Collects every checked box into one unbreakable JSON payload batch
+// 🚀 FIXED: Shoots the global payload memory directly to Firebase, bypassing DOM issues
 function publishSelectedLiveMenu() {
-    const activePayload = {};
-    const checkboxes = document.querySelectorAll('.console-checkbox');
-    let addedCount = 0;
+    if (!window.pendingPublishPayload || Object.keys(window.pendingPublishPayload).length === 0) return;
 
-    checkboxes.forEach(chk => {
-        if (chk.checked) {
-            const itemId = chk.getAttribute('data-id');
-            const targetItem = MASTER_MENU.find(m => m.id === itemId);
-            
-            if (targetItem) {
-                // Determine if this item was ALREADY live to preserve its In/Out of Stock button state
-                let isOutOfStock = false;
-                if (currentLiveMenuCache) {
-                    if (currentLiveMenuCache[itemId]) {
-                        isOutOfStock = currentLiveMenuCache[itemId].isOutOfStock || false;
-                    } else {
-                        Object.values(currentLiveMenuCache).forEach(record => {
-                            if (record && record.id === itemId) isOutOfStock = record.isOutOfStock || false;
-                        });
-                    }
-                }
-
-                activePayload[itemId] = {
-                    id: targetItem.id,
-                    title: targetItem.title,
-                    details: targetItem.details,
-                    category: targetItem.category,
-                    isOutOfStock: isOutOfStock
-                };
-                addedCount++;
-            }
-        }
-    });
-
-    if (addedCount === 0) return;
-
-    // Execute atomic full replacement to Firebase
-    database.ref('daily_live_menu').set(activePayload)
+    database.ref('daily_live_menu').set(window.pendingPublishPayload)
         .then(() => {
-            alert(`🚀 Success!\n\n${addedCount} items have been securely published to the live menu.`);
+            alert(`🚀 Success!\n\nAll selected items have been securely published to the live menu.`);
+            localCheckedState.clear(); // Clear memory vault because Firebase takes over control now
             closeMenuConfirmModal();
         })
         .catch((err) => {
