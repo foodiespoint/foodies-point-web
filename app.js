@@ -1,5 +1,5 @@
 // ==========================================================================
-// 1. PWA LIFECYCLE HANDSHAKE & SPLASH SCREEN SYSTEM (VERSION 19)
+// 1. PWA LIFECYCLE HANDSHAKE & SPLASH SCREEN SYSTEM (VERSION 20)
 // ==========================================================================
 let deferredPrompt = null;
 let installPromptSupported = false; 
@@ -15,8 +15,8 @@ const splashText = document.getElementById('splash-text');
 
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-        // 🚀 BUMPED TO V19: Forces clients to register the masked input configuration elements right away
-        navigator.serviceWorker.register('sw.js?v=19')
+        // 🚀 BUMPED TO V20: Instantly updates the password on all connected user devices
+        navigator.serviceWorker.register('sw.js?v=20')
             .then(reg => {
                 console.log('PWA core components initialized.');
                 let versionUpgradeDetected = false;
@@ -477,14 +477,13 @@ function submitOrder() {
 }
 
 // ==========================================================================
-// 🚀 9. UPDATED: PASSWORD AUTHENTICATION WITH SECURE MODAL ENGINE
+// 9. ADMINISTRATIVE KITCHEN CONSOLE OPERATIONS ENGINE
 // ==========================================================================
 let isConsoleViewActive = false;
-const ROUTING_SECRET_PIN = "validatefoodies2026'"; // 🚀 UPDATED CREDENTIAL
+const ROUTING_SECRET_PIN = "validatefoodies2026"; // 🚀 FIXED: String quote removed cleanly
 
 function authenticateConsoleAccess() {
     if (isConsoleViewActive) {
-        // Exit active console dashboard layout smoothly
         isConsoleViewActive = false;
         document.getElementById('kitchen-view-layout').style.display = 'none';
         document.getElementById('customer-view-layout').style.display = 'flex';
@@ -500,7 +499,6 @@ function authenticateConsoleAccess() {
         return;
     }
 
-    // 🚀 NEW: Fire custom authorization interface instead of unmasked prompt() box
     document.getElementById('admin-auth-overlay').style.display = 'block';
     document.getElementById('admin-auth-modal').style.display = 'flex';
     document.getElementById('admin-pin-input').value = '';
@@ -601,7 +599,6 @@ function updateTicketStatus(ticketId, targetState) {
         .catch(() => alert("Network transmission failure updating database node state."));
 }
 
-// Global programmatic update loops
 function archiveTicket(ticketId) {
     database.ref(`orders/${ticketId}`).update({ archived: true })
         .catch(() => alert("Failed to archive target order file."));
