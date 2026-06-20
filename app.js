@@ -1,11 +1,10 @@
 // ==========================================================================
-// 1. GLOBAL PRODUCTION CONFIGURATIONS & STATE REGISTRY (VERSION 29)
+// 1. GLOBAL PRODUCTION CONFIGURATIONS & STATE REGISTRY (VERSION 30)
 // ==========================================================================
 let deferredPrompt = null;
 let installPromptSupported = false; 
 let cart = [];
 
-// 🚀 FIXED: Global administrative states pulled to absolute top to kill initialization crashes
 let isConsoleViewActive = false;
 let currentLiveMenuCache = {}; 
 const ROUTING_SECRET_PIN = "validatefoodies2026"; 
@@ -19,7 +18,7 @@ const body = document.body;
 const updateSplash = document.getElementById('update-splash');
 const splashText = document.getElementById('splash-text');
 
-// 📦 PRODUCED MASTER CATALOG SYSTEM (ALL 102 ITEMS DEPLOYED)
+// MASTER CATALOG DATA CONTAINER
 const MASTER_MENU = [
     // ROLLS
     { id: "roll_1", title: "Dahi Bread Roll", details: "15/- per pc.", category: "ROLLS" },
@@ -150,23 +149,23 @@ const MASTER_MENU = [
     { id: "rice_4", title: "Veg. Biryani", details: "180", category: "RICE" }
 ];
 
-// 🛡️ ABSOLUTE FAIL-SAFE COUNTDOWN PROTECTION
+// FAIL-SAFE CRASH MONITORING GATE
 const splashFailSafeGuard = setTimeout(() => {
     console.warn("Handshake fail-safe triggered. Forcibly clearing splash screen layer.");
     dismissUpdateSplashScreen();
 }, 4000);
 
 // ==========================================================================
-// 2. PWA SERVICE WORKER SYNCHRONIZATION LIFECYCLE
+// 2. PWA SERVICE WORKER LIFE-CYCLE MONITOR
 // ==========================================================================
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js?v=29')
+        // Registered with v30 parameters to evict historic cache nodes
+        navigator.serviceWorker.register('sw.js?v=30')
             .then(reg => {
                 console.log('PWA core components initialized.');
 
                 if (!navigator.serviceWorker.controller) {
-                    console.log("Fresh session allocation window. Dissolving splash screen instantly.");
                     dismissUpdateSplashScreen();
                     return;
                 }
@@ -264,7 +263,7 @@ function dismissMandatoryModal() {
 }
 
 // ==========================================================================
-// 3. CENTERED MANDATORY NOTIFICATION POPUP ENGINE
+// 3. MANDATORY ALERTS MANAGEMENT SUB-MODULE
 // ==========================================================================
 function initNotificationGestureCheck() {
     if (!('Notification' in window)) return;
@@ -321,7 +320,7 @@ function triggerInstantNotification(messageText) {
 }
 
 // ==========================================
-// 4. FIREBASE REALTIME INITIALIZATION
+// 4. FIREBASE DATA HANDLERS INITIALIZATION
 // ==========================================
 const firebaseConfig = {
     databaseURL: "https://foodiespoint-6760-default-rtdb.asia-southeast1.firebasedatabase.app/"
@@ -334,7 +333,6 @@ const database = firebase.database();
 // ==========================================
 function isKitchenBlackoutActive() {
     const now = new Date();
-    
     const istFormatter = new Intl.DateTimeFormat('en-US', {
         timeZone: 'Asia/Kolkata',
         hour: '2-digit',
@@ -437,7 +435,7 @@ database.ref('daily_live_menu').on('value', (snapshot) => {
 });
 
 // ==========================================
-// 7. PRESENT DAY REALTIME HISTORY SCANNER MODULE
+// 7. CLIENT-SIDE ORDER HISTORY PIPELINE
 // ==========================================
 function listenToOrderHistory() {
     if (isKitchenBlackoutActive()) {
@@ -507,7 +505,7 @@ function listenToOrderHistory() {
 }
 
 // ==========================================
-// 8. BASKET TRANSACTIONAL LOGIC
+// 8. BASKET DISPATCH INFRASTRUCTURE
 // ==========================================
 function addToCart(id, title, details) {
     if (isKitchenBlackoutActive()) {
@@ -611,7 +609,7 @@ function submitOrder() {
 }
 
 // ==========================================================================
-// 9. ADMINISTRATIVE WORKSPACE PANEL LOGISTIC MANAGERS
+// 9. ADMINISTRATIVE WORKSPACE MANAGEMENT COMMAND CORE
 // ==========================================================================
 function authenticateConsoleAccess() {
     if (isConsoleViewActive) {
@@ -775,6 +773,9 @@ function closeMenuConfirmModal() {
     document.getElementById('menu-confirm-modal').style.display = 'none';
 }
 
+// ==========================================
+// 🚀 FIXED: CLEAN MERGE MULTI-ITEM PUBLISHER
+// ==========================================
 function publishSelectedLiveMenu() {
     const activePayload = {};
 
@@ -794,7 +795,8 @@ function publishSelectedLiveMenu() {
         }
     });
 
-    database.ref('daily_live_menu').set(activePayload)
+    // 🚀 FIXED: Switched from .set() to .update() to run a clean merge injection
+    database.ref('daily_live_menu').update(activePayload)
         .then(() => {
             alert("🚀 Success!\n\nToday's live menu has been updated and broadcasted to all customer devices.");
             closeMenuConfirmModal();
@@ -867,6 +869,7 @@ function updateTicketStatus(ticketId, targetState) {
         .catch(() => alert("Network transmission failure."));
 }
 
+// Setup core system archival nodes
 function archiveTicket(ticketId) {
     database.ref(`orders/${ticketId}`).update({ archived: true })
         .catch(() => alert("Failed to archive order."));
