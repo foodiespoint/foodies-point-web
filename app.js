@@ -1,5 +1,5 @@
 // ==========================================================================
-// 1. GLOBAL PRODUCTION CONFIGURATIONS & STATE REGISTRY (VERSION 30)
+// 1. GLOBAL PRODUCTION CONFIGURATIONS & STATE REGISTRY (VERSION 31)
 // ==========================================================================
 let deferredPrompt = null;
 let installPromptSupported = false; 
@@ -160,8 +160,8 @@ const splashFailSafeGuard = setTimeout(() => {
 // ==========================================================================
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-        // Registered with v30 parameters to evict historic cache nodes
-        navigator.serviceWorker.register('sw.js?v=30')
+        // 🚀 Bumped to v31 to evict previous destructive cache blocks
+        navigator.serviceWorker.register('sw.js?v=31')
             .then(reg => {
                 console.log('PWA core components initialized.');
 
@@ -262,9 +262,9 @@ function dismissMandatoryModal() {
     }
 }
 
-// ==========================================================================
-// 3. MANDATORY ALERTS MANAGEMENT SUB-MODULE
-// ==========================================================================
+// ==========================================
+// 3. CENTERED MANDATORY NOTIFICATION ENGINE
+// ==========================================
 function initNotificationGestureCheck() {
     if (!('Notification' in window)) return;
     if (Notification.permission === 'granted') return;
@@ -320,7 +320,7 @@ function triggerInstantNotification(messageText) {
 }
 
 // ==========================================
-// 4. FIREBASE DATA HANDLERS INITIALIZATION
+// 4. FIREBASE REALTIME INITIALIZATION
 // ==========================================
 const firebaseConfig = {
     databaseURL: "https://foodiespoint-6760-default-rtdb.asia-southeast1.firebasedatabase.app/"
@@ -609,7 +609,7 @@ function submitOrder() {
 }
 
 // ==========================================================================
-// 9. ADMINISTRATIVE WORKSPACE MANAGEMENT COMMAND CORE
+// 🚀 9. ADMINISTRATIVE WORKSPACE - ATOMIC BATCH PUBLISHING FIX (V31)
 // ==========================================================================
 function authenticateConsoleAccess() {
     if (isConsoleViewActive) {
@@ -715,7 +715,7 @@ function initializeKitchenInventoryMatrix() {
             </div>
             <div style="display: flex; align-items: center; flex-shrink: 0;">
                 ${stockToggleHTML}
-                <input type="checkbox" id="chk-${item.id}" data-id="${item.id}" ${isLive ? 'checked' : ''} onclick="handleConsoleCheckboxAction(this, '${item.id}')" style="width: 20px; height: 20px; accent-color: #FF4B3A; cursor: pointer;">
+                <input type="checkbox" data-id="${item.id}" ${isLive ? 'checked' : ''} onclick="handleConsoleCheckboxAction(this, '${item.id}')" style="width: 20px; height: 20px; accent-color: #FF4B3A; cursor: pointer;">
             </div>
         `;
         inventoryContainer.appendChild(gridRow);
@@ -743,26 +743,30 @@ function toggleLiveItemStockState(itemId, currentOutOfStockFlag) {
         .catch(() => alert("Failed to modify live inventory property flag."));
 }
 
+// 🚀 FIXED: Directly targets the checked DOM nodes for bulletproof preview aggregation
 function previewSelectedLiveMenu() {
     const previewList = document.getElementById('menu-preview-list');
     previewList.innerHTML = '';
-    let selectedCount = 0;
+    
+    // Hard DOM query specifically for all boxes actively checked by the user
+    const checkedNodes = document.querySelectorAll('#kitchen-inventory-container input[type="checkbox"]:checked');
 
-    MASTER_MENU.forEach((item) => {
-        const checkbox = document.getElementById(`chk-${item.id}`);
-        if (checkbox && checkbox.checked) {
-            selectedCount++;
+    if (checkedNodes.length === 0) {
+        alert("⚠️ Menu empty:\n\nPlease select at least one item before posting today's menu!");
+        return;
+    }
+
+    checkedNodes.forEach((node) => {
+        const itemId = node.getAttribute('data-id');
+        const item = MASTER_MENU.find(m => m.id === itemId);
+        
+        if (item) {
             const lineItem = document.createElement('div');
             lineItem.style.cssText = "font-size: 13px; font-weight: 600; color: #111827; display: flex; align-items: center; gap: 6px;";
             lineItem.innerHTML = `<span>🟢</span> ${item.title} <span style="font-size:10px; font-weight:400; color:#6B7280;">(${item.category})</span>`;
             previewList.appendChild(lineItem);
         }
     });
-
-    if (selectedCount === 0) {
-        alert("⚠️ Menu empty:\n\nPlease select at least one item before posting today's menu!");
-        return;
-    }
 
     document.getElementById('menu-confirm-overlay').style.display = 'block';
     document.getElementById('menu-confirm-modal').style.display = 'flex';
@@ -773,33 +777,34 @@ function closeMenuConfirmModal() {
     document.getElementById('menu-confirm-modal').style.display = 'none';
 }
 
-// ==========================================
-// 🚀 FIXED: CLEAN MERGE MULTI-ITEM PUBLISHER
-// ==========================================
+// 🚀 FIXED: Directly maps atomic DOM node check-states into the `.set()` pipeline
 function publishSelectedLiveMenu() {
     const activePayload = {};
+    const checkedNodes = document.querySelectorAll('#kitchen-inventory-container input[type="checkbox"]:checked');
 
-    MASTER_MENU.forEach((item) => {
-        const checkbox = document.getElementById(`chk-${item.id}`);
-        if (checkbox && checkbox.checked) {
-            const alreadyLive = currentLiveMenuCache[item.id];
+    checkedNodes.forEach((node) => {
+        const itemId = node.getAttribute('data-id');
+        const targetItem = MASTER_MENU.find(m => m.id === itemId);
+        
+        if (targetItem) {
+            const alreadyLive = currentLiveMenuCache[itemId];
             const currentStockState = alreadyLive ? alreadyLive.isOutOfStock : false;
 
-            activePayload[item.id] = {
-                id: item.id,
-                title: item.title,
-                details: item.details,
-                category: item.category,
+            activePayload[itemId] = {
+                id: targetItem.id,
+                title: targetItem.title,
+                details: targetItem.details,
+                category: targetItem.category,
                 isOutOfStock: currentStockState
             };
         }
     });
 
-    // 🚀 FIXED: Switched from .set() to .update() to run a clean merge injection
-    database.ref('daily_live_menu').update(activePayload)
+    database.ref('daily_live_menu').set(activePayload)
         .then(() => {
-            alert("🚀 Success!\n\nToday's live menu has been updated and broadcasted to all customer devices.");
+            alert("🚀 Success!\n\nToday's live menu has been securely pushed to the customer server.");
             closeMenuConfirmModal();
+            // Note: Visual checkboxes will NOT clear locally. The Firebase sync triggers correctly and keeps them checked.
         })
         .catch((err) => {
             alert("Error updating live database nodes.");
@@ -869,7 +874,6 @@ function updateTicketStatus(ticketId, targetState) {
         .catch(() => alert("Network transmission failure."));
 }
 
-// Setup core system archival nodes
 function archiveTicket(ticketId) {
     database.ref(`orders/${ticketId}`).update({ archived: true })
         .catch(() => alert("Failed to archive order."));
