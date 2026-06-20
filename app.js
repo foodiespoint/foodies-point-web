@@ -1,8 +1,14 @@
 // ==========================================================================
-// 1. PWA LIFECYCLE HANDSHAKE & SPLASH SCREEN SYSTEM (VERSION 28)
+// 1. GLOBAL PRODUCTION CONFIGURATIONS & STATE REGISTRY (VERSION 29)
 // ==========================================================================
 let deferredPrompt = null;
 let installPromptSupported = false; 
+let cart = [];
+
+// 🚀 FIXED: Global administrative states pulled to absolute top to kill initialization crashes
+let isConsoleViewActive = false;
+let currentLiveMenuCache = {}; 
+const ROUTING_SECRET_PIN = "validatefoodies2026"; 
 
 const pwaModal = document.getElementById('pwa-modal');
 const pwaOverlay = document.getElementById('pwa-overlay');
@@ -13,475 +19,7 @@ const body = document.body;
 const updateSplash = document.getElementById('update-splash');
 const splashText = document.getElementById('splash-text');
 
-// ABSOLUTE FAIL-SAFE: Dismisses splash screen after 4 seconds max under all conditions
-const splashFailSafeGuard = setTimeout(() => {
-    console.warn("Handshake fail-safe triggered. Forcibly clearing splash screen layer.");
-    dismissUpdateSplashScreen();
-}, 4000);
-
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        // Bumped query parameters to v28 to clear old service worker deadlocks
-        navigator.serviceWorker.register('sw.js?v=28')
-            .then(reg => {
-                console.log('PWA core components initialized.');
-
-                if (!navigator.serviceWorker.controller) {
-                    console.log("Fresh install detected. Dissolving splash screen instantly.");
-                    dismissUpdateSplashScreen();
-                    return;
-                }
-
-                let versionUpgradeDetected = false;
-                reg.onupdatefound = () => {
-                    versionUpgradeDetected = true;
-                    if (splashText) {
-                        splashText.innerHTML = "New update found!<br><span style='color:#FF4B3A; font-size:14px; font-weight:500;'>Installing assets... Please do not close the app.</span>";
-                    }
-                };
-
-                reg.update().then(() => {
-                    setTimeout(() => {
-                        if (!versionUpgradeDetected) {
-                            dismissUpdateSplashScreen();
-                        }
-                    }, 800);
-                }).catch(() => {
-                    dismissUpdateSplashScreen();
-                });
-            })
-            .catch(err => {
-                console.error('Core lifecycle fault:', err);
-                dismissUpdateSplashScreen();
-            });
-    });
-
-    let refreshing = false;
-    navigator.serviceWorker.addEventListener('controllerchange', () => {
-        if (!refreshing) {
-            refreshing = true;
-            window.location.reload();
-        }
-    });
-} else {
-    dismissUpdateSplashScreen();
-}
-
-function dismissUpdateSplashScreen() {
-    clearTimeout(splashFailSafeGuard);
-    if (updateSplash) {
-        updateSplash.style.transition = "opacity 0.4s ease, visibility 0.4s";
-        updateSplash.style.opacity = "0";
-        updateSplash.style.visibility = "hidden";
-        setTimeout(() => { updateSplash.style.display = "none"; }, 400);
-    }
-}
-
-window.addEventListener('beforeinstallprompt', (e) => {
-    e.preventDefault(); 
-    deferredPrompt = e;  
-    installPromptSupported = true; 
-    
-    const isAlreadyInstalled = localStorage.getItem('pwa_installed_successfully');
-    if (isAlreadyInstalled !== 'true') {
-        showMandatoryModal();
-    } else {
-        initNotificationGestureCheck(); 
-    }
-});
-
-function triggerNativeInstall() {
-    if (!deferredPrompt) {
-        dismissMandatoryModal();
-        return;
-    }
-    deferredPrompt.prompt();
-    deferredPrompt.userChoice.then((choiceResult) => {
-        deferredPrompt = null; 
-        dismissMandatoryModal(); 
-    });
-}
-
-window.addEventListener('appinstalled', (event) => {
-    localStorage.setItem('pwa_installed_successfully', 'true');
-    dismissMandatoryModal();
-});
-
-function showMandatoryModal() {
-    if (pwaModal && pwaOverlay) {
-        pwaModal.style.display = 'flex';
-        pwaOverlay.style.display = 'block';
-        body.classList.add('stop-scrolling'); 
-    }
-}
-
-function dismissMandatoryModal() {
-    if (pwaModal && pwaOverlay) {
-        pwaModal.style.display = 'none';
-        pwaOverlay.style.display = 'none';
-        body.classList.remove('stop-scrolling'); 
-        initNotificationGestureCheck();
-    }
-}
-
-// ==========================================
-// 2. CENTERED MANDATORY NOTIFICATION POPUP ENGINE
-// ==========================================
-function initNotificationGestureCheck() {
-    if (!('Notification' in window)) return;
-    if (Notification.permission === 'granted') return;
-
-    const triggerBlocker = () => {
-        if (pwaModal && pwaModal.style.display === 'flex') return;
-        if (updateSplash && updateSplash.style.display !== 'none') return;
-        if (Notification.permission !== 'granted') {
-            showNotificationModal();
-        }
-    };
-    
-    window.addEventListener('click', triggerBlocker, { once: true });
-    window.addEventListener('touchstart', triggerBlocker, { once: true });
-}
-
-function showNotificationModal() {
-    if (notifModal && notifOverlay) {
-        notifModal.style.display = 'flex';
-        notifOverlay.style.display = 'block';
-        body.classList.add('stop-scrolling'); 
-    }
-}
-
-function acceptNotificationModal() {
-    if (notifModal && notifOverlay) {
-        notifModal.style.display = 'none';
-        notifOverlay.style.display = 'none';
-        body.classList.remove('stop-scrolling');
-    }
-
-    Notification.requestPermission().then((permission) => {
-        if (permission === 'granted') {
-            triggerInstantNotification('🍕 Alerts Enabled! Your live tracking is active.');
-        } else {
-            initNotificationGestureCheck();
-        }
-    });
-}
-
-function triggerInstantNotification(messageText) {
-    if ('Notification' in window && Notification.permission === 'granted') {
-        navigator.serviceWorker.ready.then((registration) => {
-            registration.showNotification('Foodies Point', {
-                body: messageText,
-                icon: 'icon.png',
-                badge: 'icon.png',
-                vibrate: [200, 100, 200],
-                tag: 'foodies-point-notification'
-            });
-        });
-    }
-}
-
-// ==========================================
-// 3. FIREBASE INITIALIZATION
-// ==========================================
-const firebaseConfig = {
-    databaseURL: "https://foodiespoint-6760-default-rtdb.asia-southeast1.firebasedatabase.app/"
-};
-firebase.initializeApp(firebaseConfig);
-const database = firebase.database();
-
-// ==========================================
-// 4. BULLETPROOF IST TIMEZONE LOCKOUT ENGINE
-// ==========================================
-function isKitchenBlackoutActive() {
-    const now = new Date();
-    
-    const istFormatter = new Intl.DateTimeFormat('en-US', {
-        timeZone: 'Asia/Kolkata',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false
-    });
-    
-    const istTimeParts = istFormatter.format(now).split(':');
-    const currentHour = parseInt(istTimeParts[0], 10);
-    const currentMinute = parseInt(istTimeParts[1], 10);
-    const totalMinutesPassed = (currentHour * 60) + currentMinute;
-    
-    const lockStartMinutes = 18 * 60;          // 18:00 (6:00 PM)
-    const lockReleaseMinutes = (21 * 60) + 30;    // 21:30 (9:30 PM)
-    
-    return (totalMinutesPassed >= lockStartMinutes && totalMinutesPassed < lockReleaseMinutes);
-}
-
-function enforceBlackoutUILayout() {
-    if (isConsoleViewActive) return;
-
-    const historyContainer = document.getElementById('history-container');
-    localStorage.removeItem('foodies_tracked_orders');
-    cart = [];
-    if (cartBtn) cartBtn.style.display = 'none';
-    
-    menuContainer.innerHTML = `
-        <div style="text-align: center; padding: 32px 16px; background-color: #FFFFFF; border-radius: 18px; border: 1px dashed #E5E7EB; width: 100%; box-sizing: border-box;">
-            <div style="font-size: 32px; margin-bottom: 8px;">⏰</div>
-            <div style="font-weight: 700; font-size: 15px; color: #111827;">Kitchen Closed for Today</div>
-            <div style="color: #6B7280; font-size: 13px; margin-top: 4px; line-height: 1.5;">Tomorrow's live menu will be available after 9:30 PM IST.</div>
-        </div>
-    `;
-    
-    if (historyContainer) {
-        historyContainer.innerHTML = `
-            <p style="text-align: center; color: #9CA3AF; font-size: 13px; margin-top: 12px; font-style: italic;">
-                History cleared for the day.
-            </p>
-        `;
-    }
-}
-
-// ==========================================
-// 5. MAIN DATA PIPELINES: LIVE MENU CONTROLLER
-// ==========================================
-const menuContainer = document.getElementById('menu-container');
-const cartBtn = document.getElementById('cart-btn');
-let cart = [];
-let currentLiveMenuCache = {}; // Global cache to power the interactive console layout state
-
-database.ref('daily_live_menu').on('value', (snapshot) => {
-    currentLiveMenuCache = snapshot.val() || {};
-
-    // 🚀 INTERCEPT: If the kitchen board is active, automatically re-render its list to show new states
-    if (isConsoleViewActive) {
-        initializeKitchenInventoryMatrix();
-    }
-
-    if (isKitchenBlackoutActive()) {
-        enforceBlackoutUILayout();
-        return;
-    }
-
-    menuContainer.innerHTML = ''; 
-    const menuItems = [];
-    snapshot.forEach((child) => menuItems.push(child.val()));
-
-    if (menuItems.length === 0) {
-        menuContainer.innerHTML = '<p style="text-align: center; color: #9CA3AF; margin-top: 20px;">The kitchen has not posted a menu yet today.</p>';
-        return;
-    }
-
-    menuItems.forEach((item) => {
-        const card = document.createElement('div');
-        const isStocked = !item.isOutOfStock;
-        const opacitySetting = isStocked ? '1.0' : '0.6';
-        
-        const badgeHTML = isStocked 
-            ? `<span style="background-color: #EEF2F6; color: #4B5563; font-size: 10px; font-weight: 600; padding: 4px 8px; border-radius: 6px; letter-spacing: 0.3px; text-transform: uppercase;">${item.category}</span>`
-            : `<span style="background-color: #FEE2E2; color: #EF4444; font-size: 10px; font-weight: 700; padding: 4px 8px; border-radius: 6px; letter-spacing: 0.3px;">OUT OF STOCK</span>`;
-            
-        const actionButtonHTML = isStocked
-            ? `<button onclick="addToCart('${item.id}', '${item.title}', '${item.details}')" style="background-color: #FF4B3A; color: white; padding: 8px 16px; border: none; border-radius: 10px; font-weight: 600; font-size: 13px; cursor: pointer; box-shadow: 0 4px 10px rgba(255, 75, 58, 0.15);">+ Add</button>`
-            : `<button disabled style="background-color: #F3F4F6; color: #9CA3AF; padding: 8px 14px; border: none; border-radius: 10px; font-weight: 500; font-size: 13px;">N/A</button>`;
-
-        card.style.cssText = `
-            background-color: #FFFFFF; padding: 16px; border-radius: 18px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03); border: 1px solid #F3F4F6;
-            opacity: ${opacitySetting}; display: flex; justify-content: space-between; align-items: center;
-        `;
-
-        card.innerHTML = `
-            <div style="flex-grow: 1; padding-right: 16px;">
-                <div style="margin-bottom: 6px; display: inline-block;">${badgeHTML}</div>
-                <div style="font-size: 16px; font-weight: 600; color: #111827; letter-spacing: -0.3px; margin-top: 2px;">${item.title}</div>
-                <div style="color: #6B7280; font-size: 13px; margin-top: 3px; line-height: 1.4;">${item.details}</div>
-            </div>
-            <div style="flex-shrink: 0;">${actionButtonHTML}</div>
-        `;
-        menuContainer.appendChild(card);
-    });
-});
-
-// ==========================================
-// 6. PRESENT DAY REALTIME HISTORY SCANNER MODULE
-// ==========================================
-function listenToOrderHistory() {
-    if (isKitchenBlackoutActive()) {
-        enforceBlackoutUILayout();
-        return;
-    }
-
-    const historyContainer = document.getElementById('history-container');
-    const trackList = JSON.parse(localStorage.getItem('foodies_tracked_orders') || '[]');
-    
-    if (trackList.length === 0) {
-        historyContainer.innerHTML = '<p style="text-align: center; color: #9CA3AF; font-size: 13px; margin-top: 12px;">No orders placed today yet.</p>';
-        return;
-    }
-    
-    if (historyContainer.innerHTML.includes("No orders placed today") || historyContainer.innerHTML.includes("History cleared")) {
-        historyContainer.innerHTML = '';
-    }
-    
-    trackList.forEach(orderId => {
-        database.ref(`orders/${orderId}`).on('value', (snapshot) => {
-            if (isKitchenBlackoutActive() || isConsoleViewActive) return; 
-            
-            const order = snapshot.val();
-            if (!order) return;
-            
-            let card = document.getElementById(`history-card-${orderId}`);
-            let isNew = false;
-            if (!card) {
-                card = document.createElement('div');
-                card.id = `history-card-${orderId}`;
-                isNew = true;
-            }
-            
-            let statusText = "On Hold";
-            let badgeColor = "#D97706"; 
-            let bgColor = "#FEF3C7";
-            
-            if (order.status === "ACCEPTED") {
-                statusText = "Accepted"; badgeColor = "#059669"; bgColor = "#D1FAE5";
-            } else if (order.status === "REJECTED") {
-                statusText = "Rejected"; badgeColor = "#DC2626"; bgColor = "#FEE2E2";
-            } else if (order.status === "HOLD" || order.status === "PENDING") {
-                statusText = "On Hold"; badgeColor = "#D97706"; bgColor = "#FEF3C7";
-            }
-            
-            card.style.cssText = `
-                background-color: #F9FAFB; padding: 14px; border-radius: 14px; border: 1px solid #E5E7EB;
-                display: flex; justify-content: space-between; align-items: center;
-            `;
-            
-            card.innerHTML = `
-                <div style="flex-grow: 1; padding-right: 12px;">
-                    <div style="font-size: 13px; font-weight: 600; color: #111827; line-height: 1.4;">${order.items}</div>
-                    <div style="font-size: 11px; color: #9CA3AF; margin-top: 4px;">Ordered at ${new Date(order.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
-                </div>
-                <span style="background-color: ${bgColor}; color: ${badgeColor}; font-size: 11px; font-weight: 700; padding: 6px 12px; border-radius: 20px; text-transform: uppercase; white-space: nowrap; letter-spacing: 0.3px;">
-                    ${statusText}
-                </span>
-            `;
-            
-            if (isNew) {
-                historyContainer.insertBefore(card, historyContainer.firstChild);
-            }
-        });
-    });
-}
-
-// ==========================================
-// 7. BASKET ENGINE LOGIC
-// ==========================================
-function addToCart(id, title, details) {
-    if (isKitchenBlackoutActive()) {
-        alert("The kitchen is currently closed. Orders cannot be added.");
-        return;
-    }
-    const existingItem = cart.find(i => i.id === id);
-    
-    if (details.toLowerCase().includes("per plate")) {
-        if (existingItem && existingItem.quantity >= 5) {
-            alert(`⚠️ Order Limit Exceeded:\n\nYou can only order a maximum of 5 plates for ${title} per single dispatch!`);
-            return; 
-        }
-    }
-
-    if (existingItem) {
-        existingItem.quantity += 1;
-    } else {
-        cart.push({ id, title, details, quantity: 1 });
-    }
-    const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
-    cartBtn.style.display = 'block';
-    cartBtn.innerText = `View Order (${totalItems} items)`;
-}
-
-function openCheckout() {
-    if (isKitchenBlackoutActive()) return;
-    document.getElementById('checkout-modal').style.display = 'flex';
-    body.classList.add('stop-scrolling'); 
-    const summaryDiv = document.getElementById('cart-summary');
-    let summaryHTML = '<div style="font-weight: 600; color: #111827; margin-bottom: 8px; font-size: 15px;">Selected Items:</div>';
-    cart.forEach(item => { 
-        summaryHTML += `<div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-            <span>🟢 ${item.title}</span>
-            <span style="font-weight: 600; color: #111827;">x${item.quantity}</span>
-        </div>`; 
-    });
-    summaryDiv.innerHTML = summaryHTML;
-}
-
-function closeCheckout() { 
-    document.getElementById('checkout-modal').style.display = 'none'; 
-    body.classList.remove('stop-scrolling'); 
-}
-
-// ==========================================
-// 8. DOWNSTREAM DATABASE DISPATCH TO KITCHEN
-// ==========================================
-function submitOrder() {
-    if (isKitchenBlackoutActive()) {
-        alert("The kitchen is currently closed for the day.");
-        return;
-    }
-    const firstName = document.getElementById('customer-first-name').value.trim();
-    const lastName = document.getElementById('customer-last-name').value.trim();
-    const phone = document.getElementById('customer-phone').value.trim();
-
-    if (firstName === "" || lastName === "") {
-        alert("Please enter both your First Name and Last Name.");
-        return;
-    }
-    if (phone === "" || phone.length !== 10) {
-        alert("Please enter a valid 10-digit mobile number.");
-        return;
-    }
-    if (cart.length === 0) return;
-
-    const completeFullName = `${firstName} ${lastName}`;
-    const itemSummaryString = cart.map(item => {
-        return item.details.toLowerCase().includes("per plate") 
-            ? `${item.quantity}x ${item.title} (${item.details})` 
-            : `${item.title} (${item.details})`;
-    }).join(", ");
-
-    const ordersRef = database.ref('orders');
-    const newOrderRef = ordersRef.push();
-
-    const customerPayload = {
-        id: newOrderRef.key,
-        customerName: completeFullName,
-        customerPhone: phone,
-        items: itemSummaryString,
-        status: "PENDING",
-        timestamp: Date.now(),
-        archived: false
-    };
-
-    newOrderRef.set(customerPayload).then(() => {
-        let trackList = JSON.parse(localStorage.getItem('foodies_tracked_orders') || '[]');
-        trackList.push(newOrderRef.key);
-        localStorage.setItem('foodies_tracked_orders', JSON.stringify(trackList));
-        
-        listenToOrderHistory();
-
-        alert("Order dispatched to the kitchen!");
-        cart = [];
-        cartBtn.style.display = 'none';
-        closeCheckout();
-        
-        document.getElementById('customer-first-name').value = '';
-        document.getElementById('customer-last-name').value = '';
-        document.getElementById('customer-phone').value = '';
-    }).catch(() => { alert("Error sending order. Try again."); });
-}
-
-// ==========================================================================
-// 9. ADMINISTRATIVE MASTER MENU CONTROL ENGINE (PRODUCTION CATALOG V28)
-// ==========================================================================
-const ROUTING_SECRET_PIN = "validatefoodies2026"; 
-
+// 📦 PRODUCED MASTER CATALOG SYSTEM (ALL 102 ITEMS DEPLOYED)
 const MASTER_MENU = [
     // ROLLS
     { id: "roll_1", title: "Dahi Bread Roll", details: "15/- per pc.", category: "ROLLS" },
@@ -612,6 +150,469 @@ const MASTER_MENU = [
     { id: "rice_4", title: "Veg. Biryani", details: "180", category: "RICE" }
 ];
 
+// 🛡️ ABSOLUTE FAIL-SAFE COUNTDOWN PROTECTION
+const splashFailSafeGuard = setTimeout(() => {
+    console.warn("Handshake fail-safe triggered. Forcibly clearing splash screen layer.");
+    dismissUpdateSplashScreen();
+}, 4000);
+
+// ==========================================================================
+// 2. PWA SERVICE WORKER SYNCHRONIZATION LIFECYCLE
+// ==========================================================================
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js?v=29')
+            .then(reg => {
+                console.log('PWA core components initialized.');
+
+                if (!navigator.serviceWorker.controller) {
+                    console.log("Fresh session allocation window. Dissolving splash screen instantly.");
+                    dismissUpdateSplashScreen();
+                    return;
+                }
+
+                let versionUpgradeDetected = false;
+                reg.onupdatefound = () => {
+                    versionUpgradeDetected = true;
+                    if (splashText) {
+                        splashText.innerHTML = "New update found!<br><span style='color:#FF4B3A; font-size:14px; font-weight:500;'>Installing assets... Please do not close the app.</span>";
+                    }
+                };
+
+                reg.update().then(() => {
+                    setTimeout(() => {
+                        if (!versionUpgradeDetected) {
+                            dismissUpdateSplashScreen();
+                        }
+                    }, 800);
+                }).catch(() => {
+                    dismissUpdateSplashScreen();
+                });
+            })
+            .catch(err => {
+                console.error('Core lifecycle fault:', err);
+                dismissUpdateSplashScreen();
+            });
+    });
+
+    let refreshing = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (!refreshing) {
+            refreshing = true;
+            window.location.reload();
+        }
+    });
+} else {
+    dismissUpdateSplashScreen();
+}
+
+function dismissUpdateSplashScreen() {
+    clearTimeout(splashFailSafeGuard);
+    if (updateSplash) {
+        updateSplash.style.transition = "opacity 0.4s ease, visibility 0.4s";
+        updateSplash.style.opacity = "0";
+        updateSplash.style.visibility = "hidden";
+        setTimeout(() => { updateSplash.style.display = "none"; }, 400);
+    }
+}
+
+window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault(); 
+    deferredPrompt = e;  
+    installPromptSupported = true; 
+    
+    const isAlreadyInstalled = localStorage.getItem('pwa_installed_successfully');
+    if (isAlreadyInstalled !== 'true') {
+        showMandatoryModal();
+    } else {
+        initNotificationGestureCheck(); 
+    }
+});
+
+function triggerNativeInstall() {
+    if (!deferredPrompt) {
+        dismissMandatoryModal();
+        return;
+    }
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then((choiceResult) => {
+        deferredPrompt = null; 
+        dismissMandatoryModal(); 
+    });
+}
+
+window.addEventListener('appinstalled', (event) => {
+    localStorage.setItem('pwa_installed_successfully', 'true');
+    dismissMandatoryModal();
+});
+
+function showMandatoryModal() {
+    if (pwaModal && pwaOverlay) {
+        pwaModal.style.display = 'flex';
+        pwaOverlay.style.display = 'block';
+        body.classList.add('stop-scrolling'); 
+    }
+}
+
+function dismissMandatoryModal() {
+    if (pwaModal && pwaOverlay) {
+        pwaModal.style.display = 'none';
+        pwaOverlay.style.display = 'none';
+        body.classList.remove('stop-scrolling'); 
+        initNotificationGestureCheck();
+    }
+}
+
+// ==========================================================================
+// 3. CENTERED MANDATORY NOTIFICATION POPUP ENGINE
+// ==========================================================================
+function initNotificationGestureCheck() {
+    if (!('Notification' in window)) return;
+    if (Notification.permission === 'granted') return;
+
+    const triggerBlocker = () => {
+        if (pwaModal && pwaModal.style.display === 'flex') return;
+        if (updateSplash && updateSplash.style.display !== 'none') return;
+        if (Notification.permission !== 'granted') {
+            showNotificationModal();
+        }
+    };
+    
+    window.addEventListener('click', triggerBlocker, { once: true });
+    window.addEventListener('touchstart', triggerBlocker, { once: true });
+}
+
+function showNotificationModal() {
+    if (notifModal && notifOverlay) {
+        notifModal.style.display = 'flex';
+        notifOverlay.style.display = 'block';
+        body.classList.add('stop-scrolling'); 
+    }
+}
+
+function acceptNotificationModal() {
+    if (notifModal && notifOverlay) {
+        notifModal.style.display = 'none';
+        notifOverlay.style.display = 'none';
+        body.classList.remove('stop-scrolling');
+    }
+
+    Notification.requestPermission().then((permission) => {
+        if (permission === 'granted') {
+            triggerInstantNotification('🍕 Alerts Enabled! Your live tracking is active.');
+        } else {
+            initNotificationGestureCheck();
+        }
+    });
+}
+
+function triggerInstantNotification(messageText) {
+    if ('Notification' in window && Notification.permission === 'granted') {
+        navigator.serviceWorker.ready.then((registration) => {
+            registration.showNotification('Foodies Point', {
+                body: messageText,
+                icon: 'icon.png',
+                badge: 'icon.png',
+                vibrate: [200, 100, 200],
+                tag: 'foodies-point-notification'
+            });
+        });
+    }
+}
+
+// ==========================================
+// 4. FIREBASE REALTIME INITIALIZATION
+// ==========================================
+const firebaseConfig = {
+    databaseURL: "https://foodiespoint-6760-default-rtdb.asia-southeast1.firebasedatabase.app/"
+};
+firebase.initializeApp(firebaseConfig);
+const database = firebase.database();
+
+// ==========================================
+// 5. BULLETPROOF IST TIMEZONE LOCKOUT ENGINE
+// ==========================================
+function isKitchenBlackoutActive() {
+    const now = new Date();
+    
+    const istFormatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'Asia/Kolkata',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+    });
+    
+    const istTimeParts = istFormatter.format(now).split(':');
+    const currentHour = parseInt(istTimeParts[0], 10);
+    const currentMinute = parseInt(istTimeParts[1], 10);
+    const totalMinutesPassed = (currentHour * 60) + currentMinute;
+    
+    const lockStartMinutes = 18 * 60;          // 18:00 (6:00 PM)
+    const lockReleaseMinutes = (21 * 60) + 30;    // 21:30 (9:30 PM)
+    
+    return (totalMinutesPassed >= lockStartMinutes && totalMinutesPassed < lockReleaseMinutes);
+}
+
+function enforceBlackoutUILayout() {
+    if (isConsoleViewActive) return;
+
+    const historyContainer = document.getElementById('history-container');
+    localStorage.removeItem('foodies_tracked_orders');
+    cart = [];
+    if (cartBtn) cartBtn.style.display = 'none';
+    
+    menuContainer.innerHTML = `
+        <div style="text-align: center; padding: 32px 16px; background-color: #FFFFFF; border-radius: 18px; border: 1px dashed #E5E7EB; width: 100%; box-sizing: border-box;">
+            <div style="font-size: 32px; margin-bottom: 8px;">⏰</div>
+            <div style="font-weight: 700; font-size: 15px; color: #111827;">Kitchen Closed for Today</div>
+            <div style="color: #6B7280; font-size: 13px; margin-top: 4px; line-height: 1.5;">Tomorrow's live menu will be available after 9:30 PM IST.</div>
+        </div>
+    `;
+    
+    if (historyContainer) {
+        historyContainer.innerHTML = `
+            <p style="text-align: center; color: #9CA3AF; font-size: 13px; margin-top: 12px; font-style: italic;">
+                History cleared for the day.
+            </p>
+        `;
+    }
+}
+
+// ==========================================
+// 6. MAIN DATA PIPELINES: LIVE MENU CONTROLLER
+// ==========================================
+const menuContainer = document.getElementById('menu-container');
+const cartBtn = document.getElementById('cart-btn');
+
+database.ref('daily_live_menu').on('value', (snapshot) => {
+    currentLiveMenuCache = snapshot.val() || {};
+
+    if (isConsoleViewActive) {
+        initializeKitchenInventoryMatrix();
+    }
+
+    if (isKitchenBlackoutActive()) {
+        enforceBlackoutUILayout();
+        return;
+    }
+
+    menuContainer.innerHTML = ''; 
+    const menuItems = [];
+    snapshot.forEach((child) => menuItems.push(child.val()));
+
+    if (menuItems.length === 0) {
+        menuContainer.innerHTML = '<p style="text-align: center; color: #9CA3AF; margin-top: 20px;">The kitchen has not posted a menu yet today.</p>';
+        return;
+    }
+
+    menuItems.forEach((item) => {
+        const card = document.createElement('div');
+        const isStocked = !item.isOutOfStock;
+        const opacitySetting = isStocked ? '1.0' : '0.6';
+        
+        const badgeHTML = isStocked 
+            ? `<span style="background-color: #EEF2F6; color: #4B5563; font-size: 10px; font-weight: 600; padding: 4px 8px; border-radius: 6px; letter-spacing: 0.3px; text-transform: uppercase;">${item.category}</span>`
+            : `<span style="background-color: #FEE2E2; color: #EF4444; font-size: 10px; font-weight: 700; padding: 4px 8px; border-radius: 6px; letter-spacing: 0.3px;">OUT OF STOCK</span>`;
+            
+        const actionButtonHTML = isStocked
+            ? `<button onclick="addToCart('${item.id}', '${item.title}', '${item.details}')" style="background-color: #FF4B3A; color: white; padding: 8px 16px; border: none; border-radius: 10px; font-weight: 600; font-size: 13px; cursor: pointer; box-shadow: 0 4px 10px rgba(255, 75, 58, 0.15);">+ Add</button>`
+            : `<button disabled style="background-color: #F3F4F6; color: #9CA3AF; padding: 8px 14px; border: none; border-radius: 10px; font-weight: 500; font-size: 13px;">N/A</button>`;
+
+        card.style.cssText = `
+            background-color: #FFFFFF; padding: 16px; border-radius: 18px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03); border: 1px solid #F3F4F6;
+            opacity: ${opacitySetting}; display: flex; justify-content: space-between; align-items: center;
+        `;
+
+        card.innerHTML = `
+            <div style="flex-grow: 1; padding-right: 16px;">
+                <div style="margin-bottom: 6px; display: inline-block;">${badgeHTML}</div>
+                <div style="font-size: 16px; font-weight: 600; color: #111827; letter-spacing: -0.3px; margin-top: 2px;">${item.title}</div>
+                <div style="color: #6B7280; font-size: 13px; margin-top: 3px; line-height: 1.4;">${item.details}</div>
+            </div>
+            <div style="flex-shrink: 0;">${actionButtonHTML}</div>
+        `;
+        menuContainer.appendChild(card);
+    });
+});
+
+// ==========================================
+// 7. PRESENT DAY REALTIME HISTORY SCANNER MODULE
+// ==========================================
+function listenToOrderHistory() {
+    if (isKitchenBlackoutActive()) {
+        enforceBlackoutUILayout();
+        return;
+    }
+
+    const historyContainer = document.getElementById('history-container');
+    const trackList = JSON.parse(localStorage.getItem('foodies_tracked_orders') || '[]');
+    
+    if (trackList.length === 0) {
+        historyContainer.innerHTML = '<p style="text-align: center; color: #9CA3AF; font-size: 13px; margin-top: 12px;">No orders placed today yet.</p>';
+        return;
+    }
+    
+    if (historyContainer.innerHTML.includes("No orders placed today") || historyContainer.innerHTML.includes("History cleared")) {
+        historyContainer.innerHTML = '';
+    }
+    
+    trackList.forEach(orderId => {
+        database.ref(`orders/${orderId}`).on('value', (snapshot) => {
+            if (isKitchenBlackoutActive() || isConsoleViewActive) return; 
+            
+            const order = snapshot.val();
+            if (!order) return;
+            
+            let card = document.getElementById(`history-card-${orderId}`);
+            let isNew = false;
+            if (!card) {
+                card = document.createElement('div');
+                card.id = `history-card-${orderId}`;
+                isNew = true;
+            }
+            
+            let statusText = "On Hold";
+            let badgeColor = "#D97706"; 
+            let bgColor = "#FEF3C7";
+            
+            if (order.status === "ACCEPTED") {
+                statusText = "Accepted"; badgeColor = "#059669"; bgColor = "#D1FAE5";
+            } else if (order.status === "REJECTED") {
+                statusText = "Rejected"; badgeColor = "#DC2626"; bgColor = "#FEE2E2";
+            } else if (order.status === "HOLD" || order.status === "PENDING") {
+                statusText = "On Hold"; badgeColor = "#D97706"; bgColor = "#FEF3C7";
+            }
+            
+            card.style.cssText = `
+                background-color: #F9FAFB; padding: 14px; border-radius: 14px; border: 1px solid #E5E7EB;
+                display: flex; justify-content: space-between; align-items: center;
+            `;
+            
+            card.innerHTML = `
+                <div style="flex-grow: 1; padding-right: 12px;">
+                    <div style="font-size: 13px; font-weight: 600; color: #111827; line-height: 1.4;">${order.items}</div>
+                    <div style="font-size: 11px; color: #9CA3AF; margin-top: 4px;">Ordered at ${new Date(order.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+                </div>
+                <span style="background-color: ${bgColor}; color: ${badgeColor}; font-size: 11px; font-weight: 700; padding: 6px 12px; border-radius: 20px; text-transform: uppercase; white-space: nowrap; letter-spacing: 0.3px;">
+                    ${statusText}
+                </span>
+            `;
+            
+            if (isNew) {
+                historyContainer.insertBefore(card, historyContainer.firstChild);
+            }
+        });
+    });
+}
+
+// ==========================================
+// 8. BASKET TRANSACTIONAL LOGIC
+// ==========================================
+function addToCart(id, title, details) {
+    if (isKitchenBlackoutActive()) {
+        alert("The kitchen is currently closed. Orders cannot be added.");
+        return;
+    }
+    const existingItem = cart.find(i => i.id === id);
+    
+    if (details.toLowerCase().includes("per plate")) {
+        if (existingItem && existingItem.quantity >= 5) {
+            alert(`⚠️ Order Limit Exceeded:\n\nYou can only order a maximum of 5 plates for ${title} per single dispatch!`);
+            return; 
+        }
+    }
+
+    if (existingItem) {
+        existingItem.quantity += 1;
+    } else {
+        cart.push({ id, title, details, quantity: 1 });
+    }
+    const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+    cartBtn.style.display = 'block';
+    cartBtn.innerText = `View Order (${totalItems} items)`;
+}
+
+function openCheckout() {
+    if (isKitchenBlackoutActive()) return;
+    document.getElementById('checkout-modal').style.display = 'flex';
+    body.classList.add('stop-scrolling'); 
+    const summaryDiv = document.getElementById('cart-summary');
+    let summaryHTML = '<div style="font-weight: 600; color: #111827; margin-bottom: 8px; font-size: 15px;">Selected Items:</div>';
+    cart.forEach(item => { 
+        summaryHTML += `<div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+            <span>🟢 ${item.title}</span>
+            <span style="font-weight: 600; color: #111827;">x${item.quantity}</span>
+        </div>`; 
+    });
+    summaryDiv.innerHTML = summaryHTML;
+}
+
+function closeCheckout() { 
+    document.getElementById('checkout-modal').style.display = 'none'; 
+    body.classList.remove('stop-scrolling'); 
+}
+
+function submitOrder() {
+    if (isKitchenBlackoutActive()) {
+        alert("The kitchen is currently closed for the day.");
+        return;
+    }
+    const firstName = document.getElementById('customer-first-name').value.trim();
+    const lastName = document.getElementById('customer-last-name').value.trim();
+    const phone = document.getElementById('customer-phone').value.trim();
+
+    if (firstName === "" || lastName === "") {
+        alert("Please enter both your First Name and Last Name.");
+        return;
+    }
+    if (phone === "" || phone.length !== 10) {
+        alert("Please enter a valid 10-digit mobile number.");
+        return;
+    }
+    if (cart.length === 0) return;
+
+    const completeFullName = `${firstName} ${lastName}`;
+    const itemSummaryString = cart.map(item => {
+        return item.details.toLowerCase().includes("per plate") 
+            ? `${item.quantity}x ${item.title} (${item.details})` 
+            : `${item.title} (${item.details})`;
+    }).join(", ");
+
+    const ordersRef = database.ref('orders');
+    const newOrderRef = ordersRef.push();
+
+    const customerPayload = {
+        id: newOrderRef.key,
+        customerName: completeFullName,
+        customerPhone: phone,
+        items: itemSummaryString,
+        status: "PENDING",
+        timestamp: Date.now(),
+        archived: false
+    };
+
+    newOrderRef.set(customerPayload).then(() => {
+        let trackList = JSON.parse(localStorage.getItem('foodies_tracked_orders') || '[]');
+        trackList.push(newOrderRef.key);
+        localStorage.setItem('foodies_tracked_orders', JSON.stringify(trackList));
+        
+        listenToOrderHistory();
+
+        alert("Order dispatched to the kitchen!");
+        cart = [];
+        cartBtn.style.display = 'none';
+        closeCheckout();
+        
+        document.getElementById('customer-first-name').value = '';
+        document.getElementById('customer-last-name').value = '';
+        document.getElementById('customer-phone').value = '';
+    }).catch(() => { alert("Error sending order. Try again."); });
+}
+
+// ==========================================================================
+// 9. ADMINISTRATIVE WORKSPACE PANEL LOGISTIC MANAGERS
+// ==========================================================================
 function authenticateConsoleAccess() {
     if (isConsoleViewActive) {
         isConsoleViewActive = false;
@@ -682,9 +683,6 @@ function submitConsolePIN() {
     }
 }
 
-// ==========================================================================
-// 🚀 RE-ENGINEERED: DYNAMIC CHECKBOX GRID & STOCK STATE SWITCHBOARD
-// ==========================================================================
 function initializeKitchenInventoryMatrix() {
     const inventoryContainer = document.getElementById('kitchen-inventory-container');
     if (!isConsoleViewActive) return;
@@ -697,11 +695,9 @@ function initializeKitchenInventoryMatrix() {
             border: 1px solid #E5E7EB; display: flex; justify-content: space-between; align-items: center; text-align: left; margin-bottom: 2px;
         `;
 
-        // Check if item is currently pushed live to Firebase records cache
         const liveRecord = currentLiveMenuCache[item.id];
         const isLive = !!liveRecord;
 
-        // Render standard Green/Red Stock allocation buttons only if the item is checked (live)
         let stockToggleHTML = '';
         if (isLive) {
             const isOutOfStock = liveRecord.isOutOfStock || false;
@@ -728,30 +724,22 @@ function initializeKitchenInventoryMatrix() {
     });
 }
 
-// 🚀 NEW: Inline Unchecking Handshake Pipeline
 function handleConsoleCheckboxAction(checkboxElement, itemId) {
     const wasAlreadyLive = !!currentLiveMenuCache[itemId];
 
     if (wasAlreadyLive) {
-        // Intercept action if user unchecks an item that is currently published
         const targetItem = MASTER_MENU.find(m => m.id === itemId);
-        const doubleCheck = confirm(`⚠️ Remove from Live Menu:\n\nAre you sure you want to remove "${targetItem.title}" from today's live menu? This will take it off the customer screen instantly.`);
+        const doubleCheck = confirm(`⚠️ Remove from Live Menu:\n\nAre you sure you want to remove "${targetItem.title}" from today's live menu?`);
         
         if (doubleCheck) {
             database.ref(`daily_live_menu/${itemId}`).remove()
-                .then(() => {
-                    console.log(`Node ${itemId} successfully deleted.`);
-                })
                 .catch(() => alert("Network transmission failure."));
         } else {
-            // Re-check visually if canceled
             checkboxElement.checked = true;
         }
     }
-    // If item was not live, let the user check/uncheck it locally as they build their batch list
 }
 
-// 🚀 NEW: Inline stock value mutation handler targeting specific item keys
 function toggleLiveItemStockState(itemId, currentOutOfStockFlag) {
     database.ref(`daily_live_menu/${itemId}`).update({ isOutOfStock: !currentOutOfStockFlag })
         .catch(() => alert("Failed to modify live inventory property flag."));
@@ -793,7 +781,6 @@ function publishSelectedLiveMenu() {
     MASTER_MENU.forEach((item) => {
         const checkbox = document.getElementById(`chk-${item.id}`);
         if (checkbox && checkbox.checked) {
-            // Preserve the out-of-stock value if it is already live; otherwise initialize as false
             const alreadyLive = currentLiveMenuCache[item.id];
             const currentStockState = alreadyLive ? alreadyLive.isOutOfStock : false;
 
