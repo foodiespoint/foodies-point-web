@@ -1,5 +1,5 @@
 // ==========================================================================
-// 1. PWA LIFECYCLE HANDSHAKE & SPLASH SCREEN SYSTEM (VERSION 15)
+// 1. PWA LIFECYCLE HANDSHAKE & SPLASH SCREEN SYSTEM (VERSION 16)
 // ==========================================================================
 let deferredPrompt = null;
 let installPromptSupported = false; 
@@ -15,8 +15,8 @@ const splashText = document.getElementById('splash-text');
 
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-        // 🚀 BUMPED TO V15: Overwrites the older layout text on user devices automatically
-        navigator.serviceWorker.register('sw.js?v=15')
+        // Appending v16 query token to force the browser to update scripts instantly
+        navigator.serviceWorker.register('sw.js?v=16')
             .then(reg => {
                 console.log('PWA core components initialized.');
                 let versionUpgradeDetected = false;
@@ -211,7 +211,7 @@ function enforceBlackoutUILayout() {
     cart = [];
     if (cartBtn) cartBtn.style.display = 'none';
     
-    // 🚀 FIXED: Extraneous sentences and descriptors cleanly excised from the inner HTML matrix
+    // Updated text copy alignment containing your corrections
     menuContainer.innerHTML = `
         <div style="text-align: center; padding: 32px 16px; background-color: #FFFFFF; border-radius: 18px; border: 1px dashed #E5E7EB; width: 100%; box-sizing: border-box;">
             <div style="font-size: 32px; margin-bottom: 8px;">⏰</div>
