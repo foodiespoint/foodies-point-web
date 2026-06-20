@@ -1,5 +1,5 @@
 // ==========================================================================
-// 1. PWA LIFECYCLE HANDSHAKE & SPLASH SCREEN SYSTEM (VERSION 18)
+// 1. PWA LIFECYCLE HANDSHAKE & SPLASH SCREEN SYSTEM (VERSION 19)
 // ==========================================================================
 let deferredPrompt = null;
 let installPromptSupported = false; 
@@ -15,8 +15,8 @@ const splashText = document.getElementById('splash-text');
 
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-        // 🚀 BUMPED TO V18: Forces structural view reordering across local clients seamlessly
-        navigator.serviceWorker.register('sw.js?v=18')
+        // 🚀 BUMPED TO V19: Forces clients to register the masked input configuration elements right away
+        navigator.serviceWorker.register('sw.js?v=19')
             .then(reg => {
                 console.log('PWA core components initialized.');
                 let versionUpgradeDetected = false;
@@ -477,13 +477,14 @@ function submitOrder() {
 }
 
 // ==========================================================================
-// 9. ADMINISTRATIVE KITCHEN CONSOLE OPERATIONS ENGINE
+// 🚀 9. UPDATED: PASSWORD AUTHENTICATION WITH SECURE MODAL ENGINE
 // ==========================================================================
 let isConsoleViewActive = false;
-const ROUTING_SECRET_PIN = "1234"; 
+const ROUTING_SECRET_PIN = "validatefoodies2026'"; // 🚀 UPDATED CREDENTIAL
 
 function authenticateConsoleAccess() {
     if (isConsoleViewActive) {
+        // Exit active console dashboard layout smoothly
         isConsoleViewActive = false;
         document.getElementById('kitchen-view-layout').style.display = 'none';
         document.getElementById('customer-view-layout').style.display = 'flex';
@@ -499,11 +500,27 @@ function authenticateConsoleAccess() {
         return;
     }
 
-    const verificationInput = prompt("🔑 Access Authorization Required:\n\nPlease enter the Kitchen Console PIN:");
-    if (verificationInput === null) return; 
+    // 🚀 NEW: Fire custom authorization interface instead of unmasked prompt() box
+    document.getElementById('admin-auth-overlay').style.display = 'block';
+    document.getElementById('admin-auth-modal').style.display = 'flex';
+    document.getElementById('admin-pin-input').value = '';
+    document.getElementById('admin-pin-input').focus();
+    body.classList.add('stop-scrolling');
+}
 
-    if (verificationInput === ROUTING_SECRET_PIN) {
+function closeConsoleAuthModal() {
+    document.getElementById('admin-auth-overlay').style.display = 'none';
+    document.getElementById('admin-auth-modal').style.display = 'none';
+    body.classList.remove('stop-scrolling');
+}
+
+function submitConsolePIN() {
+    const enteredPassword = document.getElementById('admin-pin-input').value;
+    
+    if (enteredPassword === ROUTING_SECRET_PIN) {
+        closeConsoleAuthModal();
         isConsoleViewActive = true;
+        
         document.getElementById('customer-view-layout').style.display = 'none';
         if (cartBtn) cartBtn.style.display = 'none';
         
@@ -515,7 +532,9 @@ function authenticateConsoleAccess() {
         initializeKitchenOrderStream();
         initializeKitchenInventoryMatrix();
     } else {
-        alert("❌ Authentication Failed: Invalid authorization token provided.");
+        alert("✕ Authentication Failed: Invalid authorization password provided.");
+        document.getElementById('admin-pin-input').value = '';
+        document.getElementById('admin-pin-input').focus();
     }
 }
 
@@ -582,6 +601,7 @@ function updateTicketStatus(ticketId, targetState) {
         .catch(() => alert("Network transmission failure updating database node state."));
 }
 
+// Global programmatic update loops
 function archiveTicket(ticketId) {
     database.ref(`orders/${ticketId}`).update({ archived: true })
         .catch(() => alert("Failed to archive target order file."));
