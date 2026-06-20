@@ -1,5 +1,5 @@
 // ==========================================================================
-// 1. PWA LIFECYCLE HANDSHAKE & SPLASH SCREEN SYSTEM (VERSION 12)
+// 1. PWA LIFECYCLE HANDSHAKE & SPLASH SCREEN SYSTEM (VERSION 13)
 // ==========================================================================
 let deferredPrompt = null;
 let installPromptSupported = false; 
@@ -15,8 +15,8 @@ const splashText = document.getElementById('splash-text');
 
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-        // 🚀 BUMPED TO V12: Clears out v11 cache configurations smoothly
-        navigator.serviceWorker.register('sw.js?v=12')
+        // 🚀 BUMPED TO V13: Bypasses legacy cache layers for strict time filters
+        navigator.serviceWorker.register('sw.js?v=13')
             .then(reg => {
                 console.log('PWA core components initialized.');
                 let versionUpgradeDetected = false;
@@ -97,8 +97,6 @@ window.addEventListener('appinstalled', (event) => {
 });
 
 function showMandatoryModal() {
-    // 🚀 FIXED: Removed the blocking return line. 
-    // The installation layout now arms itself silently right beneath the splash screen canvas grid layout!
     if (pwaModal && pwaOverlay) {
         pwaModal.style.display = 'flex';
         pwaOverlay.style.display = 'block';
@@ -172,16 +170,6 @@ function triggerInstantNotification(messageText) {
     }
 }
 
-window.addEventListener('DOMContentLoaded', () => {
-    setTimeout(() => {
-        if (!installPromptSupported) {
-            initNotificationGestureCheck();
-        }
-    }, 2000);
-    
-    listenToOrderHistory();
-});
-
 // ==========================================
 // 3. FIREBASE INITIALIZATION
 // ==========================================
@@ -192,13 +180,62 @@ firebase.initializeApp(firebaseConfig);
 const database = firebase.database();
 
 // ==========================================
-// 4. MAIN DATA PIPELINES: LIVE MENU CONTROLLER
+// 4. 🚀 CRITICAL NEW: CHRONOLOGICAL LOCKOUT ENGINE
+// ==========================================
+function isKitchenBlackoutActive() {
+    const now = new Date();
+    
+    // Evaluate exact local time contexts matching your Indian target audience base
+    const currentHour = now.getHours();
+    const currentMinute = now.getMinutes();
+    const totalMinutesPassed = (currentHour * 60) + currentMinute;
+    
+    const lockStartMinutes = 18 * 60;       // 6:00 PM exact
+    const lockReleaseMinutes = (21 * 60) + 30; // 9:30 PM exact
+    
+    return (totalMinutesPassed >= lockStartMinutes && totalMinutesPassed < lockReleaseMinutes);
+}
+
+function enforceBlackoutUILayout() {
+    const historyContainer = document.getElementById('history-container');
+    
+    // Wipe local storage order arrays instantly upon cross-over matching rules
+    localStorage.removeItem('foodies_tracked_orders');
+    cart = [];
+    if (cartBtn) cartBtn.style.display = 'none';
+    
+    // Inject holding layout into panels
+    menuContainer.innerHTML = `
+        <div style="text-align: center; padding: 32px 16px; background-color: #FFFFFF; border-radius: 18px; border: 1px dashed #E5E7EB;">
+            <div style="font-size: 32px; margin-bottom: 8px;">⏰</div>
+            <div style="font-weight: 700; font-size: 15px; color: #111827;">Kitchen Closed for Today</div>
+            <div style="color: #6B7280; font-size: 13px; margin-top: 4px; line-height: 1.5;">The menu has been cleared. Tomorrow's live menu will be available exactly after 9:30 PM IST.</div>
+        </div>
+    `;
+    
+    if (historyContainer) {
+        historyContainer.innerHTML = `
+            <p style="text-align: center; color: #9CA3AF; font-size: 13px; margin-top: 12px; font-style: italic;">
+                History cleared for the day.
+            </p>
+        `;
+    }
+}
+
+// ==========================================
+// 5. MAIN DATA pipelines: LIVE MENU CONTROLLER
 // ==========================================
 const menuContainer = document.getElementById('menu-container');
 const cartBtn = document.getElementById('cart-btn');
 let cart = [];
 
 database.ref('daily_live_menu').on('value', (snapshot) => {
+    // 🚀 INTERCEPT: Check temporal constraint windows before building menu blocks
+    if (isKitchenBlackoutActive()) {
+        enforceBlackoutUILayout();
+        return;
+    }
+
     menuContainer.innerHTML = ''; 
     const menuItems = [];
     snapshot.forEach((child) => menuItems.push(child.val()));
@@ -246,9 +283,15 @@ database.ref('daily_live_menu').on('value', (snapshot) => {
 });
 
 // ==========================================
-// 5. PRESENT DAY REALTIME HISTORY SCANNER MODULE
+// 6. PRESENT DAY REALTIME HISTORY SCANNER MODULE
 // ==========================================
 function listenToOrderHistory() {
+    // 🚀 INTERCEPT: Instantly block history checks if layout sits inside blackout window
+    if (isKitchenBlackoutActive()) {
+        enforceBlackoutUILayout();
+        return;
+    }
+
     const historyContainer = document.getElementById('history-container');
     const trackList = JSON.parse(localStorage.getItem('foodies_tracked_orders') || '[]');
     
@@ -257,12 +300,14 @@ function listenToOrderHistory() {
         return;
     }
     
-    if (historyContainer.innerHTML.includes("No orders placed today")) {
+    if (historyContainer.innerHTML.includes("No orders placed today") || historyContainer.innerHTML.includes("History cleared")) {
         historyContainer.innerHTML = '';
     }
     
     trackList.forEach(orderId => {
         database.ref(`orders/${orderId}`).on('value', (snapshot) => {
+            if (isKitchenBlackoutActive()) return; // Break parsing execution early
+            
             const order = snapshot.val();
             if (!order) return;
             
@@ -320,9 +365,13 @@ function listenToOrderHistory() {
 }
 
 // ==========================================
-// 6. BASKET ENGINE LOGIC
+// 7. BASKET ENGINE LOGIC
 // ==========================================
 function addToCart(id, title, details) {
+    if (isKitchenBlackoutActive()) {
+        alert("The kitchen is currently closed. Orders cannot be added.");
+        return;
+    }
     const existingItem = cart.find(i => i.id === id);
     
     if (details.toLowerCase().includes("per plate")) {
@@ -343,6 +392,7 @@ function addToCart(id, title, details) {
 }
 
 function openCheckout() {
+    if (isKitchenBlackoutActive()) return;
     document.getElementById('checkout-modal').style.display = 'flex';
     body.classList.add('stop-scrolling'); 
     const summaryDiv = document.getElementById('cart-summary');
@@ -362,9 +412,13 @@ function closeCheckout() {
 }
 
 // ==========================================
-// 7. DOWNSTREAM DATABASE DISPATCH TO KITCHEN
+// 8. DOWNSTREAM DATABASE DISPATCH TO KITCHEN
 // ==========================================
 function submitOrder() {
+    if (isKitchenBlackoutActive()) {
+        alert("The kitchen is currently closed for the day.");
+        return;
+    }
     const firstName = document.getElementById('customer-first-name').value.trim();
     const lastName = document.getElementById('customer-last-name').value.trim();
     const phone = document.getElementById('customer-phone').value.trim();
@@ -380,7 +434,6 @@ function submitOrder() {
     if (cart.length === 0) return;
 
     const completeFullName = `${firstName} ${lastName}`;
-
     const itemSummaryString = cart.map(item => {
         return item.details.toLowerCase().includes("per plate") 
             ? `${item.quantity}x ${item.title} (${item.details})` 
@@ -417,3 +470,21 @@ function submitOrder() {
         document.getElementById('customer-phone').value = '';
     }).catch(() => { alert("Error sending order. Try again."); });
 }
+
+// Global Execution Loops
+window.addEventListener('DOMContentLoaded', () => {
+    setTimeout(() => {
+        if (!installPromptSupported) {
+            initNotificationGestureCheck();
+        }
+    }, 2000);
+    
+    listenToOrderHistory();
+    
+    // 🚀 BACKGROUND MONITOR: Run a clock check every 30 seconds to lock runtime views actively
+    setInterval(() => {
+        if (isKitchenBlackoutActive()) {
+            enforceBlackoutUILayout();
+        }
+    }, 30000);
+});
