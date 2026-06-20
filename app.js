@@ -1,14 +1,15 @@
 // ==========================================================================
-// 1. PWA REGISTRATION & SCREEN-BLOCKING INSTALL FUNCTIONALITY
+// 1. PWA INITIALIZATION & ROUTING HOOKS
 // ==========================================================================
 let deferredPrompt = null;
+let installPromptSupported = false; // Flag to prevent notification modal overlap
+
 const pwaModal = document.getElementById('pwa-modal');
 const pwaOverlay = document.getElementById('pwa-overlay');
 const notifModal = document.getElementById('notification-modal');
 const notifOverlay = document.getElementById('notification-overlay');
 const body = document.body;
 
-// Register the web app's caching engine context
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
         navigator.serviceWorker.register('sw.js')
@@ -17,10 +18,11 @@ if ('serviceWorker' in navigator) {
     });
 }
 
-// Catch the application shortcut token dispatched by the browser shell
+// Intercept installation capabilities token cleanly
 window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault(); 
     deferredPrompt = e;  
+    installPromptSupported = true; // Mark installation system as active
     
     const isAlreadyInstalled = localStorage.getItem('pwa_installed_successfully');
     const pwaLastSeen = localStorage.getItem('pwa_prompt_last_seen');
@@ -29,7 +31,11 @@ window.addEventListener('beforeinstallprompt', (e) => {
     if (isAlreadyInstalled !== 'true') {
         if (!pwaLastSeen || (now - pwaLastSeen) > (24 * 60 * 60 * 1000)) {
             showMandatoryModal();
+        } else {
+            initNotificationGestureCheck(); // Fallback if 24hr rule blocks it
         }
+    } else {
+        initNotificationGestureCheck(); // Fallback if already running standalone
     }
 });
 
@@ -38,7 +44,6 @@ function triggerNativeInstall() {
         dismissMandatoryModal();
         return;
     }
-    
     deferredPrompt.prompt();
     deferredPrompt.userChoice.then((choiceResult) => {
         deferredPrompt = null; 
@@ -66,23 +71,21 @@ function dismissMandatoryModal() {
         pwaOverlay.style.display = 'none';
         body.classList.remove('stop-scrolling'); 
         
-        // Prepare the notification interceptor right after install modal closes
+        // Pass programmatic execution to notification system cleanly
         initNotificationGestureCheck();
     }
 }
 
 // ==========================================================================
-// 2. CENTERED MANDATORY NOTIFICATION ACCESS WALL (FIRST TOUCH INTERCEPT)
+// 2. FIXED CENTERED MANDATORY NOTIFICATION POPUP ENGINE
 // ==========================================================================
 function initNotificationGestureCheck() {
     if (!('Notification' in window)) return;
-
-    // If permission is already granted, skip completely
     if (Notification.permission === 'granted') return;
 
-    // Trigger the blocker on the very first screen interaction
-    const triggerBlocker = (event) => {
-        // Safety: If they are touching the installation modal button, don't overlap the notifications modal yet
+    // Armed tracking handlers waiting for clean execution
+    const triggerBlocker = () => {
+        // Double-check safety to ensure install layer isn't open
         if (pwaModal && pwaModal.style.display === 'flex') return;
 
         if (Notification.permission !== 'granted') {
@@ -98,7 +101,7 @@ function showNotificationModal() {
     if (notifModal && notifOverlay) {
         notifModal.style.display = 'flex';
         notifOverlay.style.display = 'block';
-        body.classList.add('stop-scrolling'); // Lock app scrolling context
+        body.classList.add('stop-scrolling'); 
     }
 }
 
@@ -109,12 +112,11 @@ function acceptNotificationModal() {
         body.classList.remove('stop-scrolling');
     }
 
-    // Fire the official native browser permission prompt directly
     Notification.requestPermission().then((permission) => {
         if (permission === 'granted') {
             triggerInstantNotification('🍕 Alerts Enabled! Your live tracking is active.');
         } else {
-            // If they didn't accept, re-arm the gesture check so it locks on their next click/refresh
+            // Re-arm if they hit block/close so it catches them on the next touch interface interaction
             initNotificationGestureCheck();
         }
     });
@@ -134,16 +136,17 @@ function triggerInstantNotification(messageText) {
     }
 }
 
-// If install window wasn't triggered on load, initialize gesture check immediately
+// TIMEOUT GATEKEEPER: If beforeinstallprompt hasn't fired in 2 seconds, run notifications
 window.addEventListener('DOMContentLoaded', () => {
-    const isAlreadyInstalled = localStorage.getItem('pwa_installed_successfully');
-    if (isAlreadyInstalled === 'true' || !deferredPrompt) {
-        initNotificationGestureCheck();
-    }
+    setTimeout(() => {
+        if (!installPromptSupported) {
+            initNotificationGestureCheck();
+        }
+    }, 2000);
 });
 
 // ==========================================
-// 3. FIREBASE INITIALIZATION
+// 3. FIREBASE REALTIME DATABASES MODULES
 // ==========================================
 const firebaseConfig = {
     databaseURL: "https://foodiespoint-6760-default-rtdb.asia-southeast1.firebasedatabase.app/"
@@ -152,7 +155,7 @@ firebase.initializeApp(firebaseConfig);
 const database = firebase.database();
 
 // ==========================================
-// 4. DATA PIPELINES & INTERFACE REFERENCES
+// 4. MAIN DATA PIPELINES & SHOPPING CARTS
 // ==========================================
 const menuContainer = document.getElementById('menu-container');
 const cartBtn = document.getElementById('cart-btn');
@@ -198,9 +201,6 @@ database.ref('daily_live_menu').on('value', (snapshot) => {
     });
 });
 
-// ==========================================
-// 5. BASKET ENGINE LOGIC
-// ==========================================
 function addToCart(id, title, details) {
     const existingItem = cart.find(i => i.id === id);
     if (existingItem) {
@@ -222,15 +222,11 @@ function openCheckout() {
     summaryDiv.innerHTML = summaryHTML;
 }
 
-// Reset view conditions
 function closeCheckout() { 
     document.getElementById('checkout-modal').style.display = 'none'; 
     body.classList.remove('stop-scrolling'); 
 }
 
-// ==========================================
-// 6. DOWNSTREAM DATABASE DISPATCH TO KITCHEN
-// ==========================================
 function submitOrder() {
     const name = document.getElementById('customer-name').value.trim();
     const phone = document.getElementById('customer-phone').value.trim();
