@@ -1,5 +1,5 @@
 // ==========================================================================
-// 1. PWA LIFECYCLE HANDSHAKE & SPLASH SCREEN SYSTEM (VERSION 16)
+// 1. PWA LIFECYCLE HANDSHAKE & SPLASH SCREEN SYSTEM (VERSION 18)
 // ==========================================================================
 let deferredPrompt = null;
 let installPromptSupported = false; 
@@ -15,8 +15,8 @@ const splashText = document.getElementById('splash-text');
 
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-        // Appending v16 parameters to skip proxy caches cleanly
-        navigator.serviceWorker.register('sw.js?v=16')
+        // 🚀 BUMPED TO V18: Forces structural view reordering across local clients seamlessly
+        navigator.serviceWorker.register('sw.js?v=18')
             .then(reg => {
                 console.log('PWA core components initialized.');
                 let versionUpgradeDetected = false;
@@ -205,7 +205,6 @@ function isKitchenBlackoutActive() {
 }
 
 function enforceBlackoutUILayout() {
-    // 🚀 SAFETY CHECK: Do not override layout structures if the active session is viewing the console panel
     if (isConsoleViewActive) return;
 
     const historyContainer = document.getElementById('history-container');
@@ -478,13 +477,12 @@ function submitOrder() {
 }
 
 // ==========================================================================
-// 🚀 9. NEW: ADMINISTRATIVE KITCHEN CONSOLE OPERATIONS ENGINE
+// 9. ADMINISTRATIVE KITCHEN CONSOLE OPERATIONS ENGINE
 // ==========================================================================
 let isConsoleViewActive = false;
 const ROUTING_SECRET_PIN = "1234"; 
 
 function authenticateConsoleAccess() {
-    // If already inside the panel view layer, clicking exit behaves as a reversal toggle switch
     if (isConsoleViewActive) {
         isConsoleViewActive = false;
         document.getElementById('kitchen-view-layout').style.display = 'none';
@@ -493,7 +491,6 @@ function authenticateConsoleAccess() {
         document.getElementById('view-toggle-action').innerText = "Console";
         document.getElementById('view-toggle-action').style.backgroundColor = "rgba(255,255,255,0.2)";
         
-        // Re-evaluate client data states
         if (isKitchenBlackoutActive()) {
             enforceBlackoutUILayout();
         } else {
@@ -515,7 +512,6 @@ function authenticateConsoleAccess() {
         document.getElementById('view-toggle-action').innerText = "Exit";
         document.getElementById('view-toggle-action').style.backgroundColor = "#DC2626";
         
-        // Open live admin sync pipelines
         initializeKitchenOrderStream();
         initializeKitchenInventoryMatrix();
     } else {
@@ -523,7 +519,6 @@ function authenticateConsoleAccess() {
     }
 }
 
-// Sub-Module A: Master Realtime Order Management Pipeline
 function initializeKitchenOrderStream() {
     const ordersContainer = document.getElementById('kitchen-orders-container');
     
@@ -544,7 +539,6 @@ function initializeKitchenOrderStream() {
             return;
         }
 
-        // Sort descending to keep newest tickets at top
         trackingList.sort((a, b) => b.timestamp - a.timestamp);
 
         trackingList.forEach((order) => {
@@ -558,7 +552,7 @@ function initializeKitchenOrderStream() {
             rowItem.style.cssText = `
                 background-color: #FFFFFF; padding: 14px; border-radius: 14px;
                 box-shadow: 0 4px 10px rgba(0,0,0,0.02); border-left: 5px solid ${statusBadgeColor};
-                display: flex; flex-direction: column; gap: 8px;
+                display: flex; flex-direction: column; gap: 8px; margin-bottom: 4px; text-align: left;
             `;
 
             rowItem.innerHTML = `
@@ -593,7 +587,6 @@ function archiveTicket(ticketId) {
         .catch(() => alert("Failed to archive target order file."));
 }
 
-// Sub-Module B: Master Menu Inventory Availablity Management Pipeline
 function initializeKitchenInventoryMatrix() {
     const inventoryContainer = document.getElementById('kitchen-inventory-container');
     
@@ -611,7 +604,7 @@ function initializeKitchenInventoryMatrix() {
 
             gridRow.style.cssText = `
                 background-color: #F9FAFB; padding: 12px; border-radius: 12px;
-                border: 1px solid #E5E7EB; display: flex; justify-content: space-between; align-items: center;
+                border: 1px solid #E5E7EB; display: flex; justify-content: space-between; align-items: center; text-align: left;
             `;
 
             gridRow.innerHTML = `
@@ -633,7 +626,6 @@ function toggleItemStockState(itemId, currentFlagValue) {
         .catch(() => alert("Failed to mutate current target inventory flag data."));
 }
 
-// Global Startup Core Execution Handlers
 window.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => {
         if (!installPromptSupported) {
