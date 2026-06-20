@@ -1,8 +1,8 @@
 // ==========================================================================
-// FOODIES POINT - SERVICE WORKER (PRODUCTION ENGINE V16)
+// FOODIES POINT - SERVICE WORKER (PRODUCTION ENGINE V19)
 // ==========================================================================
 
-const CACHE_NAME = 'foodies-cache-v19';
+const CACHE_NAME = 'foodies-cache-v20';
 
 const ASSETS = [
   '',
@@ -16,7 +16,7 @@ self.addEventListener('install', (event) => {
     event.waitUntil(
         caches.open(CACHE_NAME)
             .then((cache) => {
-                console.log('PWA Cache Engine V16: Saving pristine configuration schema');
+                console.log('PWA Cache Engine V19: Committing password verification structures to file storage layout');
                 return cache.addAll(ASSETS);
             })
             .then(() => self.skipWaiting())
@@ -29,7 +29,7 @@ self.addEventListener('activate', (event) => {
             return Promise.all(
                 keys.map((key) => {
                     if (key !== CACHE_NAME) {
-                        console.log('PWA Cache Engine V16: Purging legacy cache container assets:', key);
+                        console.log('PWA Cache Engine V19: Purging obsolete authorization cache rows:', key);
                         return caches.delete(key);
                     }
                 })
