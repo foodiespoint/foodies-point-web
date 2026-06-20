@@ -8,49 +8,31 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Poppins', sans-serif; background-color: #F9FAFB; margin: 0; padding: 0; color: #1F2937; transition: overflow 0.3s ease; -webkit-tap-highlight-color: transparent; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
-        
         .header { background-color: #FF4B3A; color: #FFFFFF; padding: 16px; text-align: center; font-size: 22px; font-weight: 700; box-shadow: 0 4px 20px rgba(255, 75, 58, 0.15); z-index: 10; letter-spacing: -0.5px; flex-shrink: 0; position: relative; }
         .header::after { content: 'LIVE KITCHEN ACCESS'; display: block; font-size: 10px; font-weight: 600; color: rgba(255,255,255,0.8); letter-spacing: 2px; margin-top: 2px; }
-        
         .admin-trigger-btn { position: absolute; right: 16px; top: 22px; background: rgba(255, 255, 255, 0.2); border: none; color: white; padding: 6px 12px; font-size: 11px; font-weight: 600; border-radius: 8px; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; }
-        
         .app-layout, .kitchen-layout { display: flex; flex-direction: column; flex-grow: 1; height: calc(100vh - 68px); max-width: 500px; margin: 0 auto; width: 100%; box-sizing: border-box; }
-        
         .top-section { flex: 1.3; overflow-y: auto; padding: 16px; box-sizing: border-box; }
         .bottom-section { flex: 0.9; overflow-y: auto; padding: 16px; background-color: #FFFFFF; border-top: 1px solid #E5E7EB; box-shadow: 0 -4px 15px rgba(0,0,0,0.02); box-sizing: border-box; padding-bottom: 100px; position: relative; }
-        
         .section-title { font-size: 15px; font-weight: 700; color: #111827; margin-top: 0; margin-bottom: 14px; letter-spacing: -0.3px; text-transform: uppercase; display: flex; align-items: center; gap: 6px; }
         .section-title-badge { background-color: #FF4B3A; color: white; font-size: 10px; padding: 2px 6px; border-radius: 6px; }
-        
         #menu-container, #history-container, #kitchen-orders-container, #kitchen-inventory-container { display: flex; flex-direction: column; gap: 12px; }
-        
         #cart-btn { position: fixed; bottom: 24px; left: 16px; right: 16px; max-width: 468px; margin: 0 auto; background: linear-gradient(135deg, #FF4B3A 0%, #FF6B5C 100%); color: #FFFFFF; text-align: center; padding: 18px; border-radius: 18px; font-weight: 600; font-size: 16px; box-shadow: 0 8px 25px rgba(255, 75, 58, 0.35); display: none; cursor: pointer; z-index: 50; border: none; outline: none; letter-spacing: -0.2px; transition: transform 0.1s ease; }
-        
         #checkout-modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(17, 24, 39, 0.7); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); z-index: 200; justify-content: center; align-items: flex-end; }
         .modal-content { background-color: #FFFFFF; width: 100%; max-width: 500px; border-radius: 30px 30px 0 0; padding: 28px 24px; box-sizing: border-box; max-height: 85vh; overflow-y: auto; box-shadow: 0 -10px 30px rgba(0,0,0,0.1); }
-        
         .name-row { display: flex; gap: 12px; width: 100%; box-sizing: border-box; }
         .name-column { flex: 1; }
-        
         .input-label { font-size: 12px; font-weight: 600; color: #4B5563; letter-spacing: 0.5px; display: block; margin-bottom: 6px; }
         .input-field { width: 100%; padding: 14px 16px; margin-top: 2px; margin-bottom: 20px; border: 1.5px solid #E5E7EB; border-radius: 14px; font-family: 'Poppins', sans-serif; font-size: 15px; color: #1F2937; background-color: #F9FAFB; box-sizing: border-box; outline: none; transition: all 0.2s ease; }
         .input-field:focus { border-color: #FF4B3A; background-color: #FFFFFF; box-shadow: 0 0 0 4px rgba(255, 75, 58, 0.1); }
-        
         .submit-btn { width: 100%; background-color: #10B981; color: #FFFFFF; padding: 16px; border: none; border-radius: 14px; font-weight: 600; font-size: 16px; cursor: pointer; box-shadow: 0 6px 20px rgba(16, 185, 129, 0.25); }
         .close-btn { background: #F3F4F6; border: none; color: #4B5563; font-size: 13px; font-weight: 600; padding: 8px 14px; border-radius: 20px; float: right; cursor: pointer; margin-bottom: 16px; }
-        
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(17, 24, 39, 0.85); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); display: none; }
         .centered-blocker { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background-color: #FFFFFF; width: 88%; max-width: 340px; padding: 32px 24px; border-radius: 28px; box-shadow: 0 20px 50px rgba(0,0,0,0.3); display: none; flex-direction: column; align-items: center; justify-content: center; box-sizing: border-box; animation: appZoomIn 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
         @keyframes appZoomIn { from { transform: translate(-50%, -50%) scale(0.85); opacity: 0; } to { transform: translate(-50%, -50%) scale(1); opacity: 1; } }
         .blocker-btn { width: 100%; color: white; border: none; padding: 16px; border-radius: 14px; font-weight: 600; font-size: 16px; cursor: pointer; }
-        
         .stop-scrolling { height: 100%; overflow: hidden; }
-
-        @keyframes pulseSpinner {
-            0% { transform: scale(1); opacity: 0.4; }
-            50% { transform: scale(1.15); opacity: 1; }
-            100% { transform: scale(1); opacity: 0.4; }
-        }
+        @keyframes pulseSpinner { 0% { transform: scale(1); opacity: 0.4; } 50% { transform: scale(1.15); opacity: 1; } 100% { transform: scale(1); opacity: 0.4; } }
     </style>
 </head>
 <body>
@@ -79,15 +61,16 @@
     <div id="cart-btn" onclick="openCheckout()">View Order (0 items)</div>
     
     <div id="kitchen-view-layout" class="kitchen-layout" style="display: none;">
-        <div class="top-section" style="flex: 1.2; box-sizing: border-box; background-color: #FFFFFF; display: flex; flex-direction: column;">
+        
+        <form id="kitchen-inventory-form" class="top-section" style="flex: 1.2; box-sizing: border-box; background-color: #FFFFFF; display: flex; flex-direction: column; margin: 0;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-shrink: 0;">
-                <h3 class="section-title" style="margin-bottom: 0;">Stock Allocation Manager <span class="section-title-badge" style="background-color:#4B5563;">MASTER</span></h3>
-                <button onclick="previewSelectedLiveMenu()" style="background-color: #FF4B3A; color: white; border: none; padding: 8px 16px; border-radius: 10px; font-weight: 600; font-size: 12px; cursor: pointer; box-shadow: 0 4px 12px rgba(255, 75, 58, 0.2);">Post Menu</button>
+                <h3 class="section-title" style="margin-bottom: 0;">Stock Allocation <span class="section-title-badge" style="background-color:#4B5563;">MASTER</span></h3>
+                <button type="button" onclick="previewSelectedLiveMenu()" style="background-color: #FF4B3A; color: white; border: none; padding: 8px 16px; border-radius: 10px; font-weight: 600; font-size: 12px; cursor: pointer; box-shadow: 0 4px 12px rgba(255, 75, 58, 0.2);">Post Menu</button>
             </div>
             <div id="kitchen-inventory-container" style="flex-grow: 1; overflow-y: auto;">
                 <p style="text-align: center; color: #9CA3AF; font-size: 13px; margin-top: 12px;">Loading catalog mapping tree...</p>
             </div>
-        </div>
+        </form>
         
         <div class="bottom-section" style="flex: 0.8; padding-bottom: 24px; box-sizing: border-box; background-color: #F3F4F6; border-top: 1px solid #E5E7EB;">
             <h3 class="section-title">Incoming Live Orders <span class="section-title-badge" style="background-color:#10B981;">REALTIME</span></h3>
@@ -139,19 +122,18 @@
 
     <div id="update-splash" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: #FFFFFF; z-index: 20000; display: flex; flex-direction: column; align-items: center; justify-content: center;">
         <div style="font-size: 48px; margin-bottom: 20px; animation: pulseSpinner 1.5s ease-in-out infinite;">⏳</div>
-        <div id="splash-text" style="font-family: 'Poppins', sans-serif; font-weight: 600; font-size: 16px; color: #111827; letter-spacing: -0.2px; text-align: center; padding: 0 24px;">Checking for updates...</div>
-        <div style="font-family: 'Poppins', sans-serif; font-size: 11px; color: #9CA3AF; margin-top: 8px; letter-spacing: 1px;">FOODIES POINT ENGINE</div>
+        <div id="splash-text" style="font-family: 'Poppins', sans-serif; font-weight: 600; font-size: 16px; color: #111827; letter-spacing: -0.2px; text-align: center; padding: 0 24px;">Syncing interface...</div>
     </div>
 
     <div id="admin-auth-overlay" class="modal-overlay" style="z-index: 15000;"></div>
     <div id="admin-auth-modal" class="centered-blocker" style="z-index: 15001;">
         <div style="font-size: 38px; margin-bottom: 10px; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.05));">🔒</div>
         <div style="font-weight: 700; font-size: 18px; color: #111827; text-align: center; margin-bottom: 4px; letter-spacing: -0.4px;">Console Authorization</div>
-        <div style="color: #6B7280; font-size: 13px; text-align: center; margin-bottom: 22px; line-height: 1.4; padding: 0 4px;">Please enter your operational credential key to open the dashboard parameters.</div>
+        <div style="color: #6B7280; font-size: 13px; text-align: center; margin-bottom: 22px; line-height: 1.4; padding: 0 4px;">Please enter your operational credential key.</div>
         <input type="password" id="admin-pin-input" class="input-field" placeholder="Enter secure password" style="margin-bottom: 18px;" onkeydown="if(event.key === 'Enter') submitConsolePIN();">
         <div style="display: flex; gap: 10px; width: 100%;">
-            <button onclick="closeConsoleAuthModal()" style="flex: 1; background: #F3F4F6; border: none; color: #4B5563; padding: 12px; border-radius: 12px; font-weight: 600; font-size: 14px; cursor: pointer;">Cancel</button>
-            <button onclick="submitConsolePIN()" style="flex: 1; background-color: #FF4B3A; color: white; border: none; padding: 12px; border-radius: 12px; font-weight: 600; font-size: 14px; cursor: pointer; box-shadow: 0 4px 12px rgba(255, 75, 58, 0.2);">Verify</button>
+            <button type="button" onclick="closeConsoleAuthModal()" style="flex: 1; background: #F3F4F6; border: none; color: #4B5563; padding: 12px; border-radius: 12px; font-weight: 600; font-size: 14px; cursor: pointer;">Cancel</button>
+            <button type="button" onclick="submitConsolePIN()" style="flex: 1; background-color: #FF4B3A; color: white; border: none; padding: 12px; border-radius: 12px; font-weight: 600; font-size: 14px; cursor: pointer; box-shadow: 0 4px 12px rgba(255, 75, 58, 0.2);">Verify</button>
         </div>
     </div>
 
@@ -164,8 +146,8 @@
         <div id="menu-preview-list" style="width: 100%; max-height: 180px; overflow-y: auto; background: #F9FAFB; border: 1px dashed #E5E7EB; border-radius: 14px; padding: 12px; margin-bottom: 20px; box-sizing: border-box; display: flex; flex-direction: column; gap: 6px;"></div>
         
         <div style="display: flex; gap: 10px; width: 100%;">
-            <button onclick="closeMenuConfirmModal()" style="flex: 1; background: #F3F4F6; border: none; color: #4B5563; padding: 12px; border-radius: 12px; font-weight: 600; font-size: 14px; cursor: pointer;">Edit</button>
-            <button onclick="publishSelectedLiveMenu()" style="flex: 1; background-color: #10B981; color: white; border: none; padding: 12px; border-radius: 12px; font-weight: 600; font-size: 14px; cursor: pointer; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);">Publish Live</button>
+            <button type="button" onclick="closeMenuConfirmModal()" style="flex: 1; background: #F3F4F6; border: none; color: #4B5563; padding: 12px; border-radius: 12px; font-weight: 600; font-size: 14px; cursor: pointer;">Edit</button>
+            <button type="button" onclick="publishSelectedLiveMenu()" style="flex: 1; background-color: #10B981; color: white; border: none; padding: 12px; border-radius: 12px; font-weight: 600; font-size: 14px; cursor: pointer; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);">Publish Live</button>
         </div>
     </div>
 
