@@ -140,6 +140,20 @@
         <div style="font-family: 'Poppins', sans-serif; font-size: 11px; color: #9CA3AF; margin-top: 8px; letter-spacing: 1px;">FOODIES POINT ENGINE</div>
     </div>
 
+    <div id="admin-auth-overlay" class="modal-overlay" style="z-index: 15000;"></div>
+    <div id="admin-auth-modal" class="centered-blocker" style="z-index: 15001;">
+        <div style="font-size: 38px; margin-bottom: 10px; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.05));">🔒</div>
+        <div style="font-weight: 700; font-size: 18px; color: #111827; text-align: center; margin-bottom: 4px; letter-spacing: -0.4px;">Console Authorization</div>
+        <div style="color: #6B7280; font-size: 13px; text-align: center; margin-bottom: 22px; line-height: 1.4; padding: 0 4px;">Please enter your operational credential key to open the dashboard parameters.</div>
+        
+        <input type="password" id="admin-pin-input" class="input-field" placeholder="Enter secure password" style="margin-bottom: 18px;" onkeydown="if(event.key === 'Enter') submitConsolePIN();">
+        
+        <div style="display: flex; gap: 10px; width: 100%;">
+            <button onclick="closeConsoleAuthModal()" style="flex: 1; background: #F3F4F6; border: none; color: #4B5563; padding: 12px; border-radius: 12px; font-weight: 600; font-size: 14px; cursor: pointer;">Cancel</button>
+            <button onclick="submitConsolePIN()" style="flex: 1; background-color: #FF4B3A; color: white; border: none; padding: 12px; border-radius: 12px; font-weight: 600; font-size: 14px; cursor: pointer; box-shadow: 0 4px 12px rgba(255, 75, 58, 0.2);">Verify</button>
+        </div>
+    </div>
+
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
     <script src="app.js"></script>
