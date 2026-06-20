@@ -1,5 +1,5 @@
 // ==========================================================================
-// 1. PWA REGISTRATION & AGGRESSIVE SCREEN-BLOCKING INSTALL FUNCTIONALITY
+// 1. PWA REGISTRATION & AGGRESSIVE INSTALL (WITH CACHE-BUSTING V8)
 // ==========================================================================
 let deferredPrompt = null;
 let installPromptSupported = false; 
@@ -12,13 +12,16 @@ const body = document.body;
 
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js')
-            .then(reg => console.log('PWA Service Worker engine running cleanly.'))
+        // 🚀 BUMPED TO V8: Forces the phone to download the new item validation rules instantly
+        navigator.serviceWorker.register('sw.js?v=8')
+            .then(reg => {
+                console.log('PWA Service Worker engine running cleanly.');
+                reg.update(); 
+            })
             .catch(err => console.error('Worker registration failure:', err));
     });
 }
 
-// Catch the application shortcut token dispatched by the browser shell
 window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault(); 
     deferredPrompt = e;  
@@ -26,7 +29,6 @@ window.addEventListener('beforeinstallprompt', (e) => {
     
     const isAlreadyInstalled = localStorage.getItem('pwa_installed_successfully');
     
-    // 🚀 FIXED: 24-hour cycle completely bypassed. Forces the modal every time until installed!
     if (isAlreadyInstalled !== 'true') {
         showMandatoryModal();
     } else {
@@ -69,7 +71,7 @@ function dismissMandatoryModal() {
 }
 
 // ==========================================================================
-// 2. FIXED CENTERED MANDATORY NOTIFICATION POPUP ENGINE
+// 2. CENTERED MANDATORY NOTIFICATION POPUP ENGINE
 // ==========================================================================
 function initNotificationGestureCheck() {
     if (!('Notification' in window)) return;
@@ -272,10 +274,19 @@ function listenToOrderHistory() {
 }
 
 // ==========================================
-// 6. BASKET ENGINE LOGIC
+// 6. BASKET ENGINE LOGIC (WITH PER-PLATE LIMITATIONS)
 // ==========================================
 function addToCart(id, title, details) {
     const existingItem = cart.find(i => i.id === id);
+    
+    // 🛑 BUSINESS VALIDATION RULE: Limit "per plate" items to a maximum quantity of 5
+    if (details.toLowerCase().includes("per plate")) {
+        if (existingItem && existingItem.quantity >= 5) {
+            alert(`⚠️ Order Limit Exceeded:\n\nYou can only order a maximum of 5 plates for ${title} per single dispatch!`);
+            return; // Completely blocks the thread from adding more items
+        }
+    }
+
     if (existingItem) {
         existingItem.quantity += 1;
     } else {
