@@ -1,10 +1,9 @@
 // ==========================================================================
-// FOODIES POINT - SERVICE WORKER (PRODUCTION ENGINE V7)
+// FOODIES POINT - SERVICE WORKER (NETWORK-FIRST EVOLUTION V9)
 // ==========================================================================
 
 const CACHE_NAME = 'foodies-cache-v9';
 
-// Core asset paths mapped directly to your GitHub repository layout
 const ASSETS = [
   '',
   'index.html?v=2',
@@ -13,47 +12,55 @@ const ASSETS = [
   'icon.png'
 ];
 
-// 1. INSTALL EVENT: Pre-caches production workspace layout shell assets
+// Instantly install and prepare the worker
 self.addEventListener('install', (event) => {
     event.waitUntil(
         caches.open(CACHE_NAME)
             .then((cache) => {
-                console.log('PWA Cache Engine: Caching pristine system assets');
+                console.log('PWA Cache Engine V9: Pre-loading system assets');
                 return cache.addAll(ASSETS);
             })
-            .then(() => self.skipWaiting())
+            .then(() => self.skipWaiting()) // Forces this worker to become active instantly
     );
 });
 
-// 2. ACTIVATE EVENT: Instantly purges outdated version files (v6 and below)
+// Purge old versions (v8 and below) out of the phone's memory database
 self.addEventListener('activate', (event) => {
     event.waitUntil(
         caches.keys().then((keys) => {
             return Promise.all(
                 keys.map((key) => {
                     if (key !== CACHE_NAME) {
-                        console.log('PWA Cache Engine: Purging legacy cache layout layer:', key);
+                        console.log('PWA Cache Engine V9: Deleting old cache layer:', key);
                         return caches.delete(key);
                     }
                 })
             );
-        }).then(() => self.clients.claim())
+        }).then(() => self.clients.claim()) // Takes control of open app pages instantly
     );
 });
 
-// 3. FETCH EVENT: Seamlessly intercepts and serves UI files locally from cache
+// 🚀 FIXED: Network-First Caching Strategy
 self.addEventListener('fetch', (event) => {
-    // Exclude third-party cross-origin network strings (like real-time Firebase tracking nodes)
     if (!event.request.url.startsWith(self.location.origin)) {
-        return;
+        return; 
     }
-    
+
     event.respondWith(
-        caches.match(event.request).then((cachedResponse) => {
-            if (cachedResponse) {
-                return cachedResponse;
-            }
-            return fetch(event.request);
-        })
+        fetch(event.request)
+            .then((networkResponse) => {
+                // If online, grab the fresh file from GitHub and silently update local storage
+                if (networkResponse && networkResponse.status === 200) {
+                    const responseClone = networkResponse.clone();
+                    caches.open(CACHE_NAME).then((cache) => {
+                        cache.put(event.request, responseClone);
+                    });
+                }
+                return networkResponse;
+            })
+            .catch(() => {
+                // If offline or GitHub fails, gracefully fall back to the saved cache
+                return caches.match(event.request);
+            })
     );
 });
