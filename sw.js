@@ -2,7 +2,7 @@
 // FOODIES POINT - SERVICE WORKER (GITHUB PAGES COMPATIBLE)
 // ==========================================================================
 
-const CACHE_NAME = 'foodies-cache-v3';
+const CACHE_NAME = 'foodies-cache-v4';
 
 // Relative path tracking loops targeting subfolder directory isolation
 const ASSETS = [
