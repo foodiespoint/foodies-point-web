@@ -1,4 +1,4 @@
-const CACHE_NAME = 'foodies-cache-v5';
+const CACHE_NAME = 'foodies-cache-v7';
 
 const ASSETS = [
   '',
