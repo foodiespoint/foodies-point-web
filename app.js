@@ -1,5 +1,5 @@
 // ==========================================================================
-// 1. PWA LIFECYCLE HANDSHAKE & SPLASH SCREEN SYSTEM (VERSION 27)
+// 1. PWA LIFECYCLE HANDSHAKE & SPLASH SCREEN SYSTEM (VERSION 28)
 // ==========================================================================
 let deferredPrompt = null;
 let installPromptSupported = false; 
@@ -13,7 +13,7 @@ const body = document.body;
 const updateSplash = document.getElementById('update-splash');
 const splashText = document.getElementById('splash-text');
 
-// 🛡️ ABSOLUTE FAIL-SAFE: Forcibly drops the splash screen after 4 seconds no matter what
+// ABSOLUTE FAIL-SAFE: Dismisses splash screen after 4 seconds max under all conditions
 const splashFailSafeGuard = setTimeout(() => {
     console.warn("Handshake fail-safe triggered. Forcibly clearing splash screen layer.");
     dismissUpdateSplashScreen();
@@ -21,20 +21,17 @@ const splashFailSafeGuard = setTimeout(() => {
 
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-        // Bumbed to v27 query string to force CDN cache eviction
-        navigator.serviceWorker.register('sw.js?v=27')
+        // Bumped query parameters to v28 to clear old service worker deadlocks
+        navigator.serviceWorker.register('sw.js?v=28')
             .then(reg => {
                 console.log('PWA core components initialized.');
 
-                // 🚀 OPTIMIZATION: If this is a fresh install or data was cleared, there is no controller.
-                // We bypass all update checks and dismiss the splash screen instantly!
                 if (!navigator.serviceWorker.controller) {
                     console.log("Fresh install detected. Dissolving splash screen instantly.");
                     dismissUpdateSplashScreen();
                     return;
                 }
 
-                // Otherwise, for returning users, check for background updates from GitHub
                 let versionUpgradeDetected = false;
                 reg.onupdatefound = () => {
                     versionUpgradeDetected = true;
@@ -71,7 +68,7 @@ if ('serviceWorker' in navigator) {
 }
 
 function dismissUpdateSplashScreen() {
-    clearTimeout(splashFailSafeGuard); // Clear backup guard timer
+    clearTimeout(splashFailSafeGuard);
     if (updateSplash) {
         updateSplash.style.transition = "opacity 0.4s ease, visibility 0.4s";
         updateSplash.style.opacity = "0";
@@ -248,8 +245,16 @@ function enforceBlackoutUILayout() {
 const menuContainer = document.getElementById('menu-container');
 const cartBtn = document.getElementById('cart-btn');
 let cart = [];
+let currentLiveMenuCache = {}; // Global cache to power the interactive console layout state
 
 database.ref('daily_live_menu').on('value', (snapshot) => {
+    currentLiveMenuCache = snapshot.val() || {};
+
+    // 🚀 INTERCEPT: If the kitchen board is active, automatically re-render its list to show new states
+    if (isConsoleViewActive) {
+        initializeKitchenInventoryMatrix();
+    }
+
     if (isKitchenBlackoutActive()) {
         enforceBlackoutUILayout();
         return;
@@ -473,9 +478,8 @@ function submitOrder() {
 }
 
 // ==========================================================================
-// 9. ADMINISTRATIVE MASTER MENU CONTROL ENGINE (PRODUCTION CATALOG V27)
+// 9. ADMINISTRATIVE MASTER MENU CONTROL ENGINE (PRODUCTION CATALOG V28)
 // ==========================================================================
-let isConsoleViewActive = false;
 const ROUTING_SECRET_PIN = "validatefoodies2026"; 
 
 const MASTER_MENU = [
@@ -678,6 +682,9 @@ function submitConsolePIN() {
     }
 }
 
+// ==========================================================================
+// 🚀 RE-ENGINEERED: DYNAMIC CHECKBOX GRID & STOCK STATE SWITCHBOARD
+// ==========================================================================
 function initializeKitchenInventoryMatrix() {
     const inventoryContainer = document.getElementById('kitchen-inventory-container');
     if (!isConsoleViewActive) return;
@@ -690,15 +697,64 @@ function initializeKitchenInventoryMatrix() {
             border: 1px solid #E5E7EB; display: flex; justify-content: space-between; align-items: center; text-align: left; margin-bottom: 2px;
         `;
 
+        // Check if item is currently pushed live to Firebase records cache
+        const liveRecord = currentLiveMenuCache[item.id];
+        const isLive = !!liveRecord;
+
+        // Render standard Green/Red Stock allocation buttons only if the item is checked (live)
+        let stockToggleHTML = '';
+        if (isLive) {
+            const isOutOfStock = liveRecord.isOutOfStock || false;
+            const stockLabel = isOutOfStock ? "Out of Stock" : "In Stock";
+            const stockColor = isOutOfStock ? "#EF4444" : "#10B981";
+            stockToggleHTML = `
+                <button onclick="toggleLiveItemStockState('${item.id}', ${isOutOfStock})" style="background-color: ${stockColor}; color: white; border: none; padding: 6px 12px; border-radius: 8px; font-size: 11px; font-weight: 600; cursor: pointer; min-width: 95px; margin-right: 12px;">
+                    ${stockLabel}
+                </button>
+            `;
+        }
+
         gridRow.innerHTML = `
-            <div style="flex-grow: 1; padding-right: 12px;">
+            <div style="flex-grow: 1; padding-right: 8px;">
                 <div style="font-size: 14px; font-weight: 600; color: #111827;">${item.title}</div>
                 <div style="font-size: 11px; color: #6B7280;">${item.category} • ${item.details}</div>
             </div>
-            <input type="checkbox" id="chk-${item.id}" data-id="${item.id}" style="width: 20px; height: 20px; accent-color: #FF4B3A; cursor: pointer;">
+            <div style="display: flex; align-items: center; flex-shrink: 0;">
+                ${stockToggleHTML}
+                <input type="checkbox" id="chk-${item.id}" data-id="${item.id}" ${isLive ? 'checked' : ''} onclick="handleConsoleCheckboxAction(this, '${item.id}')" style="width: 20px; height: 20px; accent-color: #FF4B3A; cursor: pointer;">
+            </div>
         `;
         inventoryContainer.appendChild(gridRow);
     });
+}
+
+// 🚀 NEW: Inline Unchecking Handshake Pipeline
+function handleConsoleCheckboxAction(checkboxElement, itemId) {
+    const wasAlreadyLive = !!currentLiveMenuCache[itemId];
+
+    if (wasAlreadyLive) {
+        // Intercept action if user unchecks an item that is currently published
+        const targetItem = MASTER_MENU.find(m => m.id === itemId);
+        const doubleCheck = confirm(`⚠️ Remove from Live Menu:\n\nAre you sure you want to remove "${targetItem.title}" from today's live menu? This will take it off the customer screen instantly.`);
+        
+        if (doubleCheck) {
+            database.ref(`daily_live_menu/${itemId}`).remove()
+                .then(() => {
+                    console.log(`Node ${itemId} successfully deleted.`);
+                })
+                .catch(() => alert("Network transmission failure."));
+        } else {
+            // Re-check visually if canceled
+            checkboxElement.checked = true;
+        }
+    }
+    // If item was not live, let the user check/uncheck it locally as they build their batch list
+}
+
+// 🚀 NEW: Inline stock value mutation handler targeting specific item keys
+function toggleLiveItemStockState(itemId, currentOutOfStockFlag) {
+    database.ref(`daily_live_menu/${itemId}`).update({ isOutOfStock: !currentOutOfStockFlag })
+        .catch(() => alert("Failed to modify live inventory property flag."));
 }
 
 function previewSelectedLiveMenu() {
@@ -737,12 +793,16 @@ function publishSelectedLiveMenu() {
     MASTER_MENU.forEach((item) => {
         const checkbox = document.getElementById(`chk-${item.id}`);
         if (checkbox && checkbox.checked) {
+            // Preserve the out-of-stock value if it is already live; otherwise initialize as false
+            const alreadyLive = currentLiveMenuCache[item.id];
+            const currentStockState = alreadyLive ? alreadyLive.isOutOfStock : false;
+
             activePayload[item.id] = {
                 id: item.id,
                 title: item.title,
                 details: item.details,
                 category: item.category,
-                isOutOfStock: false 
+                isOutOfStock: currentStockState
             };
         }
     });
@@ -751,11 +811,6 @@ function publishSelectedLiveMenu() {
         .then(() => {
             alert("🚀 Success!\n\nToday's live menu has been updated and broadcasted to all customer devices.");
             closeMenuConfirmModal();
-            
-            MASTER_MENU.forEach((item) => {
-                const checkbox = document.getElementById(`chk-${item.id}`);
-                if (checkbox) checkbox.checked = false;
-            });
         })
         .catch((err) => {
             alert("Error updating live database nodes.");
