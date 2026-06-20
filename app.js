@@ -1,23 +1,6 @@
 // ==========================================================================
-// 1. GLOBAL PRODUCTION CONFIGURATIONS & STATE REGISTRY (VERSION 37)
+// 1. GLOBAL PRODUCTION CONFIGURATIONS & STATE REGISTRY (VERSION 38)
 // ==========================================================================
-
-// 🚀 THE NUKE SCRIPT: Instantly deletes old Service Workers freezing your phone
-if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.getRegistrations().then(function(registrations) {
-        for(let registration of registrations) {
-            registration.unregister();
-            console.log("Old Service Worker Exterminated.");
-        }
-    });
-    // We register a brand new one with a dynamic timestamp to FORCE a fresh install
-    navigator.serviceWorker.register('sw.js?v=' + Date.now()).then(() => {
-        setTimeout(dismissUpdateSplashScreen, 500);
-    });
-} else {
-    setTimeout(dismissUpdateSplashScreen, 500);
-}
-
 let deferredPrompt = null;
 let installPromptSupported = false; 
 let cart = [];
@@ -32,6 +15,7 @@ const notifModal = document.getElementById('notification-modal');
 const notifOverlay = document.getElementById('notification-overlay');
 const body = document.body;
 const updateSplash = document.getElementById('update-splash');
+const splashText = document.getElementById('splash-text');
 
 // MASTER CATALOG DATA CONTAINER (102 Items)
 const MASTER_MENU = [
@@ -151,12 +135,53 @@ const MASTER_MENU = [
     { id: "rice_4", title: "Veg. Biryani", details: "180", category: "RICE" }
 ];
 
-function dismissUpdateSplashScreen() {
+// 🚀 FIXED: Polished minimum load time for splash screen
+let minimumSplashTimeMet = false;
+setTimeout(() => { minimumSplashTimeMet = true; tryDismissSplash(); }, 1500);
+
+const splashFailSafeGuard = setTimeout(() => {
+    console.warn("Handshake fail-safe triggered.");
+    forceDismissSplash();
+}, 4500);
+
+function tryDismissSplash() {
+    if (minimumSplashTimeMet) forceDismissSplash();
+}
+
+function forceDismissSplash() {
+    clearTimeout(splashFailSafeGuard);
     if (updateSplash) {
         updateSplash.style.transition = "opacity 0.4s ease, visibility 0.4s";
         updateSplash.style.opacity = "0";
         setTimeout(() => { updateSplash.style.display = "none"; }, 400);
     }
+}
+
+// ==========================================================================
+// 2. PWA SERVICE WORKER LIFE-CYCLE MONITOR
+// ==========================================================================
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        // v38 cache deployment
+        navigator.serviceWorker.register('sw.js?v=38')
+            .then(reg => {
+                console.log('PWA core components initialized.');
+                if (!navigator.serviceWorker.controller) { tryDismissSplash(); return; }
+                
+                reg.onupdatefound = () => {
+                    if (splashText) splashText.innerHTML = "New update found!<br><span style='color:#FF4B3A; font-size:14px; font-weight:500;'>Installing assets... Please do not close the app.</span>";
+                };
+
+                reg.update().then(() => { setTimeout(tryDismissSplash, 800); }).catch(tryDismissSplash);
+            }).catch(tryDismissSplash);
+    });
+
+    let refreshing = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (!refreshing) { refreshing = true; window.location.reload(); }
+    });
+} else {
+    tryDismissSplash();
 }
 
 window.addEventListener('beforeinstallprompt', (e) => {
@@ -245,7 +270,7 @@ database.ref('daily_live_menu').on('value', (snapshot) => {
         return;
     }
 
-    if (isConsoleViewActive) return; // Completely ignores drawing the customer menu if in Admin mode
+    if (isConsoleViewActive) return; 
 
     menuContainer.innerHTML = ''; 
     const menuItems = [];
@@ -322,7 +347,7 @@ function openCheckout() {
 function closeCheckout() { document.getElementById('checkout-modal').style.display = 'none'; body.classList.remove('stop-scrolling'); }
 
 function submitOrder() {
-    if (isKitchenBlackoutActive()) return alert("The kitchen is currently closed.");
+    if (isKitchenBlackoutActive()) return alert("The kitchen is currently closed for the day.");
     const firstName = document.getElementById('customer-first-name').value.trim();
     const lastName = document.getElementById('customer-last-name').value.trim();
     const phone = document.getElementById('customer-phone').value.trim();
@@ -346,10 +371,10 @@ function submitOrder() {
 }
 
 // ==========================================================================
-// 🚀 8. NATIVE HTML FORM DATA ARCHITECTURE (THE FINAL FIX)
+// 🚀 8. KITCHEN CONSOLE - IRONCLAD NATIVE DOM LOOP (VERSION 38)
 // ==========================================================================
 function authenticateConsoleAccess() {
-    if (isConsoleViewActive) { window.location.reload(); return; } // Hard refresh on exit
+    if (isConsoleViewActive) { window.location.reload(); return; } 
     if (localStorage.getItem('foodies_console_authenticated') === 'true') { launchConsoleLayout(); return; }
     
     document.getElementById('admin-auth-overlay').style.display = 'block';
@@ -391,7 +416,7 @@ function launchConsoleLayout() {
         gridRow.style.cssText = `background-color: #F9FAFB; padding: 14px; border-radius: 14px; border: 1px solid #E5E7EB; display: flex; justify-content: space-between; align-items: center; text-align: left; margin-bottom: 2px;`;
 
         const isLive = !!currentLiveMenuCache[item.id];
-        const isOutOfStock = isLive ? (currentLiveMenuCache[item.id].isOutOfStock || false) : false;
+        const isOutOfStock = isLive ? (currentLiveMenuCache[item.id].isOutOfStock === true) : false;
 
         gridRow.innerHTML = `
             <div style="flex-grow: 1; padding-right: 8px;">
@@ -402,14 +427,13 @@ function launchConsoleLayout() {
                 <button type="button" id="stock-btn-${item.id}" onclick="toggleLocalStockState(this, '${item.id}')" style="display: ${isLive ? 'block' : 'none'}; background-color: ${isOutOfStock ? '#EF4444' : '#10B981'}; color: white; border: none; padding: 6px 12px; border-radius: 8px; font-size: 11px; font-weight: 600; cursor: pointer; min-width: 95px;">
                     ${isOutOfStock ? 'Out of Stock' : 'In Stock'}
                 </button>
-                <input type="checkbox" name="live_items" value="${item.id}" ${isLive ? 'checked' : ''} onchange="handleCheckboxChange(this, '${item.id}')" style="width: 26px; height: 26px; accent-color: #FF4B3A; cursor: pointer;">
+                <input type="checkbox" class="console-checkbox" data-id="${item.id}" ${isLive ? 'checked' : ''} onchange="handleCheckboxChange(this, '${item.id}')" style="width: 26px; height: 26px; accent-color: #FF4B3A; cursor: pointer;">
             </div>
         `;
         inventoryContainer.appendChild(gridRow);
     });
 }
 
-// Intercept uncheck to instantly remove from Firebase
 function handleCheckboxChange(chk, itemId) {
     if (!chk.checked && currentLiveMenuCache[itemId]) {
         const targetItem = MASTER_MENU.find(m => m.id === itemId);
@@ -423,7 +447,6 @@ function handleCheckboxChange(chk, itemId) {
     }
 }
 
-// Modify Firebase and the local button instantly
 function toggleLocalStockState(btnElement, itemId) {
     const isCurrentlyOut = btnElement.innerText === "Out of Stock";
     const newOutState = !isCurrentlyOut;
@@ -434,30 +457,31 @@ function toggleLocalStockState(btnElement, itemId) {
     if(currentLiveMenuCache[itemId]) currentLiveMenuCache[itemId].isOutOfStock = newOutState;
 }
 
-// 🚀 FIXED: Uses 100% native HTML FormData engine to harvest selected checkboxes
+// 🚀 FIXED: Pure Native DOM Primitive Loop. 100% crash-proof.
 function previewSelectedLiveMenu() {
     const previewList = document.getElementById('menu-preview-list');
     previewList.innerHTML = '';
-    
-    const form = document.getElementById('kitchen-inventory-form');
-    const formData = new FormData(form);
-    const selectedIds = formData.getAll('live_items'); // Mathematically grabs every checked box
+    let selectedCount = 0;
 
-    if (selectedIds.length === 0) {
-        alert("⚠️ Menu empty:\n\nPlease select at least one item before posting today's menu!");
-        return;
+    const allCheckboxes = document.querySelectorAll('.console-checkbox');
+    
+    for (let i = 0; i < allCheckboxes.length; i++) {
+        if (allCheckboxes[i].checked === true) {
+            const itemId = allCheckboxes[i].getAttribute('data-id');
+            const item = MASTER_MENU.find(m => m.id === itemId);
+            if (item) {
+                selectedCount++;
+                const line = document.createElement('div');
+                line.style.cssText = "font-size: 13px; font-weight: 600; color: #111827; display: flex; align-items: center; gap: 6px;";
+                line.innerHTML = `<span>🟢</span> ${item.title} <span style="font-size:10px; font-weight:400; color:#6B7280;">(${item.category})</span>`;
+                previewList.appendChild(line);
+            }
+        }
     }
 
-    // Classic fast loop that skips browser limits
-    for (let i = 0; i < selectedIds.length; i++) {
-        const itemId = selectedIds[i];
-        const item = MASTER_MENU.find(m => m.id === itemId);
-        if (item) {
-            const line = document.createElement('div');
-            line.style.cssText = "font-size: 13px; font-weight: 600; color: #111827; display: flex; align-items: center; gap: 6px;";
-            line.innerHTML = `<span>🟢</span> ${item.title} <span style="font-size:10px; font-weight:400; color:#6B7280;">(${item.category})</span>`;
-            previewList.appendChild(line);
-        }
+    if (selectedCount === 0) {
+        alert("⚠️ Menu empty:\n\nPlease select at least one item before posting today's menu!");
+        return;
     }
 
     document.getElementById('menu-confirm-overlay').style.display = 'block';
@@ -469,38 +493,56 @@ function closeMenuConfirmModal() {
     document.getElementById('menu-confirm-modal').style.display = 'none';
 }
 
-// 🚀 FIXED: Bypasses JS queries and compiles payload directly from the form submit structure
+// 🚀 FIXED: Pure Native DOM Primitive Loop processing atomic data structures.
 function publishSelectedLiveMenu() {
-    const form = document.getElementById('kitchen-inventory-form');
-    const formData = new FormData(form);
-    const selectedIds = formData.getAll('live_items');
-
     const payload = {};
+    let addedCount = 0;
 
-    for (let i = 0; i < selectedIds.length; i++) {
-        const itemId = selectedIds[i];
-        const item = MASTER_MENU.find(m => m.id === itemId);
+    const allCheckboxes = document.querySelectorAll('.console-checkbox');
+    
+    for (let i = 0; i < allCheckboxes.length; i++) {
+        if (allCheckboxes[i].checked === true) {
+            const itemId = allCheckboxes[i].getAttribute('data-id');
+            const targetItem = MASTER_MENU.find(m => m.id === itemId);
+            
+            if (targetItem) {
+                let isOutOfStock = false;
+                if (currentLiveMenuCache && currentLiveMenuCache[itemId]) {
+                    isOutOfStock = currentLiveMenuCache[itemId].isOutOfStock === true;
+                }
 
-        if (item) {
-            const isOutOfStock = currentLiveMenuCache[itemId] ? currentLiveMenuCache[itemId].isOutOfStock : false;
-            payload[itemId] = {
-                id: item.id, title: item.title, details: item.details, category: item.category, isOutOfStock: isOutOfStock
-            };
+                payload[itemId] = {
+                    id: targetItem.id,
+                    title: targetItem.title,
+                    details: targetItem.details,
+                    category: targetItem.category,
+                    isOutOfStock: isOutOfStock
+                };
+                addedCount++;
+            }
         }
     }
 
-    // Completely overwrites database path with the perfect array block
+    if (addedCount === 0) return;
+
     database.ref('daily_live_menu').set(payload)
         .then(() => {
-            alert(`🚀 Success!\n\n${selectedIds.length} items successfully published.`);
+            alert(`🚀 Success!\n\n${addedCount} items successfully published.`);
             closeMenuConfirmModal();
             currentLiveMenuCache = payload; 
-            for (let i = 0; i < selectedIds.length; i++) {
-                const btn = document.getElementById(`stock-btn-${selectedIds[i]}`);
-                if (btn) btn.style.display = 'block';
+            
+            // Auto-display stock toggle buttons
+            for (let i = 0; i < allCheckboxes.length; i++) {
+                if (allCheckboxes[i].checked === true) {
+                    const btn = document.getElementById(`stock-btn-${allCheckboxes[i].getAttribute('data-id')}`);
+                    if (btn) btn.style.display = 'block';
+                }
             }
         })
-        .catch((err) => alert("Error updating live database nodes."));
+        .catch((err) => {
+            alert("Error updating live database nodes.");
+            console.error(err);
+        });
 }
 
 function initializeKitchenOrderStream() {
