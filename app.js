@@ -1,5 +1,5 @@
 // ==========================================================================
-// 1. PWA REGISTRATION & SCREEN-BLOCKING INSTALL FUNCTIONALITY
+// 1. PWA REGISTRATION & AGGRESSIVE SCREEN-BLOCKING INSTALL FUNCTIONALITY
 // ==========================================================================
 let deferredPrompt = null;
 let installPromptSupported = false; 
@@ -18,21 +18,17 @@ if ('serviceWorker' in navigator) {
     });
 }
 
+// Catch the application shortcut token dispatched by the browser shell
 window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault(); 
     deferredPrompt = e;  
     installPromptSupported = true; 
     
     const isAlreadyInstalled = localStorage.getItem('pwa_installed_successfully');
-    const pwaLastSeen = localStorage.getItem('pwa_prompt_last_seen');
-    const now = new Date().getTime();
     
+    // 🚀 FIXED: 24-hour cycle completely bypassed. Forces the modal every time until installed!
     if (isAlreadyInstalled !== 'true') {
-        if (!pwaLastSeen || (now - pwaLastSeen) > (24 * 60 * 60 * 1000)) {
-            showMandatoryModal();
-        } else {
-            initNotificationGestureCheck(); 
-        }
+        showMandatoryModal();
     } else {
         initNotificationGestureCheck(); 
     }
@@ -60,7 +56,6 @@ function showMandatoryModal() {
         pwaModal.style.display = 'flex';
         pwaOverlay.style.display = 'block';
         body.classList.add('stop-scrolling'); 
-        localStorage.setItem('pwa_prompt_last_seen', new Date().getTime()); 
     }
 }
 
@@ -136,7 +131,6 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     }, 2000);
     
-    // Boot up the real-time device history tracking scanner engine
     listenToOrderHistory();
 });
 
@@ -219,7 +213,6 @@ function listenToOrderHistory() {
         historyContainer.innerHTML = '';
     }
     
-    // Establish deep individual snapshot nodes for state observation loops
     trackList.forEach(orderId => {
         database.ref(`orders/${orderId}`).on('value', (snapshot) => {
             const order = snapshot.val();
@@ -233,18 +226,17 @@ function listenToOrderHistory() {
                 isNew = true;
             }
             
-            // Map Kitchen Node strings to specified layout badge parameters
             let statusText = "On Hold";
-            let badgeColor = "#D97706"; // Default Amber
+            let badgeColor = "#D97706"; 
             let bgColor = "#FEF3C7";
             
             if (order.status === "ACCEPTED") {
                 statusText = "Accepted";
-                badgeColor = "#059669"; // Emerald Green
+                badgeColor = "#059669"; 
                 bgColor = "#D1FAE5";
             } else if (order.status === "REJECTED") {
                 statusText = "Rejected";
-                badgeColor = "#DC2626"; // Crimson Red
+                badgeColor = "#DC2626"; 
                 bgColor = "#FEE2E2";
             } else if (order.status === "HOLD" || order.status === "PENDING") {
                 statusText = "On Hold";
@@ -273,7 +265,6 @@ function listenToOrderHistory() {
             `;
             
             if (isNew) {
-                // Prepend to place the most recent orders at the top of the history list
                 historyContainer.insertBefore(card, historyContainer.firstChild);
             }
         });
@@ -347,12 +338,10 @@ function submitOrder() {
     };
 
     newOrderRef.set(customerPayload).then(() => {
-        // Append unique order key tracking matrix to local storage state
         let trackList = JSON.parse(localStorage.getItem('foodies_tracked_orders') || '[]');
         trackList.push(newOrderRef.key);
         localStorage.setItem('foodies_tracked_orders', JSON.stringify(trackList));
         
-        // Re-execute status monitoring loops to render new item instantly
         listenToOrderHistory();
 
         alert("Order dispatched to the kitchen!");
