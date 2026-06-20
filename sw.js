@@ -2,7 +2,7 @@
 // FOODIES POINT - SERVICE WORKER (NETWORK-FIRST EVOLUTION V9)
 // ==========================================================================
 
-const CACHE_NAME = 'foodies-cache-v9';
+const CACHE_NAME = 'foodies-cache-v10';
 
 const ASSETS = [
   '',
