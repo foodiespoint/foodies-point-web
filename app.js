@@ -1,5 +1,5 @@
 // ==========================================================================
-// 1. PWA LIFECYCLE HANDSHAKE & SPLASH SCREEN SYSTEM (VERSION 14)
+// 1. PWA LIFECYCLE HANDSHAKE & SPLASH SCREEN SYSTEM (VERSION 15)
 // ==========================================================================
 let deferredPrompt = null;
 let installPromptSupported = false; 
@@ -15,8 +15,8 @@ const splashText = document.getElementById('splash-text');
 
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-        // 🚀 BUMPED TO V14: Forces your app to dump the broken timezone logic cache instantly
-        navigator.serviceWorker.register('sw.js?v=14')
+        // 🚀 BUMPED TO V15: Overwrites the older layout text on user devices automatically
+        navigator.serviceWorker.register('sw.js?v=15')
             .then(reg => {
                 console.log('PWA core components initialized.');
                 let versionUpgradeDetected = false;
@@ -180,12 +180,11 @@ firebase.initializeApp(firebaseConfig);
 const database = firebase.database();
 
 // ==========================================
-// 4. 🚀 FIXED: BULLETPROOF IST TIMEZONE LOCKOUT ENGINE
+// 4. BULLETPROOF IST TIMEZONE LOCKOUT ENGINE
 // ==========================================
 function isKitchenBlackoutActive() {
     const now = new Date();
     
-    // Force JavaScript to format the time parameters strictly using Indian Standard Time (IST)
     const istFormatter = new Intl.DateTimeFormat('en-US', {
         timeZone: 'Asia/Kolkata',
         hour: '2-digit',
@@ -193,7 +192,6 @@ function isKitchenBlackoutActive() {
         hour12: false
     });
     
-    // Example format conversion output: "20:50" -> ["20", "50"]
     const istTimeParts = istFormatter.format(now).split(':');
     const currentHour = parseInt(istTimeParts[0], 10);
     const currentMinute = parseInt(istTimeParts[1], 10);
@@ -213,11 +211,12 @@ function enforceBlackoutUILayout() {
     cart = [];
     if (cartBtn) cartBtn.style.display = 'none';
     
+    // 🚀 FIXED: Extraneous sentences and descriptors cleanly excised from the inner HTML matrix
     menuContainer.innerHTML = `
         <div style="text-align: center; padding: 32px 16px; background-color: #FFFFFF; border-radius: 18px; border: 1px dashed #E5E7EB; width: 100%; box-sizing: border-box;">
             <div style="font-size: 32px; margin-bottom: 8px;">⏰</div>
             <div style="font-weight: 700; font-size: 15px; color: #111827;">Kitchen Closed for Today</div>
-            <div style="color: #6B7280; font-size: 13px; margin-top: 4px; line-height: 1.5;">The menu has been cleared. Tomorrow's live menu will be available exactly after 9:30 PM IST.</div>
+            <div style="color: #6B7280; font-size: 13px; margin-top: 4px; line-height: 1.5;">Tomorrow's live menu will be available after 9:30 PM IST.</div>
         </div>
     `;
     
