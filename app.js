@@ -1,5 +1,5 @@
 // ==========================================================================
-// 1. PWA LIFECYCLE HANDSHAKE & SPLASH SCREEN SYSTEM (VERSION 11)
+// 1. PWA LIFECYCLE HANDSHAKE & SPLASH SCREEN SYSTEM (VERSION 12)
 // ==========================================================================
 let deferredPrompt = null;
 let installPromptSupported = false; 
@@ -10,21 +10,18 @@ const notifModal = document.getElementById('notification-modal');
 const notifOverlay = document.getElementById('notification-overlay');
 const body = document.body;
 
-// Splash interface structural anchors
 const updateSplash = document.getElementById('update-splash');
 const splashText = document.getElementById('splash-text');
 
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-        // Appending v11 cache-busting token to network queries
-        navigator.serviceWorker.register('sw.js?v=11')
+        // 🚀 BUMPED TO V12: Clears out v11 cache configurations smoothly
+        navigator.serviceWorker.register('sw.js?v=12')
             .then(reg => {
                 console.log('PWA core components initialized.');
                 let versionUpgradeDetected = false;
 
-                // Monitor incoming changes to the Service Worker script background threads
                 reg.onupdatefound = () => {
-                    // Safety check: Only shift to "Updating" status if a prior controller is already handling pages
                     if (navigator.serviceWorker.controller) {
                         versionUpgradeDetected = true;
                         if (splashText) {
@@ -33,16 +30,13 @@ if ('serviceWorker' in navigator) {
                     }
                 };
 
-                // Trigger network-to-repository lookup pipeline
                 reg.update().then(() => {
-                    // Give background tasks a brief moment to finish updating before closing splash
                     setTimeout(() => {
                         if (!versionUpgradeDetected) {
                             dismissUpdateSplashScreen();
                         }
                     }, 800);
                 }).catch(() => {
-                    // Network failure fallback path: Allow immediate offline view access
                     dismissUpdateSplashScreen();
                 });
             })
@@ -52,7 +46,6 @@ if ('serviceWorker' in navigator) {
             });
     });
 
-    // Automatic reload sequence: fires the exact millisecond the new Service Worker becomes active
     let refreshing = false;
     navigator.serviceWorker.addEventListener('controllerchange', () => {
         if (!refreshing) {
@@ -61,7 +54,6 @@ if ('serviceWorker' in navigator) {
         }
     });
 } else {
-    // Legacy support fallback path
     dismissUpdateSplashScreen();
 }
 
@@ -105,8 +97,8 @@ window.addEventListener('appinstalled', (event) => {
 });
 
 function showMandatoryModal() {
-    // Safety check: Don't pop over the active update engine splash screen loader window
-    if (updateSplash && updateSplash.style.display !== 'none') return;
+    // 🚀 FIXED: Removed the blocking return line. 
+    // The installation layout now arms itself silently right beneath the splash screen canvas grid layout!
     if (pwaModal && pwaOverlay) {
         pwaModal.style.display = 'flex';
         pwaOverlay.style.display = 'block';
