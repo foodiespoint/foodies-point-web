@@ -1,5 +1,5 @@
 // ==========================================================================
-// 1. PWA LIFECYCLE HANDSHAKE & SPLASH SCREEN SYSTEM (VERSION 20)
+// 1. PWA LIFECYCLE HANDSHAKE & SPLASH SCREEN SYSTEM (VERSION 22)
 // ==========================================================================
 let deferredPrompt = null;
 let installPromptSupported = false; 
@@ -15,8 +15,8 @@ const splashText = document.getElementById('splash-text');
 
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-        // 🚀 BUMPED TO V20: Instantly updates the password on all connected user devices
-        navigator.serviceWorker.register('sw.js?v=20')
+        // 🚀 BUMPED TO V22: Forces systems to register your real menu catalog array right away
+        navigator.serviceWorker.register('sw.js?v=22')
             .then(reg => {
                 console.log('PWA core components initialized.');
                 let versionUpgradeDetected = false;
@@ -195,7 +195,6 @@ function isKitchenBlackoutActive() {
     const istTimeParts = istFormatter.format(now).split(':');
     const currentHour = parseInt(istTimeParts[0], 10);
     const currentMinute = parseInt(istTimeParts[1], 10);
-    
     const totalMinutesPassed = (currentHour * 60) + currentMinute;
     
     const lockStartMinutes = 18 * 60;          // 18:00 (6:00 PM)
@@ -265,15 +264,9 @@ database.ref('daily_live_menu').on('value', (snapshot) => {
             : `<button disabled style="background-color: #F3F4F6; color: #9CA3AF; padding: 8px 14px; border: none; border-radius: 10px; font-weight: 500; font-size: 13px;">N/A</button>`;
 
         card.style.cssText = `
-            background-color: #FFFFFF;
-            padding: 16px;
-            border-radius: 18px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
-            border: 1px solid #F3F4F6;
-            opacity: ${opacitySetting};
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+            background-color: #FFFFFF; padding: 16px; border-radius: 18px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03); border: 1px solid #F3F4F6;
+            opacity: ${opacitySetting}; display: flex; justify-content: space-between; align-items: center;
         `;
 
         card.innerHTML = `
@@ -329,27 +322,16 @@ function listenToOrderHistory() {
             let bgColor = "#FEF3C7";
             
             if (order.status === "ACCEPTED") {
-                statusText = "Accepted";
-                badgeColor = "#059669"; 
-                bgColor = "#D1FAE5";
+                statusText = "Accepted"; badgeColor = "#059669"; bgColor = "#D1FAE5";
             } else if (order.status === "REJECTED") {
-                statusText = "Rejected";
-                badgeColor = "#DC2626"; 
-                bgColor = "#FEE2E2";
+                statusText = "Rejected"; badgeColor = "#DC2626"; bgColor = "#FEE2E2";
             } else if (order.status === "HOLD" || order.status === "PENDING") {
-                statusText = "On Hold";
-                badgeColor = "#D97706";
-                bgColor = "#FEF3C7";
+                statusText = "On Hold"; badgeColor = "#D97706"; bgColor = "#FEF3C7";
             }
             
             card.style.cssText = `
-                background-color: #F9FAFB;
-                padding: 14px;
-                border-radius: 14px;
-                border: 1px solid #E5E7EB;
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
+                background-color: #F9FAFB; padding: 14px; border-radius: 14px; border: 1px solid #E5E7EB;
+                display: flex; justify-content: space-between; align-items: center;
             `;
             
             card.innerHTML = `
@@ -477,10 +459,140 @@ function submitOrder() {
 }
 
 // ==========================================================================
-// 9. ADMINISTRATIVE KITCHEN CONSOLE OPERATIONS ENGINE
+// 🚀 9. ADMINISTRATIVE MASTER MENU CONTROL ENGINE (PRODUCTION CATALOG V22)
 // ==========================================================================
 let isConsoleViewActive = false;
-const ROUTING_SECRET_PIN = "validatefoodies2026"; // 🚀 FIXED: String quote removed cleanly
+const ROUTING_SECRET_PIN = "validatefoodies2026"; 
+
+// 📦 PRODUCED MASTER CATALOG SYSTEM: Instantly mapped directly from FOODIES.txt
+const MASTER_MENU = [
+    // ROLLS
+    { id: "roll_1", title: "Dahi Bread Roll", details: "15/- per pc.", category: "Rolls" },
+    { id: "roll_2", title: "Bread Roll", details: "80/- per plate (8 pc.)", category: "Rolls" },
+    { id: "roll_3", title: "Spring Roll", details: "25/- per pc.", category: "Rolls" },
+    { id: "roll_4", title: "Veg Kebab Roll", details: "20/- per pc.", category: "Rolls" },
+    { id: "roll_5", title: "Paneer Roll", details: "45/- per pc.", category: "Rolls" },
+    { id: "roll_6", title: "Egg Mayonaise & Cheese Mix Roll", details: "50/- per pc.", category: "Rolls" },
+    { id: "roll_7", title: "Egg Mayonaise Roll", details: "40/- per pc.", category: "Rolls" },
+    { id: "roll_8", title: "Egg Roll", details: "35/- per pc.", category: "Rolls" },
+    { id: "roll_9", title: "Chicken Roll", details: "55/- per pc.", category: "Rolls" },
+    { id: "roll_10", title: "Chicken Mayonaise Roll", details: "60/- per pc.", category: "Rolls" },
+    { id: "roll_11", title: "Chicken Egg Roll", details: "70/- per pc.", category: "Rolls" },
+    { id: "roll_12", title: "Chicken Egg Mayonaise Roll", details: "75/- per pc.", category: "Rolls" },
+
+    // PAKODI
+    { id: "pak_1", title: "Pyaaz ki Pakodi", details: "60/- (250gm)", category: "Pakodi" },
+    { id: "pak_2", title: "Paalak ki Pakodi", details: "60/- (250gm)", category: "Pakodi" },
+    { id: "pak_3", title: "Gobhi ki Pakodi", details: "60/- (250gm)", category: "Pakodi" },
+    { id: "pak_4", title: "Mirch ki Pakodi", details: "15/- per pc.", category: "Pakodi" },
+    { id: "pak_5", title: "Bread Pakoda", details: "20/- per pc.", category: "Pakodi" },
+    { id: "pak_6", title: "Egg Pakodi", details: "10/- per pc.", category: "Pakodi" },
+    { id: "pak_7", title: "Moong Daal ke Mongode", details: "75/- (250gm)", category: "Pakodi" },
+
+    // SANDWICH
+    { id: "sand_1", title: "Veg Grilled Mayonaise Sandwich", details: "55/- (2 pc)", category: "Sandwich" },
+    { id: "sand_2", title: "Veg Cheese Sandwich", details: "60/- (2 pc)", category: "Sandwich" },
+    { id: "sand_3", title: "Veg Sandwich", details: "18/- per pc.", category: "Sandwich" },
+
+    // SNACKS
+    { id: "snack_1", title: "Chocolate Croissant", details: "48/- per pc.", category: "Snacks" },
+    { id: "snack_2", title: "Zingy Parcel (Paneer)", details: "60/- per pc.", category: "Snacks" },
+    { id: "snack_3", title: "Pizza Puff", details: "18/- per pc.", category: "Snacks" },
+    { id: "snack_4", title: "Mini Pizza", details: "45/- per pc.", category: "Snacks" },
+    { id: "snack_5", title: "Veg Burger", details: "50/- per pc.", category: "Snacks" },
+    { id: "snack_6", title: "Aloo Patty", details: "17/- per pc.", category: "Snacks" },
+    { id: "snack_7", title: "Paneer Patty", details: "25/- per pc.", category: "Snacks" },
+    { id: "snack_8", title: "Veg Appe", details: "65/- per plate", category: "Snacks" },
+    { id: "snack_9", title: "Phare", details: "70/- (250gm)", category: "Snacks" },
+    { id: "snack_10", title: "Veg Masala Idli", details: "45/- per plate", category: "Snacks" },
+    { id: "snack_11", title: "Fried Idli", details: "50/- per plate", category: "Snacks" },
+    { id: "snack_12", title: "Poha", details: "80/- per plate", category: "Snacks" },
+    { id: "snack_13", title: "Crispy Stuffed Mushroom", details: "65/- per plate (4 pc)", category: "Snacks" },
+    { id: "snack_14", title: "Aloo Bonda", details: "12/- per pc.", category: "Snacks" },
+    { id: "snack_15", title: "Vada Pav", details: "25/- per pc.", category: "Snacks" },
+    { id: "snack_16", title: "Cheese Balls", details: "80/- per plate (8 pc)", category: "Snacks" },
+    { id: "snack_17", title: "Masala Vada", details: "80/- per plate (8 pc)", category: "Snacks" },
+    { id: "snack_18", title: "Falafel Mushakkal Veg. Roll", details: "40/- per pc.", category: "Snacks" },
+    { id: "snack_19", title: "Pani Poori", details: "15/- (5 pc)", category: "Snacks" },
+    { id: "snack_20", title: "Tikki Chaat", details: "55/- per plate", category: "Snacks" },
+    { id: "snack_21", title: "Dahi Vada", details: "60/- per plate (4 pc)", category: "Snacks" },
+    { id: "snack_22", title: "Raj Kachori", details: "85/- per plate", category: "Snacks" },
+    { id: "snack_23", title: "Samosa", details: "12/- per pc.", category: "Snacks" },
+    { id: "snack_24", title: "Paneer Tikka", details: "240/- per plate", category: "Snacks" },
+    { id: "snack_25", title: "Paneer Malai Tikka", details: "260/- per plate", category: "Snacks" },
+
+    // CHINESE
+    { id: "chin_1", title: "Honey Chilli Potato", details: "90/- per plate", category: "Chinese" },
+    { id: "chin_2", title: "Chowmein", details: "80/- per plate", category: "Chinese" },
+    { id: "chin_3", title: "Macaroni", details: "80/- per plate", category: "Chinese" },
+    { id: "chin_4", title: "Fried Rice", details: "80/- per plate", category: "Chinese" },
+    { id: "chin_5", title: "Veg Manchurian", details: "80/- per plate", category: "Chinese" },
+    { id: "chin_6", title: "Paneer Manchurian", details: "160/- per plate", category: "Chinese" },
+    { id: "chin_7", title: "Chilli Paneer", details: "140/- per plate", category: "Chinese" },
+    { id: "chin_8", title: "Veg Momos", details: "55/- per plate (10 pc)", category: "Chinese" },
+    { id: "chin_9", title: "Paneer Momos", details: "75/- per plate (10 pc)", category: "Chinese" },
+    { id: "chin_10", title: "Chicken Momos", details: "100/- per plate (10 pc)", category: "Chinese" },
+    { id: "chin_11", title: "White Pasta", details: "100/- per plate", category: "Chinese" },
+
+    // KEBABS
+    { id: "keb_1", title: "Veg. Seekh Kebab", details: "15/- per pc.", category: "Kebabs" },
+    { id: "keb_2", title: "Veg Kebab", details: "17/- per pc.", category: "Kebabs" },
+    { id: "keb_3", title: "Dahi ke Kebab", details: "25/- per pc.", category: "Kebabs" },
+    { id: "keb_4", title: "Hariyali Kebab", details: "25/- per pc.", category: "Kebabs" },
+
+    // CAKE (Egg-Less)
+    { id: "cake_1", title: "Tutti Frutti Cup Cake", details: "18/- per pc.", category: "Cake (Eggless)" },
+    { id: "cake_2", title: "Chocolate Cup Cake", details: "20/- per pc.", category: "Cake (Eggless)" },
+    { id: "cake_3", title: "Chocolava Cup Cake", details: "38/- per pc.", category: "Cake (Eggless)" },
+
+    // SHAKES
+    { id: "shake_1", title: "Mango Shake", details: "30/-", category: "Shakes & Drinks" },
+    { id: "shake_2", title: "Lassi", details: "45/-", category: "Shakes & Drinks" },
+    { id: "shake_3", title: "Panna", details: "12/-", category: "Shakes & Drinks" },
+
+    // TRADITIONAL PLATES
+    { id: "trad_1", title: "Chokha Baati", details: "50/- per plate (2 pc)", category: "Traditional Plates" },
+    { id: "trad_2", title: "Chole Aloo Kulche", details: "70/- per plate", category: "Traditional Plates" },
+    { id: "trad_3", title: "Chole Bhature", details: "60/- per plate", category: "Traditional Plates" },
+    { id: "trad_4", title: "Khasta Aloo Matar", details: "55/- per plate (2 pc)", category: "Traditional Plates" },
+    { id: "trad_5", title: "Sambhar Vada", details: "55/- per plate (4 pc)", category: "Traditional Plates" },
+    { id: "trad_6", title: "Idli Sambhar", details: "55/- per plate (4 pc)", category: "Traditional Plates" },
+    { id: "trad_7", title: "Pav Bhaji", details: "60/- per plate", category: "Traditional Plates" },
+
+    // SWEETS
+    { id: "sweet_1", title: "Gulab Jamun", details: "20/-", category: "Sweets" },
+    { id: "sweet_2", title: "Kheer", details: "80/-", category: "Sweets" },
+    { id: "sweet_3", title: "Sweet Rice", details: "90/-", category: "Sweets" },
+    { id: "sweet_4", title: "Shrikhand", details: "85/- (250 gm)", category: "Sweets" },
+
+    // SABZI
+    { id: "sabzi_1", title: "Shahi Paneer", details: "300/-", category: "Sabzi" },
+    { id: "sabzi_2", title: "Paneer Masala", details: "220/-", category: "Sabzi" },
+    { id: "sabzi_3", title: "Paneer Angara", details: "280/-", category: "Sabzi" },
+    { id: "sabzi_4", title: "Palak Paneer", details: "200/-", category: "Sabzi" },
+    { id: "sabzi_5", title: "Matar Paneer", details: "200/-", category: "Sabzi" },
+
+    // NON-VEG
+    { id: "nv_1", title: "Chicken Afghani", details: "500/-", category: "Non-Veg" },
+    { id: "nv_2", title: "Roasted Chicken", details: "340/-", category: "Non-Veg" },
+    { id: "nv_3", title: "Chilli Chicken", details: "440/-", category: "Non-Veg" },
+    { id: "nv_4", title: "Egg Curry", details: "75/-", category: "Non-Veg" },
+    { id: "nv_5", title: "Fish Fry (Boneless)", details: "180/- (250 gm)", category: "Non-Veg" },
+    { id: "nv_6", title: "Fish Dry (Boneless)", details: "165/- (250 gm)", category: "Non-Veg" },
+    { id: "nv_7", title: "Chicken Shawarma", details: "90/-", category: "Non-Veg" },
+    { id: "nv_8", title: "Mutton Curry", details: "400/-", category: "Non-Veg" },
+    { id: "nv_9", title: "Mutton Korma", details: "430/-", category: "Non-Veg" },
+    { id: "nv_10", title: "Keema Kaleji", details: "400/-", category: "Non-Veg" },
+    { id: "nv_11", title: "Chicken Curry", details: "360/-", category: "Non-Veg" },
+    { id: "nv_12", title: "Chicken Masala", details: "400/-", category: "Non-Veg" },
+    { id: "nv_13", title: "Butter Chicken", details: "500/-", category: "Non-Veg" },
+
+    // RICE
+    { id: "rice_1", title: "Plain Rice", details: "90/-", category: "Rice" },
+    { id: "rice_2", title: "Jeera Rice", details: "120/-", category: "Rice" },
+    { id: "rice_3", title: "Matar Pulao", details: "140/-", category: "Rice" },
+    { id: "rice_4", title: "Veg. Biryani", details: "180/-", category: "Rice" }
+];
 
 function authenticateConsoleAccess() {
     if (isConsoleViewActive) {
@@ -536,6 +648,91 @@ function submitConsolePIN() {
     }
 }
 
+function initializeKitchenInventoryMatrix() {
+    const inventoryContainer = document.getElementById('kitchen-inventory-container');
+    if (!isConsoleViewActive) return;
+    inventoryContainer.innerHTML = '';
+    
+    MASTER_MENU.forEach((item) => {
+        const gridRow = document.createElement('div');
+        gridRow.style.cssText = `
+            background-color: #F9FAFB; padding: 14px; border-radius: 14px;
+            border: 1px solid #E5E7EB; display: flex; justify-content: space-between; align-items: center; text-align: left; margin-bottom: 2px;
+        `;
+
+        gridRow.innerHTML = `
+            <div style="flex-grow: 1; padding-right: 12px;">
+                <div style="font-size: 14px; font-weight: 600; color: #111827;">${item.title}</div>
+                <div style="font-size: 11px; color: #6B7280;">${item.category} • ${item.details}</div>
+            </div>
+            <input type="checkbox" id="chk-${item.id}" data-id="${item.id}" style="width: 20px; height: 20px; accent-color: #FF4B3A; cursor: pointer;">
+        `;
+        inventoryContainer.appendChild(gridRow);
+    });
+}
+
+function previewSelectedLiveMenu() {
+    const previewList = document.getElementById('menu-preview-list');
+    previewList.innerHTML = '';
+    let selectedCount = 0;
+
+    MASTER_MENU.forEach((item) => {
+        const checkbox = document.getElementById(`chk-${item.id}`);
+        if (checkbox && checkbox.checked) {
+            selectedCount++;
+            const lineItem = document.createElement('div');
+            lineItem.style.cssText = "font-size: 13px; font-weight: 600; color: #111827; display: flex; align-items: center; gap: 6px;";
+            lineItem.innerHTML = `<span>🟢</span> ${item.title} <span style="font-size:10px; font-weight:400; color:#6B7280;">(${item.category})</span>`;
+            previewList.appendChild(lineItem);
+        }
+    });
+
+    if (selectedCount === 0) {
+        alert("⚠️ Menu empty:\n\nPlease tick at least one item row from the catalog grid before posting today's menu!");
+        return;
+    }
+
+    document.getElementById('menu-confirm-overlay').style.display = 'block';
+    document.getElementById('menu-confirm-modal').style.display = 'flex';
+}
+
+function closeMenuConfirmModal() {
+    document.getElementById('menu-confirm-overlay').style.display = 'none';
+    document.getElementById('menu-confirm-modal').style.display = 'none';
+}
+
+function publishSelectedLiveMenu() {
+    const activePayload = {};
+
+    MASTER_MENU.forEach((item) => {
+        const checkbox = document.getElementById(`chk-${item.id}`);
+        if (checkbox && checkbox.checked) {
+            activePayload[item.id] = {
+                id: item.id,
+                title: item.title,
+                details: item.details,
+                category: item.category,
+                isOutOfStock: false 
+            };
+        }
+    });
+
+    database.ref('daily_live_menu').set(activePayload)
+        .then(() => {
+            alert("🚀 Success!\n\nToday's live menu has been successfully updated and broadcasted across all devices.");
+            closeMenuConfirmModal();
+            
+            MASTER_MENU.forEach((item) => {
+                const checkbox = document.getElementById(`chk-${item.id}`);
+                if (checkbox) checkbox.checked = false;
+            });
+        })
+        .catch((err) => {
+            alert("Error updating operational database nodes. Please try again.");
+            console.error(err);
+        });
+}
+
 function initializeKitchenOrderStream() {
     const ordersContainer = document.getElementById('kitchen-orders-container');
     
@@ -560,7 +757,6 @@ function initializeKitchenOrderStream() {
 
         trackingList.forEach((order) => {
             const rowItem = document.createElement('div');
-            
             let statusBadgeColor = "#D97706";
             let statusLabel = "PENDING";
             if (order.status === "ACCEPTED") { statusBadgeColor = "#10B981"; statusLabel = "ACCEPTED"; }
@@ -602,45 +798,6 @@ function updateTicketStatus(ticketId, targetState) {
 function archiveTicket(ticketId) {
     database.ref(`orders/${ticketId}`).update({ archived: true })
         .catch(() => alert("Failed to archive target order file."));
-}
-
-function initializeKitchenInventoryMatrix() {
-    const inventoryContainer = document.getElementById('kitchen-inventory-container');
-    
-    database.ref('daily_live_menu').on('value', (snapshot) => {
-        if (!isConsoleViewActive) return;
-        inventoryContainer.innerHTML = '';
-        
-        snapshot.forEach((child) => {
-            const item = child.val();
-            const gridRow = document.createElement('div');
-            
-            const isInStock = !item.isOutOfStock;
-            const contextBtnLabel = isInStock ? "In Stock" : "Out of Stock";
-            const contextBtnColor = isInStock ? "#10B981" : "#EF4444";
-
-            gridRow.style.cssText = `
-                background-color: #F9FAFB; padding: 12px; border-radius: 12px;
-                border: 1px solid #E5E7EB; display: flex; justify-content: space-between; align-items: center; text-align: left;
-            `;
-
-            gridRow.innerHTML = `
-                <div>
-                    <div style="font-size: 14px; font-weight: 600; color: #111827;">${item.title}</div>
-                    <div style="font-size: 11px; color: #6B7280;">${item.category} • ${item.details}</div>
-                </div>
-                <button onclick="toggleItemStockState('${item.id}', ${item.isOutOfStock || false})" style="background-color: ${contextBtnColor}; color: white; border: none; padding: 6px 12px; border-radius: 8px; font-size: 11px; font-weight: 600; cursor: pointer; min-width: 100px;">
-                    ${contextBtnLabel}
-                </button>
-            `;
-            inventoryContainer.appendChild(gridRow);
-        });
-    });
-}
-
-function toggleItemStockState(itemId, currentFlagValue) {
-    database.ref(`daily_live_menu/${itemId}`).update({ isOutOfStock: !currentFlagValue })
-        .catch(() => alert("Failed to mutate current target inventory flag data."));
 }
 
 window.addEventListener('DOMContentLoaded', () => {
