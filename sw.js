@@ -1,8 +1,8 @@
 // ==========================================================================
-// FOODIES POINT - SERVICE WORKER (PRODUCTION ENGINE V29)
+// FOODIES POINT - SERVICE WORKER (PRODUCTION ENGINE V30)
 // ==========================================================================
 
-const CACHE_NAME = 'foodies-cache-v28';
+const CACHE_NAME = 'foodies-cache-v29';
 
 const ASSETS = [
   '',
@@ -16,7 +16,7 @@ self.addEventListener('install', (event) => {
     event.waitUntil(
         caches.open(CACHE_NAME)
             .then((cache) => {
-                console.log('PWA Cache Engine V29: Deploying state variable hoisting layers');
+                console.log('PWA Cache Engine V30: Deploying atomic write matrices');
                 return cache.addAll(ASSETS);
             })
             .then(() => self.skipWaiting())
@@ -29,7 +29,7 @@ self.addEventListener('activate', (event) => {
             return Promise.all(
                 keys.map((key) => {
                     if (key !== CACHE_NAME) {
-                        console.log('PWA Cache Engine V29: Purging deprecated structures:', key);
+                        console.log('PWA Cache Engine V30: Evicting older storage nodes:', key);
                         return caches.delete(key);
                     }
                 })
