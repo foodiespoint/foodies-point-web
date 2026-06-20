@@ -4,7 +4,8 @@
 let deferredPrompt = null;
 const pwaModal = document.getElementById('pwa-modal');
 const pwaOverlay = document.getElementById('pwa-overlay');
-const softPrompt = document.getElementById('notification-soft-prompt');
+const notifModal = document.getElementById('notification-modal');
+const notifOverlay = document.getElementById('notification-overlay');
 const body = document.body;
 
 // Register the web app's caching engine context
@@ -25,7 +26,6 @@ window.addEventListener('beforeinstallprompt', (e) => {
     const pwaLastSeen = localStorage.getItem('pwa_prompt_last_seen');
     const now = new Date().getTime();
     
-    // Deploy modal if app is uninstalled and block interval parameters are met
     if (isAlreadyInstalled !== 'true') {
         if (!pwaLastSeen || (now - pwaLastSeen) > (24 * 60 * 60 * 1000)) {
             showMandatoryModal();
@@ -40,19 +40,15 @@ function triggerNativeInstall() {
     }
     
     deferredPrompt.prompt();
-    
     deferredPrompt.userChoice.then((choiceResult) => {
         if (choiceResult.outcome === 'accepted') {
-            console.log('App generation pipeline accepted by user.');
-        } else {
-            console.log('App generation pipeline dismissed by user.');
+            console.log('App generation pipeline accepted.');
         }
         deferredPrompt = null; 
         dismissMandatoryModal(); 
     });
 }
 
-// Global flag marking system success
 window.addEventListener('appinstalled', (event) => {
     localStorage.setItem('pwa_installed_successfully', 'true');
     dismissMandatoryModal();
@@ -73,38 +69,52 @@ function dismissMandatoryModal() {
         pwaOverlay.style.display = 'none';
         body.classList.remove('stop-scrolling'); 
         
-        // Execute the delayed notification engine check directly after install modal vanishes
-        checkNotificationStatus();
+        // Prepare the notification interceptor right after install modal closes
+        initNotificationGestureCheck();
     }
 }
 
 // ==========================================================================
-// 2. DELAYED NOTIFICATION ENGINE & OPT-IN CONTROLLERS
+// 2. CENTERED MANDATORY NOTIFICATION COERCION ENGINE (FIRST INTERACTION)
 // ==========================================================================
-function checkNotificationStatus() {
+function initNotificationGestureCheck() {
     if (!('Notification' in window)) return;
 
-    // Display the custom top dropdown banner if status remains undetermined
-    if (Notification.permission === 'default') {
-        setTimeout(() => {
-            if (softPrompt) softPrompt.classList.add('show');
-        }, 2500); 
+    // If permission is already granted, skip the blocker entirely
+    if (Notification.permission === 'granted') return;
+
+    // Set up one-time gesture interception. The absolute millisecond they touch the screen, lock it down!
+    const triggerBlocker = () => {
+        if (Notification.permission !== 'granted') {
+            showNotificationModal();
+        }
+    };
+    window.addEventListener('click', triggerBlocker, { once: true });
+    window.addEventListener('touchstart', triggerBlocker, { once: true });
+}
+
+function showNotificationModal() {
+    if (notifModal && notifOverlay) {
+        notifModal.style.display = 'flex';
+        notifOverlay.style.display = 'block';
+        body.classList.add('stop-scrolling'); // Lock screen from closing or bypass scrolling
     }
 }
 
-function acceptSoftPrompt() {
-    dismissSoftPrompt(); 
-    
-    // Fire the official system dialogue securely backed by a validated user gesture
+function acceptNotificationModal() {
+    // Hide our custom centered layout window structure
+    if (notifModal && notifOverlay) {
+        notifModal.style.display = 'none';
+        notifOverlay.style.display = 'none';
+        body.classList.remove('stop-scrolling');
+    }
+
+    // Instantly fire the official browser permission prompt using the gesture validation token
     Notification.requestPermission().then((permission) => {
         if (permission === 'granted') {
             triggerInstantNotification('🍕 Alerts Enabled! Your live tracking is active.');
         }
     });
-}
-
-function dismissSoftPrompt() {
-    if (softPrompt) softPrompt.classList.remove('show');
 }
 
 function triggerInstantNotification(messageText) {
@@ -121,11 +131,11 @@ function triggerInstantNotification(messageText) {
     }
 }
 
-// Boot notification parameters if install blocker is not active on compilation
+// If install window wasn't triggered on load, initialize gesture checks instantly
 window.addEventListener('DOMContentLoaded', () => {
     const isAlreadyInstalled = localStorage.getItem('pwa_installed_successfully');
     if (isAlreadyInstalled === 'true' || !deferredPrompt) {
-        checkNotificationStatus();
+        initNotificationGestureCheck();
     }
 });
 
@@ -145,7 +155,6 @@ const menuContainer = document.getElementById('menu-container');
 const cartBtn = document.getElementById('cart-btn');
 let cart = [];
 
-// Menu Node Realtime Sync Loop Configuration
 database.ref('daily_live_menu').on('value', (snapshot) => {
     menuContainer.innerHTML = ''; 
     const menuItems = [];
