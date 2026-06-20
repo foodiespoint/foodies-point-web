@@ -7,19 +7,25 @@
     <link rel="manifest" href="manifest.json">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        /* Modern App Shell Core Layout Configuration */
-        body { font-family: 'Poppins', sans-serif; background-color: #F9FAFB; margin: 0; padding: 0; color: #1F2937; transition: overflow 0.3s ease; -webkit-tap-highlight-color: transparent; }
+        /* Modern App Shell Split-Screen Core Layout */
+        body { font-family: 'Poppins', sans-serif; background-color: #F9FAFB; margin: 0; padding: 0; color: #1F2937; transition: overflow 0.3s ease; -webkit-tap-highlight-color: transparent; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
         
-        .header { background-color: #FF4B3A; color: #FFFFFF; padding: 20px 16px; text-align: center; font-size: 22px; font-weight: 700; position: sticky; top: 0; box-shadow: 0 4px 20px rgba(255, 75, 58, 0.15); z-index: 10; letter-spacing: -0.5px; }
-        .header::after { content: 'LIVE KITCHEN MENU'; display: block; font-size: 10px; font-weight: 600; color: rgba(255,255,255,0.8); letter-spacing: 2px; margin-top: 2px; }
+        .header { background-color: #FF4B3A; color: #FFFFFF; padding: 16px; text-align: center; font-size: 22px; font-weight: 700; box-shadow: 0 4px 20px rgba(255, 75, 58, 0.15); z-index: 10; letter-spacing: -0.5px; flex-shrink: 0; }
+        .header::after { content: 'LIVE KITCHEN ACCESS'; display: block; font-size: 10px; font-weight: 600; color: rgba(255,255,255,0.8); letter-spacing: 2px; margin-top: 2px; }
         
-        .container { padding: 20px 16px; padding-bottom: 140px; max-width: 500px; margin: 0 auto; }
-        .section-title { font-size: 18px; font-weight: 700; color: #111827; margin-top: 0; margin-bottom: 16px; letter-spacing: -0.3px; }
+        /* Master Container Split Panel Mechanics */
+        .app-layout { display: flex; flex-direction: column; flex-grow: 1; height: calc(100vh - 68px); max-width: 500px; margin: 0 auto; width: 100%; box-sizing: border-box; }
         
-        #menu-container { display: flex; flex-direction: column; gap: 14px; }
+        .top-section { flex: 1.3; overflow-y: auto; padding: 16px; box-sizing: border-box; }
+        .bottom-section { flex: 0.9; overflow-y: auto; padding: 16px; background-color: #FFFFFF; border-top: 1px solid #E5E7EB; box-shadow: 0 -4px 15px rgba(0,0,0,0.02); box-sizing: border-box; padding-bottom: 100px; position: relative; }
         
-        /* Premium Floating Native Cart UI Control */
-        #cart-btn { position: fixed; bottom: 24px; left: 16px; right: 16px; max-width: 468px; margin: 0 auto; background: linear-gradient(135deg, #FF4B3A 0%, #FF6B5C 100%); color: #FFFFFF; text-align: center; padding: 18px; border-radius: 18px; font-weight: 600; font-size: 16px; box-shadow: 0 8px 25px rgba(255, 75, 58, 0.35); display: none; cursor: pointer; z-index: 5; border: none; outline: none; letter-spacing: -0.2px; transition: transform 0.1s ease; }
+        .section-title { font-size: 15px; font-weight: 700; color: #111827; margin-top: 0; margin-bottom: 14px; letter-spacing: -0.3px; text-transform: uppercase; display: flex; align-items: center; gap: 6px; }
+        .section-title-badge { background-color: #FF4B3A; color: white; font-size: 10px; padding: 2px 6px; border-radius: 6px; }
+        
+        #menu-container, #history-container { display: flex; flex-direction: column; gap: 12px; }
+        
+        /* Floating Native Cart UI Control */
+        #cart-btn { position: fixed; bottom: 24px; left: 16px; right: 16px; max-width: 468px; margin: 0 auto; background: linear-gradient(135deg, #FF4B3A 0%, #FF6B5C 100%); color: #FFFFFF; text-align: center; padding: 18px; border-radius: 18px; font-weight: 600; font-size: 16px; box-shadow: 0 8px 25px rgba(255, 75, 58, 0.35); display: none; cursor: pointer; z-index: 50; border: none; outline: none; letter-spacing: -0.2px; transition: transform 0.1s ease; }
         #cart-btn:active { transform: scale(0.98); }
         
         /* Bottom-Sheet Style Checkout Flow Window Layout */
@@ -30,18 +36,15 @@
         .input-field { width: 100%; padding: 14px 16px; margin-top: 2px; margin-bottom: 20px; border: 1.5px solid #E5E7EB; border-radius: 14px; font-family: 'Poppins', sans-serif; font-size: 15px; color: #1F2937; background-color: #F9FAFB; box-sizing: border-box; outline: none; transition: all 0.2s ease; }
         .input-field:focus { border-color: #FF4B3A; background-color: #FFFFFF; box-shadow: 0 0 0 4px rgba(255, 75, 58, 0.1); }
         
-        .submit-btn { width: 100%; background-color: #10B981; color: #FFFFFF; padding: 16px; border: none; border-radius: 14px; font-weight: 600; font-size: 16px; cursor: pointer; box-shadow: 0 6px 20px rgba(16, 185, 129, 0.25); transition: background-color 0.2s ease; }
-        .submit-btn:hover { background-color: #059669; }
+        .submit-btn { width: 100%; background-color: #10B981; color: #FFFFFF; padding: 16px; border: none; border-radius: 14px; font-weight: 600; font-size: 16px; cursor: pointer; box-shadow: 0 6px 20px rgba(16, 185, 129, 0.25); }
         .close-btn { background: #F3F4F6; border: none; color: #4B5563; font-size: 13px; font-weight: 600; padding: 8px 14px; border-radius: 20px; float: right; cursor: pointer; margin-bottom: 16px; }
         
         /* Screen-Blocking Modals UI Pattern Design Rules */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(17, 24, 39, 0.85); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); display: none; }
         .centered-blocker { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background-color: #FFFFFF; width: 88%; max-width: 340px; padding: 32px 24px; border-radius: 28px; box-shadow: 0 20px 50px rgba(0,0,0,0.3); display: none; flex-direction: column; align-items: center; justify-content: center; box-sizing: border-box; animation: appZoomIn 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
         @keyframes appZoomIn { from { transform: translate(-50%, -50%) scale(0.85); opacity: 0; } to { transform: translate(-50%, -50%) scale(1); opacity: 1; } }
-
-        .blocker-btn { width: 100%; color: white; border: none; padding: 16px; border-radius: 14px; font-weight: 600; font-size: 16px; cursor: pointer; transition: filter 0.2s ease; }
-        .blocker-btn:active { filter: brightness(0.9); }
-
+        .blocker-btn { width: 100%; color: white; border: none; padding: 16px; border-radius: 14px; font-weight: 600; font-size: 16px; cursor: pointer; }
+        
         .stop-scrolling { height: 100%; overflow: hidden; }
     </style>
 </head>
@@ -49,14 +52,25 @@
 
     <div class="header">Foodies Point</div>
     
-    <div class="container">
-        <h3 class="section-title">Today's Live Menu</h3>
-        <div id="menu-container">
-            <p style="text-align: center; color: #6B7280; font-size: 14px; margin-top: 4px;">Loading the kitchen's live menu...</p>
+    <div class="app-layout">
+        
+        <div class="top-section">
+            <h3 class="section-title">Today's Menu <span class="section-title-badge" style="background-color:#FF4B3A;">LIVE</span></h3>
+            <div id="menu-container">
+                <p style="text-align: center; color: #6B7280; font-size: 13px; margin-top: 10px;">Loading live items...</p>
+            </div>
         </div>
+        
+        <div class="bottom-section">
+            <h3 class="section-title">Your Orders Today <span class="section-title-badge" style="background-color:#4B5563;">HISTORY</span></h3>
+            <div id="history-container">
+                <p style="text-align: center; color: #9CA3AF; font-size: 13px; margin-top: 12px;">No orders placed today yet.</p>
+            </div>
+        </div>
+        
     </div>
     
-    <div id="cart-btn" onclick="openCheckout()">View Cart (0 items)</div>
+    <div id="cart-btn" onclick="openCheckout()">View Order (0 items)</div>
     
     <div id="checkout-modal">
         <div class="modal-content">
