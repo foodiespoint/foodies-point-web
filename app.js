@@ -1,5 +1,5 @@
 // ==========================================================================
-// 1. GLOBAL PRODUCTION CONFIGURATIONS & STATE REGISTRY (VERSION 31)
+// 1. GLOBAL PRODUCTION CONFIGURATIONS & STATE REGISTRY (VERSION 32)
 // ==========================================================================
 let deferredPrompt = null;
 let installPromptSupported = false; 
@@ -151,7 +151,7 @@ const MASTER_MENU = [
 
 // FAIL-SAFE CRASH MONITORING GATE
 const splashFailSafeGuard = setTimeout(() => {
-    console.warn("Handshake fail-safe triggered. Forcibly clearing splash screen layer.");
+    console.warn("Handshake fail-safe triggered.");
     dismissUpdateSplashScreen();
 }, 4000);
 
@@ -160,8 +160,8 @@ const splashFailSafeGuard = setTimeout(() => {
 // ==========================================================================
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-        // 🚀 Bumped to v31 to evict previous destructive cache blocks
-        navigator.serviceWorker.register('sw.js?v=31')
+        // 🚀 Bumped to v32 to push atomic batch array queries to client devices
+        navigator.serviceWorker.register('sw.js?v=32')
             .then(reg => {
                 console.log('PWA core components initialized.');
 
@@ -609,7 +609,7 @@ function submitOrder() {
 }
 
 // ==========================================================================
-// 🚀 9. ADMINISTRATIVE WORKSPACE - ATOMIC BATCH PUBLISHING FIX (V31)
+// 🚀 9. KITCHEN CONSOLE DASHBOARD & BATCH DATA AGGREGATOR
 // ==========================================================================
 function authenticateConsoleAccess() {
     if (isConsoleViewActive) {
@@ -715,17 +715,18 @@ function initializeKitchenInventoryMatrix() {
             </div>
             <div style="display: flex; align-items: center; flex-shrink: 0;">
                 ${stockToggleHTML}
-                <input type="checkbox" data-id="${item.id}" ${isLive ? 'checked' : ''} onclick="handleConsoleCheckboxAction(this, '${item.id}')" style="width: 20px; height: 20px; accent-color: #FF4B3A; cursor: pointer;">
+                <input type="checkbox" id="chk-${item.id}" ${isLive ? 'checked' : ''} onclick="handleConsoleCheckboxAction(this, '${item.id}')" style="width: 20px; height: 20px; accent-color: #FF4B3A; cursor: pointer;">
             </div>
         `;
         inventoryContainer.appendChild(gridRow);
     });
 }
 
+// 🚀 FIXED: Securely checks explicit unchecked state before removing an item
 function handleConsoleCheckboxAction(checkboxElement, itemId) {
     const wasAlreadyLive = !!currentLiveMenuCache[itemId];
 
-    if (wasAlreadyLive) {
+    if (wasAlreadyLive && !checkboxElement.checked) {
         const targetItem = MASTER_MENU.find(m => m.id === itemId);
         const doubleCheck = confirm(`⚠️ Remove from Live Menu:\n\nAre you sure you want to remove "${targetItem.title}" from today's live menu?`);
         
@@ -733,7 +734,7 @@ function handleConsoleCheckboxAction(checkboxElement, itemId) {
             database.ref(`daily_live_menu/${itemId}`).remove()
                 .catch(() => alert("Network transmission failure."));
         } else {
-            checkboxElement.checked = true;
+            checkboxElement.checked = true; // Undo the check physically
         }
     }
 }
@@ -743,30 +744,27 @@ function toggleLiveItemStockState(itemId, currentOutOfStockFlag) {
         .catch(() => alert("Failed to modify live inventory property flag."));
 }
 
-// 🚀 FIXED: Directly targets the checked DOM nodes for bulletproof preview aggregation
+// 🚀 FIXED: Manually iterate the master array to pull values instead of relying on NodeLists
 function previewSelectedLiveMenu() {
     const previewList = document.getElementById('menu-preview-list');
     previewList.innerHTML = '';
-    
-    // Hard DOM query specifically for all boxes actively checked by the user
-    const checkedNodes = document.querySelectorAll('#kitchen-inventory-container input[type="checkbox"]:checked');
+    let selectedCount = 0;
 
-    if (checkedNodes.length === 0) {
-        alert("⚠️ Menu empty:\n\nPlease select at least one item before posting today's menu!");
-        return;
-    }
-
-    checkedNodes.forEach((node) => {
-        const itemId = node.getAttribute('data-id');
-        const item = MASTER_MENU.find(m => m.id === itemId);
-        
-        if (item) {
+    MASTER_MENU.forEach((item) => {
+        const checkbox = document.getElementById(`chk-${item.id}`);
+        if (checkbox && checkbox.checked) {
+            selectedCount++;
             const lineItem = document.createElement('div');
             lineItem.style.cssText = "font-size: 13px; font-weight: 600; color: #111827; display: flex; align-items: center; gap: 6px;";
             lineItem.innerHTML = `<span>🟢</span> ${item.title} <span style="font-size:10px; font-weight:400; color:#6B7280;">(${item.category})</span>`;
             previewList.appendChild(lineItem);
         }
     });
+
+    if (selectedCount === 0) {
+        alert("⚠️ Menu empty:\n\nPlease select at least one item before posting today's menu!");
+        return;
+    }
 
     document.getElementById('menu-confirm-overlay').style.display = 'block';
     document.getElementById('menu-confirm-modal').style.display = 'flex';
@@ -777,34 +775,34 @@ function closeMenuConfirmModal() {
     document.getElementById('menu-confirm-modal').style.display = 'none';
 }
 
-// 🚀 FIXED: Directly maps atomic DOM node check-states into the `.set()` pipeline
+// 🚀 FIXED: Iterate over master array and push atomic merged updates only
 function publishSelectedLiveMenu() {
     const activePayload = {};
-    const checkedNodes = document.querySelectorAll('#kitchen-inventory-container input[type="checkbox"]:checked');
+    let itemsAdded = 0;
 
-    checkedNodes.forEach((node) => {
-        const itemId = node.getAttribute('data-id');
-        const targetItem = MASTER_MENU.find(m => m.id === itemId);
-        
-        if (targetItem) {
-            const alreadyLive = currentLiveMenuCache[itemId];
+    MASTER_MENU.forEach((item) => {
+        const checkbox = document.getElementById(`chk-${item.id}`);
+        if (checkbox && checkbox.checked) {
+            const alreadyLive = currentLiveMenuCache[item.id];
             const currentStockState = alreadyLive ? alreadyLive.isOutOfStock : false;
 
-            activePayload[itemId] = {
-                id: targetItem.id,
-                title: targetItem.title,
-                details: targetItem.details,
-                category: targetItem.category,
+            activePayload[item.id] = {
+                id: item.id,
+                title: item.title,
+                details: item.details,
+                category: item.category,
                 isOutOfStock: currentStockState
             };
+            itemsAdded++;
         }
     });
 
-    database.ref('daily_live_menu').set(activePayload)
+    if (itemsAdded === 0) return;
+
+    database.ref('daily_live_menu').update(activePayload)
         .then(() => {
-            alert("🚀 Success!\n\nToday's live menu has been securely pushed to the customer server.");
+            alert(`🚀 Success!\n\n${itemsAdded} items have been securely published to the live menu.`);
             closeMenuConfirmModal();
-            // Note: Visual checkboxes will NOT clear locally. The Firebase sync triggers correctly and keeps them checked.
         })
         .catch((err) => {
             alert("Error updating live database nodes.");
