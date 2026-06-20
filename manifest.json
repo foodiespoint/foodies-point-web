@@ -1,0 +1,17 @@
+{
+  "name": "Foodies Point",
+  "short_name": "Foodies Live",
+  "start_url": "./index.html?v=2",
+  "display": "standalone",
+  "background_color": "#F5F5F8",
+  "theme_color": "#FF4B3A",
+  "description": "Order delicious food instantly.",
+  "icons": [
+    {
+      "src": "icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

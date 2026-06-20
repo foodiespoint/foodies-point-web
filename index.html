@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Foodies Point</title>
+    <link rel="manifest" href="manifest.json">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Base application canvas styles */
+        body { font-family: 'Poppins', sans-serif; background-color: #F5F5F8; margin: 0; padding: 0; color: #2D2D2D; transition: overflow 0.3s ease; }
+        .header { background-color: #FF4B3A; color: white; padding: 16px; text-align: center; font-size: 20px; font-weight: bold; position: sticky; top: 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1); z-index: 10; }
+        .container { padding: 16px; padding-bottom: 120px; }
+        #menu-container { display: flex; flex-direction: column; gap: 12px; }
+        #cart-btn { position: fixed; bottom: 20px; left: 20px; right: 20px; background-color: #FF4B3A; color: white; text-align: center; padding: 16px; border-radius: 30px; font-weight: bold; font-size: 16px; box-shadow: 0 4px 10px rgba(255, 75, 58, 0.4); display: none; cursor: pointer; z-index: 5; }
+        
+        /* Checkout Sheet UI Design */
+        #checkout-modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.5); z-index: 200; justify-content: center; align-items: flex-end; }
+        .modal-content { background-color: white; width: 100%; border-radius: 24px 24px 0 0; padding: 24px; box-sizing: border-box; max-height: 80vh; overflow-y: auto; }
+        .input-field { width: 100%; padding: 12px; margin-top: 8px; margin-bottom: 16px; border: 1px solid #E0E0E0; border-radius: 8px; font-family: 'Poppins', sans-serif; box-sizing: border-box; }
+        .submit-btn { width: 100%; background-color: #27AE60; color: white; padding: 16px; border: none; border-radius: 12px; font-weight: bold; font-size: 16px; cursor: pointer; }
+        .close-btn { background: none; border: none; color: #828282; font-size: 14px; margin-bottom: 16px; cursor: pointer; padding: 0; }
+        
+        /* PWA Centered Blocker UI Layout */
+        #pwa-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.7); z-index: 9998; display: none; }
+        #pwa-modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background-color: #FFFFFF; width: 85%; max-width: 320px; padding: 24px; border-radius: 24px; box-shadow: 0 15px 40px rgba(0,0,0,0.3); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; animation: zoomIn 0.3s ease-out; }
+        @keyframes zoomIn { from { transform: translate(-50%, -50%) scale(0.8); opacity: 0; } to { transform: translate(-50%, -50%) scale(1); opacity: 1; } }
+
+        /* Sliding Top Notification Soft Prompt */
+        #notification-soft-prompt { position: fixed; top: -120px; left: 0; right: 0; background-color: #111111; color: #FFFFFF; padding: 16px; display: flex; align-items: center; justify-content: space-between; z-index: 10000; box-shadow: 0 4px 15px rgba(0,0,0,0.2); transition: top 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        #notification-soft-prompt.show { top: 0; }
+
+        /* System utilities */
+        .stop-scrolling { height: 100%; overflow: hidden; }
+    </style>
+</head>
+<body>
+
+    <div id="notification-soft-prompt">
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <span style="font-size: 20px;">🔔</span>
+            <div style="font-size: 13px; line-height: 1.4;">
+                <strong>Live Order Alerts</strong><br>
+                Get notified when food is cooking or ready!
+            </div>
+        </div>
+        <div style="display: flex; gap: 8px;">
+            <button onclick="dismissSoftPrompt()" style="background: none; border: none; color: #BDBDBD; font-size: 13px; font-weight: 600; padding: 8px; cursor: pointer;">Later</button>
+            <button onclick="acceptSoftPrompt()" style="background-color: #27AE60; color: white; border: none; padding: 8px 16px; border-radius: 8px; font-weight: 600; font-size: 13px; cursor: pointer;">Enable</button>
+        </div>
+    </div>
+
+    <div class="header">Foodies Point</div>
+    
+    <div class="container">
+        <h3>Today's Live Menu</h3>
+        <div id="menu-container"><p>Loading the kitchen's live menu...</p></div>
+    </div>
+    
+    <div id="cart-btn" onclick="openCheckout()">View Cart (0 items)</div>
+    
+    <div id="checkout-modal">
+        <div class="modal-content">
+            <button class="close-btn" onclick="closeCheckout()">✕ Close</button>
+            <h3 style="margin-top: 0;">Complete Order</h3>
+            <div id="cart-summary" style="margin-bottom: 16px; font-size: 14px; color: #4F4F4F;"></div>
+            <label style="font-size: 12px; font-weight: bold;">YOUR NAME</label>
+            <input type="text" id="customer-name" class="input-field" placeholder="e.g. John Doe">
+            <label style="font-size: 12px; font-weight: bold;">PHONE NUMBER</label>
+            <input type="tel" id="customer-phone" class="input-field" placeholder="e.g. 9876543210">
+            <button class="submit-btn" onclick="submitOrder()">Send to Kitchen</button>
+        </div>
+    </div>
+
+    <div id="pwa-overlay"></div>
+    <div id="pwa-modal">
+        <img src="icon.png" style="width: 72px; height: 72px; border-radius: 18px; margin-bottom: 16px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+        <div style="font-weight: 700; font-size: 18px; color: #2D2D2D; text-align: center; margin-bottom: 4px;">Get the Foodies Point App</div>
+        <div style="color: #828282; font-size: 13px; text-align: center; margin-bottom: 24px; line-height: 1.5;">Install our official app for lightning-fast ordering and live order updates.</div>
+        <button onclick="triggerNativeInstall()" style="width: 100%; background-color: #FF4B3A; color: white; border: none; padding: 16px; border-radius: 12px; font-weight: 600; font-size: 16px; cursor: pointer; box-shadow: 0 4px 12px rgba(255, 75, 58, 0.3);">OK</button>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
