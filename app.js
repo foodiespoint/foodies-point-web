@@ -1,5 +1,5 @@
 // ==========================================================================
-// 1. PWA LIFECYCLE HANDSHAKE & SPLASH SCREEN SYSTEM (VERSION 22)
+// 1. PWA LIFECYCLE HANDSHAKE & SPLASH SCREEN SYSTEM (VERSION 24)
 // ==========================================================================
 let deferredPrompt = null;
 let installPromptSupported = false; 
@@ -15,8 +15,8 @@ const splashText = document.getElementById('splash-text');
 
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-        // 🚀 BUMPED TO V22: Forces systems to register your real menu catalog array right away
-        navigator.serviceWorker.register('sw.js?v=22')
+        // 🚀 BUMPED TO V24: Forces immediate deployment of the persistent login token engine
+        navigator.serviceWorker.register('sw.js?v=24')
             .then(reg => {
                 console.log('PWA core components initialized.');
                 let versionUpgradeDetected = false;
@@ -459,143 +459,144 @@ function submitOrder() {
 }
 
 // ==========================================================================
-// 🚀 9. ADMINISTRATIVE MASTER MENU CONTROL ENGINE (PRODUCTION CATALOG V22)
+// 9. ADMINISTRATIVE MASTER MENU CONTROL ENGINE (PRODUCTION CATALOG V24)
 // ==========================================================================
 let isConsoleViewActive = false;
 const ROUTING_SECRET_PIN = "validatefoodies2026"; 
 
-// 📦 PRODUCED MASTER CATALOG SYSTEM: Instantly mapped directly from FOODIES.txt
 const MASTER_MENU = [
     // ROLLS
-    { id: "roll_1", title: "Dahi Bread Roll", details: "15/- per pc.", category: "Rolls" },
-    { id: "roll_2", title: "Bread Roll", details: "80/- per plate (8 pc.)", category: "Rolls" },
-    { id: "roll_3", title: "Spring Roll", details: "25/- per pc.", category: "Rolls" },
-    { id: "roll_4", title: "Veg Kebab Roll", details: "20/- per pc.", category: "Rolls" },
-    { id: "roll_5", title: "Paneer Roll", details: "45/- per pc.", category: "Rolls" },
-    { id: "roll_6", title: "Egg Mayonaise & Cheese Mix Roll", details: "50/- per pc.", category: "Rolls" },
-    { id: "roll_7", title: "Egg Mayonaise Roll", details: "40/- per pc.", category: "Rolls" },
-    { id: "roll_8", title: "Egg Roll", details: "35/- per pc.", category: "Rolls" },
-    { id: "roll_9", title: "Chicken Roll", details: "55/- per pc.", category: "Rolls" },
-    { id: "roll_10", title: "Chicken Mayonaise Roll", details: "60/- per pc.", category: "Rolls" },
-    { id: "roll_11", title: "Chicken Egg Roll", details: "70/- per pc.", category: "Rolls" },
-    { id: "roll_12", title: "Chicken Egg Mayonaise Roll", details: "75/- per pc.", category: "Rolls" },
+    { id: "roll_1", title: "Dahi Bread Roll", details: "15/- per pc.", category: "ROLLS" },
+    { id: "roll_2", title: "Bread Roll", details: "80/- per plate (8 pc.)", category: "ROLLS" },
+    { id: "roll_3", title: "Spring Roll", details: "25/- per pc.", category: "ROLLS" },
+    { id: "roll_4", title: "Veg Kebab Roll", details: "20/- per pc.", category: "ROLLS" },
+    { id: "roll_5", title: "Paneer Roll", details: "45/- per pc.", category: "ROLLS" },
+    { id: "roll_6", title: "Egg Mayonaise & Cheese Mix Roll", details: "50/- per pc.", category: "ROLLS" },
+    { id: "roll_7", title: "Egg Mayonaise Roll", details: "40/- per pc.", category: "ROLLS" },
+    { id: "roll_8", title: "Egg Roll", details: "35/- per pc.", category: "ROLLS" },
+    { id: "roll_9", title: "Chicken Roll", details: "55/- per pc.", category: "ROLLS" },
+    { id: "roll_10", title: "Chicken Mayonaise Roll", details: "60/- per pc.", category: "ROLLS" },
+    { id: "roll_11", title: "Chicken Egg Roll", details: "70/- per pc.", category: "ROLLS" },
+    { id: "roll_12", title: "Chicken Egg Mayonaise Roll", details: "75/- per pc.", category: "ROLLS" },
 
     // PAKODI
-    { id: "pak_1", title: "Pyaaz ki Pakodi", details: "60/- (250gm)", category: "Pakodi" },
-    { id: "pak_2", title: "Paalak ki Pakodi", details: "60/- (250gm)", category: "Pakodi" },
-    { id: "pak_3", title: "Gobhi ki Pakodi", details: "60/- (250gm)", category: "Pakodi" },
-    { id: "pak_4", title: "Mirch ki Pakodi", details: "15/- per pc.", category: "Pakodi" },
-    { id: "pak_5", title: "Bread Pakoda", details: "20/- per pc.", category: "Pakodi" },
-    { id: "pak_6", title: "Egg Pakodi", details: "10/- per pc.", category: "Pakodi" },
-    { id: "pak_7", title: "Moong Daal ke Mongode", details: "75/- (250gm)", category: "Pakodi" },
+    { id: "pak_1", title: "Pyaaz ki Pakodi", details: "60/- (250gm)", category: "PAKODI" },
+    { id: "pak_2", title: "Paalak ki Pakodi", details: "60/- (250gm)", category: "PAKODI" },
+    { id: "pak_3", title: "Gobhi ki Pakodi", details: "60/- (250gm)", category: "PAKODI" },
+    { id: "pak_4", title: "Mirch ki Pakodi", details: "15/- per pc.", category: "PAKODI" },
+    { id: "pak_5", title: "Bread Pakoda", details: "20/- per pc.", category: "PAKODI" },
+    { id: "pak_6", title: "Egg Pakodi", details: "10/- per pc.", category: "PAKODI" },
+    { id: "pak_7", title: "Moong Daal ke Mongode (Pakodi)", details: "75/- (250gm)", category: "PAKODI" },
 
     // SANDWICH
-    { id: "sand_1", title: "Veg Grilled Mayonaise Sandwich", details: "55/- (2 pc)", category: "Sandwich" },
-    { id: "sand_2", title: "Veg Cheese Sandwich", details: "60/- (2 pc)", category: "Sandwich" },
-    { id: "sand_3", title: "Veg Sandwich", details: "18/- per pc.", category: "Sandwich" },
+    { id: "sand_1", title: "Veg Grilled Mayonaise Sandwich", details: "55/- (2 pc)", category: "SANDWICH" },
+    { id: "sand_2", title: "Veg Cheese Sandwich", details: "60/- (2 pc)", category: "SANDWICH" },
+    { id: "sand_3", title: "Veg Sandwich", details: "18/- per pc.", category: "SANDWICH" },
 
     // SNACKS
-    { id: "snack_1", title: "Chocolate Croissant", details: "48/- per pc.", category: "Snacks" },
-    { id: "snack_2", title: "Zingy Parcel (Paneer)", details: "60/- per pc.", category: "Snacks" },
-    { id: "snack_3", title: "Pizza Puff", details: "18/- per pc.", category: "Snacks" },
-    { id: "snack_4", title: "Mini Pizza", details: "45/- per pc.", category: "Snacks" },
-    { id: "snack_5", title: "Veg Burger", details: "50/- per pc.", category: "Snacks" },
-    { id: "snack_6", title: "Aloo Patty", details: "17/- per pc.", category: "Snacks" },
-    { id: "snack_7", title: "Paneer Patty", details: "25/- per pc.", category: "Snacks" },
-    { id: "snack_8", title: "Veg Appe", details: "65/- per plate", category: "Snacks" },
-    { id: "snack_9", title: "Phare", details: "70/- (250gm)", category: "Snacks" },
-    { id: "snack_10", title: "Veg Masala Idli", details: "45/- per plate", category: "Snacks" },
-    { id: "snack_11", title: "Fried Idli", details: "50/- per plate", category: "Snacks" },
-    { id: "snack_12", title: "Poha", details: "80/- per plate", category: "Snacks" },
-    { id: "snack_13", title: "Crispy Stuffed Mushroom", details: "65/- per plate (4 pc)", category: "Snacks" },
-    { id: "snack_14", title: "Aloo Bonda", details: "12/- per pc.", category: "Snacks" },
-    { id: "snack_15", title: "Vada Pav", details: "25/- per pc.", category: "Snacks" },
-    { id: "snack_16", title: "Cheese Balls", details: "80/- per plate (8 pc)", category: "Snacks" },
-    { id: "snack_17", title: "Masala Vada", details: "80/- per plate (8 pc)", category: "Snacks" },
-    { id: "snack_18", title: "Falafel Mushakkal Veg. Roll", details: "40/- per pc.", category: "Snacks" },
-    { id: "snack_19", title: "Pani Poori", details: "15/- (5 pc)", category: "Snacks" },
-    { id: "snack_20", title: "Tikki Chaat", details: "55/- per plate", category: "Snacks" },
-    { id: "snack_21", title: "Dahi Vada", details: "60/- per plate (4 pc)", category: "Snacks" },
-    { id: "snack_22", title: "Raj Kachori", details: "85/- per plate", category: "Snacks" },
-    { id: "snack_23", title: "Samosa", details: "12/- per pc.", category: "Snacks" },
-    { id: "snack_24", title: "Paneer Tikka", details: "240/- per plate", category: "Snacks" },
-    { id: "snack_25", title: "Paneer Malai Tikka", details: "260/- per plate", category: "Snacks" },
+    { id: "snack_1", title: "Chocolate Croissant", details: "48/- per pc.", category: "SNACKS" },
+    { id: "snack_2", title: "Zingy Parcel (Paneer)", details: "60/- per pc.", category: "SNACKS" },
+    { id: "snack_3", title: "Pizza Puff", details: "18/- per pc.", category: "SNACKS" },
+    { id: "snack_4", title: "Mini Pizza", details: "45/- per pc.", category: "SNACKS" },
+    { id: "snack_5", title: "Veg Burger", details: "50/- per pc.", category: "SNACKS" },
+    { id: "snack_6", title: "Aloo Patty", details: "17/- per pc.", category: "SNACKS" },
+    { id: "snack_7", title: "Paneer Patty", details: "25/- per pc.", category: "SNACKS" },
+    { id: "snack_8", title: "Veg Appe", details: "65/- per plate", category: "SNACKS" },
+    { id: "snack_9", title: "Phare", details: "70/- (250gm)", category: "SNACKS" },
+    { id: "snack_10", title: "Veg Masala Idli", details: "45/- per plate", category: "SNACKS" },
+    { id: "snack_11", title: "Fried Idli", details: "50/- per plate", category: "SNACKS" },
+    { id: "snack_12", title: "Poha", details: "80/- per plate", category: "SNACKS" },
+    { id: "snack_13", title: "Crispy Stuffed Mushroom", details: "65/- per plate (4 pc)", category: "SNACKS" },
+    { id: "snack_14", title: "Aloo Bonda", details: "12/- per pc.", category: "SNACKS" },
+    { id: "snack_15", title: "Vada Pav", details: "25/- per pc.", category: "SNACKS" },
+    { id: "snack_16", title: "Cheese Balls", details: "80/- per plate (8 pc)", category: "SNACKS" },
+    { id: "snack_17", title: "Masala Vada", details: "80/- per plate (8 pc)", category: "SNACKS" },
+    { id: "snack_18", title: "Falafel Mushakkal Veg. Roll", details: "40/-", category: "SNACKS" },
+    { id: "snack_19", title: "Pani Poori", details: "15/- (5 pc)", category: "SNACKS" },
+    { id: "snack_20", title: "Tikki Chaat", details: "55/- per plate", category: "SNACKS" },
+    { id: "snack_21", title: "Dahi Vada", details: "60/- per plate (4 pc)", category: "SNACKS" },
+    { id: "snack_22", title: "Raj Kachori", details: "85/- per plate", category: "SNACKS" },
+    { id: "snack_23", title: "Samosa", details: "12/- per pc.", category: "SNACKS" },
+    { id: "snack_24", title: "Paneer Tikka", details: "240/- per plate", category: "SNACKS" },
+    { id: "snack_25", title: "Paneer Malai Tikka", details: "260/- per plate", category: "SNACKS" },
 
     // CHINESE
-    { id: "chin_1", title: "Honey Chilli Potato", details: "90/- per plate", category: "Chinese" },
-    { id: "chin_2", title: "Chowmein", details: "80/- per plate", category: "Chinese" },
-    { id: "chin_3", title: "Macaroni", details: "80/- per plate", category: "Chinese" },
-    { id: "chin_4", title: "Fried Rice", details: "80/- per plate", category: "Chinese" },
-    { id: "chin_5", title: "Veg Manchurian", details: "80/- per plate", category: "Chinese" },
-    { id: "chin_6", title: "Paneer Manchurian", details: "160/- per plate", category: "Chinese" },
-    { id: "chin_7", title: "Chilli Paneer", details: "140/- per plate", category: "Chinese" },
-    { id: "chin_8", title: "Veg Momos", details: "55/- per plate (10 pc)", category: "Chinese" },
-    { id: "chin_9", title: "Paneer Momos", details: "75/- per plate (10 pc)", category: "Chinese" },
-    { id: "chin_10", title: "Chicken Momos", details: "100/- per plate (10 pc)", category: "Chinese" },
-    { id: "chin_11", title: "White Pasta", details: "100/- per plate", category: "Chinese" },
+    { id: "chin_1", title: "Honey Chilli Potato", details: "90/- per plate", category: "CHINESE" },
+    { id: "chin_2", title: "Chowmein", details: "80/- per plate", category: "CHINESE" },
+    { id: "chin_3", title: "Macaroni", details: "80/- per plate", category: "CHINESE" },
+    { id: "chin_4", title: "Fried Rice", details: "80/- per plate", category: "CHINESE" },
+    { id: "chin_5", title: "Veg Manchurian", details: "80/- per plate", category: "CHINESE" },
+    { id: "chin_6", title: "Paneer Manchurian", details: "160/- per plate", category: "CHINESE" },
+    { id: "chin_7", title: "Chilli Paneer", details: "140/- per plate", category: "CHINESE" },
+    { id: "chin_8", title: "Veg Momos", details: "55/- per plate (10 pc)", category: "CHINESE" },
+    { id: "chin_9", title: "Paneer Momos", details: "75/- per plate (10 pc)", category: "CHINESE" },
+    { id: "chin_10", title: "Chicken Momos", details: "100/- per plate (10 pc)", category: "CHINESE" },
+    { id: "chin_11", title: "White Pasta", details: "100/- per plate", category: "CHINESE" },
 
     // KEBABS
-    { id: "keb_1", title: "Veg. Seekh Kebab", details: "15/- per pc.", category: "Kebabs" },
-    { id: "keb_2", title: "Veg Kebab", details: "17/- per pc.", category: "Kebabs" },
-    { id: "keb_3", title: "Dahi ke Kebab", details: "25/- per pc.", category: "Kebabs" },
-    { id: "keb_4", title: "Hariyali Kebab", details: "25/- per pc.", category: "Kebabs" },
+    { id: "keb_1", title: "Veg. Seekh Kebab", details: "15/- per pc.", category: "KEBABS" },
+    { id: "keb_2", title: "Veg Kebab", details: "17/- per pc.", category: "KEBABS" },
+    { id: "keb_3", title: "Dahi ke Kebab", details: "25/- per pc.", category: "KEBABS" },
+    { id: "keb_4", title: "Hariyali Kebab", details: "25/- per pc.", category: "KEBABS" },
 
     // CAKE (Egg-Less)
-    { id: "cake_1", title: "Tutti Frutti Cup Cake", details: "18/- per pc.", category: "Cake (Eggless)" },
-    { id: "cake_2", title: "Chocolate Cup Cake", details: "20/- per pc.", category: "Cake (Eggless)" },
-    { id: "cake_3", title: "Chocolava Cup Cake", details: "38/- per pc.", category: "Cake (Eggless)" },
+    { id: "cake_1", title: "Tutti Frutti Cup Cake", details: "18/- per pc.", category: "CAKE (Egg-Less)" },
+    { id: "cake_2", title: "Chocolate Cup Cake", details: "20/- per pc.", category: "CAKE (Egg-Less)" },
+    { id: "cake_3", title: "Chocolava Cup Cake", details: "38/- per pc.", category: "CAKE (Egg-Less)" },
 
     // SHAKES
-    { id: "shake_1", title: "Mango Shake", details: "30/-", category: "Shakes & Drinks" },
-    { id: "shake_2", title: "Lassi", details: "45/-", category: "Shakes & Drinks" },
-    { id: "shake_3", title: "Panna", details: "12/-", category: "Shakes & Drinks" },
+    { id: "shake_1", title: "Mango Shake", details: "30/-", category: "SHAKES" },
+    { id: "shake_2", title: "Lassi", details: "45/-", category: "SHAKES" },
+    { id: "shake_3", title: "Panna", details: "12/-", category: "SHAKES" },
 
     // TRADITIONAL PLATES
-    { id: "trad_1", title: "Chokha Baati", details: "50/- per plate (2 pc)", category: "Traditional Plates" },
-    { id: "trad_2", title: "Chole Aloo Kulche", details: "70/- per plate", category: "Traditional Plates" },
-    { id: "trad_3", title: "Chole Bhature", details: "60/- per plate", category: "Traditional Plates" },
-    { id: "trad_4", title: "Khasta Aloo Matar", details: "55/- per plate (2 pc)", category: "Traditional Plates" },
-    { id: "trad_5", title: "Sambhar Vada", details: "55/- per plate (4 pc)", category: "Traditional Plates" },
-    { id: "trad_6", title: "Idli Sambhar", details: "55/- per plate (4 pc)", category: "Traditional Plates" },
-    { id: "trad_7", title: "Pav Bhaji", details: "60/- per plate", category: "Traditional Plates" },
+    { id: "trad_1", title: "Chokha Baati", details: "50/- per plate (2 pc)", category: "TRADITIONAL PLATES" },
+    { id: "trad_2", title: "Chole Aloo Kulche", details: "70/- per plate", category: "TRADITIONAL PLATES" },
+    { id: "trad_3", title: "Chole Bhature", details: "60/- per plate", category: "TRADITIONAL PLATES" },
+    { id: "trad_4", title: "Khasta Aloo Matar", details: "55/- per plate (2 pc)", category: "TRADITIONAL PLATES" },
+    { id: "trad_5", title: "Sambhar Vada", details: "55/- per plate (4 pc)", category: "TRADITIONAL PLATES" },
+    { id: "trad_6", title: "Idli Sambhar", details: "55/- per plate (4 pc)", category: "TRADITIONAL PLATES" },
+    { id: "trad_7", title: "Pav Bhaji", details: "60/- per plate", category: "TRADITIONAL PLATES" },
 
     // SWEETS
-    { id: "sweet_1", title: "Gulab Jamun", details: "20/-", category: "Sweets" },
-    { id: "sweet_2", title: "Kheer", details: "80/-", category: "Sweets" },
-    { id: "sweet_3", title: "Sweet Rice", details: "90/-", category: "Sweets" },
-    { id: "sweet_4", title: "Shrikhand", details: "85/- (250 gm)", category: "Sweets" },
+    { id: "sweet_1", title: "Gulab Jamun", details: "20/-", category: "SWEETS" },
+    { id: "sweet_2", title: "Kheer", details: "80/-", category: "SWEETS" },
+    { id: "sweet_3", title: "Sweet Rice", details: "90/-", category: "SWEETS" },
+    { id: "sweet_4", title: "Shrikhand", details: "85/- (250 gm)", category: "SWEETS" },
 
     // SABZI
-    { id: "sabzi_1", title: "Shahi Paneer", details: "300/-", category: "Sabzi" },
-    { id: "sabzi_2", title: "Paneer Masala", details: "220/-", category: "Sabzi" },
-    { id: "sabzi_3", title: "Paneer Angara", details: "280/-", category: "Sabzi" },
-    { id: "sabzi_4", title: "Palak Paneer", details: "200/-", category: "Sabzi" },
-    { id: "sabzi_5", title: "Matar Paneer", details: "200/-", category: "Sabzi" },
+    { id: "sabzi_1", title: "Shahi Paneer", details: "300/-", category: "SABZI" },
+    { id: "sabzi_2", title: "Paneer Masala", details: "220/-", category: "SABZI" },
+    { id: "sabzi_3", title: "Paneer Angara", details: "280/-", category: "SABZI" },
+    { id: "sabzi_4", title: "Paneer Korma", details: "Price on request", category: "SABZI" },
+    { id: "sabzi_5", title: "Palak Paneer", details: "200/-", category: "SABZI" },
+    { id: "sabzi_6", title: "Matar Paneer", details: "200/-", category: "SABZI" },
 
     // NON-VEG
-    { id: "nv_1", title: "Chicken Afghani", details: "500/-", category: "Non-Veg" },
-    { id: "nv_2", title: "Roasted Chicken", details: "340/-", category: "Non-Veg" },
-    { id: "nv_3", title: "Chilli Chicken", details: "440/-", category: "Non-Veg" },
-    { id: "nv_4", title: "Egg Curry", details: "75/-", category: "Non-Veg" },
-    { id: "nv_5", title: "Fish Fry (Boneless)", details: "180/- (250 gm)", category: "Non-Veg" },
-    { id: "nv_6", title: "Fish Dry (Boneless)", details: "165/- (250 gm)", category: "Non-Veg" },
-    { id: "nv_7", title: "Chicken Shawarma", details: "90/-", category: "Non-Veg" },
-    { id: "nv_8", title: "Mutton Curry", details: "400/-", category: "Non-Veg" },
-    { id: "nv_9", title: "Mutton Korma", details: "430/-", category: "Non-Veg" },
-    { id: "nv_10", title: "Keema Kaleji", details: "400/-", category: "Non-Veg" },
-    { id: "nv_11", title: "Chicken Curry", details: "360/-", category: "Non-Veg" },
-    { id: "nv_12", title: "Chicken Masala", details: "400/-", category: "Non-Veg" },
-    { id: "nv_13", title: "Butter Chicken", details: "500/-", category: "Non-Veg" },
+    { id: "nv_1", title: "Chicken Afghani", details: "500/-", category: "NON-VEG" },
+    { id: "nv_2", title: "Roasted Chicken", details: "340/-", category: "NON-VEG" },
+    { id: "nv_3", title: "Chilli Chicken", details: "440/-", category: "NON-VEG" },
+    { id: "nv_4", title: "Egg Curry", details: "75/-", category: "NON-VEG" },
+    { id: "nv_5", title: "Fish Fry (Boneless)", details: "180/- (250 gm)", category: "NON-VEG" },
+    { id: "nv_6", title: "Fish Dry (Boneless)", details: "165/- (250 gm)", category: "NON-VEG" },
+    { id: "nv_7", title: "Chicken Shawarma", details: "90/-", category: "NON-VEG" },
+    { id: "nv_8", title: "Mutton Curry", details: "400/-", category: "NON-VEG" },
+    { id: "nv_9", title: "Mutton Korma", details: "430/-", category: "NON-VEG" },
+    { id: "nv_10", title: "Keema Kaleji", details: "400/-", category: "NON-VEG" },
+    { id: "nv_11", title: "Chicken Curry", details: "360/-", category: "NON-VEG" },
+    { id: "nv_12", title: "Chicken Masala", details: "400/-", category: "NON-VEG" },
+    { id: "nv_13", title: "Butter Chicken", details: "500/-", category: "NON-VEG" },
 
     // RICE
-    { id: "rice_1", title: "Plain Rice", details: "90/-", category: "Rice" },
-    { id: "rice_2", title: "Jeera Rice", details: "120/-", category: "Rice" },
-    { id: "rice_3", title: "Matar Pulao", details: "140/-", category: "Rice" },
-    { id: "rice_4", title: "Veg. Biryani", details: "180/-", category: "Rice" }
+    { id: "rice_1", title: "Plain Rice", details: "90/-", category: "RICE" },
+    { id: "rice_2", title: "Jeera Rice", details: "120/-", category: "RICE" },
+    { id: "rice_3", title: "Matar Pulao", details: "140/-", category: "RICE" },
+    { id: "rice_4", title: "Veg. Biryani", details: "180/-", category: "RICE" }
 ];
 
 function authenticateConsoleAccess() {
     if (isConsoleViewActive) {
+        // Toggle view layout elements back to client default settings
         isConsoleViewActive = false;
         document.getElementById('kitchen-view-layout').style.display = 'none';
         document.getElementById('customer-view-layout').style.display = 'flex';
@@ -611,6 +612,23 @@ function authenticateConsoleAccess() {
         return;
     }
 
+    // 🚀 NEW: Check if this device has a valid persistent browser token saved
+    if (localStorage.getItem('foodies_console_authenticated') === 'true') {
+        isConsoleViewActive = true;
+        document.getElementById('customer-view-layout').style.display = 'none';
+        if (cartBtn) cartBtn.style.display = 'none';
+        
+        document.getElementById('kitchen-view-layout').style.display = 'flex';
+        document.getElementById('header-title-text').innerText = "Kitchen Console";
+        document.getElementById('view-toggle-action').innerText = "Exit";
+        document.getElementById('view-toggle-action').style.backgroundColor = "#DC2626";
+        
+        initializeKitchenOrderStream();
+        initializeKitchenInventoryMatrix();
+        return; // Complete logic processing instantly
+    }
+
+    // If no token is found, fallback gracefully to pop the masked modal screen
     document.getElementById('admin-auth-overlay').style.display = 'block';
     document.getElementById('admin-auth-modal').style.display = 'flex';
     document.getElementById('admin-pin-input').value = '';
@@ -628,6 +646,9 @@ function submitConsolePIN() {
     const enteredPassword = document.getElementById('admin-pin-input').value;
     
     if (enteredPassword === ROUTING_SECRET_PIN) {
+        // 🚀 NEW: Commit authentication state token flag to device storage permanently
+        localStorage.setItem('foodies_console_authenticated', 'true');
+        
         closeConsoleAuthModal();
         isConsoleViewActive = true;
         
