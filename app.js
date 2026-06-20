@@ -1,5 +1,5 @@
 // ==========================================================================
-// 1. PWA REGISTRATION & AUTO-RELOAD LIFECYCLE (VERSION 10)
+// 1. PWA LIFECYCLE HANDSHAKE & SPLASH SCREEN SYSTEM (VERSION 11)
 // ==========================================================================
 let deferredPrompt = null;
 let installPromptSupported = false; 
@@ -10,17 +10,49 @@ const notifModal = document.getElementById('notification-modal');
 const notifOverlay = document.getElementById('notification-overlay');
 const body = document.body;
 
+// Splash interface structural anchors
+const updateSplash = document.getElementById('update-splash');
+const splashText = document.getElementById('splash-text');
+
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-        // 🚀 BUMPED TO V10: Syncs layout structure revisions safely across the network layer
-        navigator.serviceWorker.register('sw.js?v=10')
+        // Appending v11 cache-busting token to network queries
+        navigator.serviceWorker.register('sw.js?v=11')
             .then(reg => {
-                console.log('PWA Service Worker registered successfully.');
-                reg.update(); 
+                console.log('PWA core components initialized.');
+                let versionUpgradeDetected = false;
+
+                // Monitor incoming changes to the Service Worker script background threads
+                reg.onupdatefound = () => {
+                    // Safety check: Only shift to "Updating" status if a prior controller is already handling pages
+                    if (navigator.serviceWorker.controller) {
+                        versionUpgradeDetected = true;
+                        if (splashText) {
+                            splashText.innerHTML = "New update found!<br><span style='color:#FF4B3A; font-size:14px; font-weight:500;'>Installing assets... Please do not close the app.</span>";
+                        }
+                    }
+                };
+
+                // Trigger network-to-repository lookup pipeline
+                reg.update().then(() => {
+                    // Give background tasks a brief moment to finish updating before closing splash
+                    setTimeout(() => {
+                        if (!versionUpgradeDetected) {
+                            dismissUpdateSplashScreen();
+                        }
+                    }, 800);
+                }).catch(() => {
+                    // Network failure fallback path: Allow immediate offline view access
+                    dismissUpdateSplashScreen();
+                });
             })
-            .catch(err => console.error('Worker registration failure:', err));
+            .catch(err => {
+                console.error('Core lifecycle fault:', err);
+                dismissUpdateSplashScreen();
+            });
     });
 
+    // Automatic reload sequence: fires the exact millisecond the new Service Worker becomes active
     let refreshing = false;
     navigator.serviceWorker.addEventListener('controllerchange', () => {
         if (!refreshing) {
@@ -28,6 +60,18 @@ if ('serviceWorker' in navigator) {
             window.location.reload();
         }
     });
+} else {
+    // Legacy support fallback path
+    dismissUpdateSplashScreen();
+}
+
+function dismissUpdateSplashScreen() {
+    if (updateSplash) {
+        updateSplash.style.transition = "opacity 0.4s ease, visibility 0.4s";
+        updateSplash.style.opacity = "0";
+        updateSplash.style.visibility = "hidden";
+        setTimeout(() => { updateSplash.style.display = "none"; }, 400);
+    }
 }
 
 window.addEventListener('beforeinstallprompt', (e) => {
@@ -61,6 +105,8 @@ window.addEventListener('appinstalled', (event) => {
 });
 
 function showMandatoryModal() {
+    // Safety check: Don't pop over the active update engine splash screen loader window
+    if (updateSplash && updateSplash.style.display !== 'none') return;
     if (pwaModal && pwaOverlay) {
         pwaModal.style.display = 'flex';
         pwaOverlay.style.display = 'block';
@@ -86,6 +132,7 @@ function initNotificationGestureCheck() {
 
     const triggerBlocker = () => {
         if (pwaModal && pwaModal.style.display === 'flex') return;
+        if (updateSplash && updateSplash.style.display !== 'none') return;
         if (Notification.permission !== 'granted') {
             showNotificationModal();
         }
@@ -317,7 +364,6 @@ function openCheckout() {
     summaryDiv.innerHTML = summaryHTML;
 }
 
-// Reset visibility matrix safely
 function closeCheckout() { 
     document.getElementById('checkout-modal').style.display = 'none'; 
     body.classList.remove('stop-scrolling'); 
@@ -327,7 +373,6 @@ function closeCheckout() {
 // 7. DOWNSTREAM DATABASE DISPATCH TO KITCHEN
 // ==========================================
 function submitOrder() {
-    // 🚀 UPDATED: Form input extraction maps to distinct fields
     const firstName = document.getElementById('customer-first-name').value.trim();
     const lastName = document.getElementById('customer-last-name').value.trim();
     const phone = document.getElementById('customer-phone').value.trim();
@@ -342,7 +387,6 @@ function submitOrder() {
     }
     if (cart.length === 0) return;
 
-    // Concatenate strings cleanly so it saves inside your standard Kitchen node row structure seamlessly
     const completeFullName = `${firstName} ${lastName}`;
 
     const itemSummaryString = cart.map(item => {
@@ -356,7 +400,7 @@ function submitOrder() {
 
     const customerPayload = {
         id: newOrderRef.key,
-        customerName: completeFullName, // Saves perfectly formatted string to database
+        customerName: completeFullName,
         customerPhone: phone,
         items: itemSummaryString,
         status: "PENDING",
@@ -376,7 +420,6 @@ function submitOrder() {
         cartBtn.style.display = 'none';
         closeCheckout();
         
-        // Reset split text inputs cleanly
         document.getElementById('customer-first-name').value = '';
         document.getElementById('customer-last-name').value = '';
         document.getElementById('customer-phone').value = '';
