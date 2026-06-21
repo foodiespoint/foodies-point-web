@@ -1,5 +1,5 @@
 // ==========================================================================
-// 1. GLOBAL PRODUCTION CONFIGURATIONS & STATE REGISTRY (VERSION 43)
+// 1. GLOBAL PRODUCTION CONFIGURATIONS & STATE REGISTRY (VERSION 44)
 // ==========================================================================
 let deferredPrompt = null;
 let installPromptSupported = false; 
@@ -158,10 +158,9 @@ function forceDismissSplash() {
     }
 }
 
-// 🚀 RESTORED: Standard Stable Background Service Worker Engine
 window.addEventListener('load', () => {
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('sw.js?v=43').then(reg => {
+        navigator.serviceWorker.register('sw.js?v=44').then(reg => {
             if (!navigator.serviceWorker.controller) { tryDismissSplash(); return; }
             
             reg.onupdatefound = () => {
@@ -191,7 +190,9 @@ if ('serviceWorker' in navigator) {
     });
 }
 
-// 🚀 PWA INSTALLATION POPUP LOGIC
+// ==========================================
+// 3. MANDATORY UI & NOTIFICATION ENGINE
+// ==========================================
 window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault(); deferredPrompt = e; installPromptSupported = true; 
     if (localStorage.getItem('pwa_installed_successfully') !== 'true') showMandatoryModal();
@@ -333,14 +334,23 @@ function renderCustomerMenu() {
 }
 
 // ==========================================
-// 7. CLIENT-SIDE ORDER HISTORY PIPELINE
+// 7. CLIENT-SIDE ORDER HISTORY PIPELINE (WITH NOTIFICATIONS)
 // ==========================================
 function listenToOrderHistory() {
     if (isKitchenBlackoutActive()) return enforceBlackoutUILayout();
     const historyContainer = document.getElementById('history-container');
     const trackList = JSON.parse(localStorage.getItem('foodies_tracked_orders') || '[]');
-    if (trackList.length === 0) { historyContainer.innerHTML = '<p style="text-align: center; color: #9CA3AF; font-size: 13px; margin-top: 12px;">No orders placed today yet.</p>'; return; }
-    if (historyContainer.innerHTML.includes("No orders placed today") || historyContainer.innerHTML.includes("History cleared")) historyContainer.innerHTML = '';
+    
+    if (trackList.length === 0) { 
+        historyContainer.innerHTML = '<p style="text-align: center; color: #9CA3AF; font-size: 13px; margin-top: 12px;">No orders placed today yet.</p>'; 
+        return; 
+    }
+    
+    if (historyContainer.innerHTML.includes("No orders placed today") || historyContainer.innerHTML.includes("History cleared")) {
+        historyContainer.innerHTML = '';
+    }
+    
+    let notifiedStatuses = JSON.parse(localStorage.getItem('foodies_notified_statuses') || '{}');
     
     trackList.forEach(orderId => {
         database.ref(`orders/${orderId}`).on('value', (snapshot) => {
@@ -353,8 +363,26 @@ function listenToOrderHistory() {
             if (!card) { card = document.createElement('div'); card.id = `history-card-${orderId}`; isNew = true; }
             
             let statusText = "On Hold"; let badgeColor = "#D97706"; let bgColor = "#FEF3C7";
-            if (order.status === "ACCEPTED") { statusText = "Accepted"; badgeColor = "#059669"; bgColor = "#D1FAE5"; } 
-            else if (order.status === "REJECTED") { statusText = "Rejected"; badgeColor = "#DC2626"; bgColor = "#FEE2E2"; }
+            const currentStatusKey = `${orderId}_${order.status}`;
+            
+            if (order.status === "ACCEPTED") { 
+                statusText = "Accepted"; badgeColor = "#059669"; bgColor = "#D1FAE5"; 
+                if (!notifiedStatuses[currentStatusKey]) {
+                    triggerInstantNotification(`✅ Order Accepted! The kitchen is preparing your food.`);
+                    notifiedStatuses[currentStatusKey] = true;
+                    localStorage.setItem('foodies_notified_statuses', JSON.stringify(notifiedStatuses));
+                }
+            } 
+            else if (order.status === "REJECTED") { 
+                statusText = "Rejected"; badgeColor = "#DC2626"; bgColor = "#FEE2E2"; 
+                if (!notifiedStatuses[currentStatusKey]) {
+                    triggerInstantNotification(`❌ Order Rejected. Please contact the kitchen.`);
+                    notifiedStatuses[currentStatusKey] = true;
+                    localStorage.setItem('foodies_notified_statuses', JSON.stringify(notifiedStatuses));
+                }
+            } else if (order.status === "HOLD" || order.status === "PENDING") {
+                statusText = "On Hold"; badgeColor = "#D97706"; bgColor = "#FEF3C7";
+            }
             
             card.style.cssText = `background-color: #F9FAFB; padding: 14px; border-radius: 14px; border: 1px solid #E5E7EB; display: flex; justify-content: space-between; align-items: center;`;
             card.innerHTML = `<div style="flex-grow: 1; padding-right: 12px;"><div style="font-size: 13px; font-weight: 600; color: #111827; line-height: 1.4;">${order.items}</div><div style="font-size: 11px; color: #9CA3AF; margin-top: 4px;">Ordered at ${new Date(order.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div></div><span style="background-color: ${bgColor}; color: ${badgeColor}; font-size: 11px; font-weight: 700; padding: 6px 12px; border-radius: 20px; text-transform: uppercase; white-space: nowrap; letter-spacing: 0.3px;">${statusText}</span>`;
