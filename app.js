@@ -1,5 +1,5 @@
 // ==========================================================================
-// 1. GLOBAL PRODUCTION CONFIGURATIONS & STATE REGISTRY (VERSION 42)
+// 1. GLOBAL PRODUCTION CONFIGURATIONS & STATE REGISTRY (VERSION 43)
 // ==========================================================================
 let deferredPrompt = null;
 let installPromptSupported = false; 
@@ -158,10 +158,10 @@ function forceDismissSplash() {
     }
 }
 
-// 🚀 FIXED: Rock-solid v42 Service Worker deployment block
+// 🚀 RESTORED: Standard Stable Background Service Worker Engine
 window.addEventListener('load', () => {
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('sw.js?v=42').then(reg => {
+        navigator.serviceWorker.register('sw.js?v=43').then(reg => {
             if (!navigator.serviceWorker.controller) { tryDismissSplash(); return; }
             
             reg.onupdatefound = () => {
@@ -191,19 +191,40 @@ if ('serviceWorker' in navigator) {
     });
 }
 
+// 🚀 PWA INSTALLATION POPUP LOGIC
 window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault(); deferredPrompt = e; installPromptSupported = true; 
     if (localStorage.getItem('pwa_installed_successfully') !== 'true') showMandatoryModal();
     else initNotificationGestureCheck(); 
 });
+
 function triggerNativeInstall() {
     if (!deferredPrompt) { dismissMandatoryModal(); return; }
     deferredPrompt.prompt();
     deferredPrompt.userChoice.then(() => { deferredPrompt = null; dismissMandatoryModal(); });
 }
-window.addEventListener('appinstalled', () => { localStorage.setItem('pwa_installed_successfully', 'true'); dismissMandatoryModal(); });
-function showMandatoryModal() { if (pwaModal && pwaOverlay) { pwaModal.style.display = 'flex'; pwaOverlay.style.display = 'block'; body.classList.add('stop-scrolling'); } }
-function dismissMandatoryModal() { if (pwaModal && pwaOverlay) { pwaModal.style.display = 'none'; pwaOverlay.style.display = 'none'; body.classList.remove('stop-scrolling'); initNotificationGestureCheck(); } }
+
+window.addEventListener('appinstalled', () => { 
+    localStorage.setItem('pwa_installed_successfully', 'true'); 
+    dismissMandatoryModal(); 
+});
+
+function showMandatoryModal() { 
+    if (pwaModal && pwaOverlay) { 
+        pwaModal.style.display = 'flex'; 
+        pwaOverlay.style.display = 'block'; 
+        body.classList.add('stop-scrolling'); 
+    } 
+}
+
+function dismissMandatoryModal() { 
+    if (pwaModal && pwaOverlay) { 
+        pwaModal.style.display = 'none'; 
+        pwaOverlay.style.display = 'none'; 
+        body.classList.remove('stop-scrolling'); 
+        initNotificationGestureCheck(); 
+    } 
+}
 
 function initNotificationGestureCheck() {
     if (!('Notification' in window)) return;
@@ -216,7 +237,9 @@ function initNotificationGestureCheck() {
     window.addEventListener('click', triggerBlocker, { once: true });
     window.addEventListener('touchstart', triggerBlocker, { once: true });
 }
+
 function showNotificationModal() { if (notifModal && notifOverlay) { notifModal.style.display = 'flex'; notifOverlay.style.display = 'block'; body.classList.add('stop-scrolling'); } }
+
 function acceptNotificationModal() {
     if (notifModal && notifOverlay) { notifModal.style.display = 'none'; notifOverlay.style.display = 'none'; body.classList.remove('stop-scrolling'); }
     Notification.requestPermission().then((permission) => {
@@ -224,6 +247,7 @@ function acceptNotificationModal() {
         else initNotificationGestureCheck();
     });
 }
+
 function triggerInstantNotification(messageText) {
     if ('Notification' in window && Notification.permission === 'granted') {
         navigator.serviceWorker.ready.then((reg) => { reg.showNotification('Foodies Point', { body: messageText, icon: 'icon.png', badge: 'icon.png', vibrate: [200, 100, 200] }); });
@@ -605,6 +629,7 @@ function initializeKitchenOrderStream() {
 function updateTicketStatus(ticketId, targetState) { database.ref(`orders/${ticketId}`).update({ status: targetState }); }
 function archiveTicket(ticketId) { database.ref(`orders/${ticketId}`).update({ archived: true }); }
 
+// Prevent basic UI lockups
 window.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => { if (!installPromptSupported) initNotificationGestureCheck(); }, 2000);
     listenToOrderHistory();
