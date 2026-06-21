@@ -1,14 +1,6 @@
 // ==========================================================================
-// 1. GLOBAL PRODUCTION CONFIGURATIONS & STATE REGISTRY (VERSION 41)
+// 1. GLOBAL PRODUCTION CONFIGURATIONS & STATE REGISTRY (VERSION 42)
 // ==========================================================================
-
-// FORCE PURGE: Destroys buggy background workers before initializing
-if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.getRegistrations().then(function(registrations) {
-        for(let registration of registrations) { registration.unregister(); }
-    });
-}
-
 let deferredPrompt = null;
 let installPromptSupported = false; 
 let cart = [];
@@ -166,29 +158,87 @@ function forceDismissSplash() {
     }
 }
 
+// 🚀 FIXED: Rock-solid v42 Service Worker deployment block
 window.addEventListener('load', () => {
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('sw.js?v=41').then(reg => {
+        navigator.serviceWorker.register('sw.js?v=42').then(reg => {
             if (!navigator.serviceWorker.controller) { tryDismissSplash(); return; }
+            
             reg.onupdatefound = () => {
-                if (splashText) splashText.innerHTML = "New update found!<br><span style='color:#FF4B3A; font-size:14px; font-weight:500;'>Installing assets... Please do not close the app.</span>";
+                const installingWorker = reg.installing;
+                installingWorker.onstatechange = () => {
+                    if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                        if (splashText) splashText.innerHTML = "New update found!<br><span style='color:#FF4B3A; font-size:14px; font-weight:500;'>Installing assets... Please do not close the app.</span>";
+                    }
+                };
             };
-            reg.update().then(() => { setTimeout(tryDismissSplash, 800); }).catch(tryDismissSplash);
-        }).catch(tryDismissSplash);
+        }).catch(err => {
+            console.error("SW Error:", err);
+            tryDismissSplash();
+        });
     } else {
         tryDismissSplash();
     }
 });
 
+let refreshing = false;
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (!refreshing) {
+            refreshing = true;
+            window.location.reload();
+        }
+    });
+}
+
+window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault(); deferredPrompt = e; installPromptSupported = true; 
+    if (localStorage.getItem('pwa_installed_successfully') !== 'true') showMandatoryModal();
+    else initNotificationGestureCheck(); 
+});
+function triggerNativeInstall() {
+    if (!deferredPrompt) { dismissMandatoryModal(); return; }
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then(() => { deferredPrompt = null; dismissMandatoryModal(); });
+}
+window.addEventListener('appinstalled', () => { localStorage.setItem('pwa_installed_successfully', 'true'); dismissMandatoryModal(); });
+function showMandatoryModal() { if (pwaModal && pwaOverlay) { pwaModal.style.display = 'flex'; pwaOverlay.style.display = 'block'; body.classList.add('stop-scrolling'); } }
+function dismissMandatoryModal() { if (pwaModal && pwaOverlay) { pwaModal.style.display = 'none'; pwaOverlay.style.display = 'none'; body.classList.remove('stop-scrolling'); initNotificationGestureCheck(); } }
+
+function initNotificationGestureCheck() {
+    if (!('Notification' in window)) return;
+    if (Notification.permission === 'granted') return;
+    const triggerBlocker = () => {
+        if (pwaModal && pwaModal.style.display === 'flex') return;
+        if (updateSplash && updateSplash.style.display !== 'none') return;
+        if (Notification.permission !== 'granted') showNotificationModal();
+    };
+    window.addEventListener('click', triggerBlocker, { once: true });
+    window.addEventListener('touchstart', triggerBlocker, { once: true });
+}
+function showNotificationModal() { if (notifModal && notifOverlay) { notifModal.style.display = 'flex'; notifOverlay.style.display = 'block'; body.classList.add('stop-scrolling'); } }
+function acceptNotificationModal() {
+    if (notifModal && notifOverlay) { notifModal.style.display = 'none'; notifOverlay.style.display = 'none'; body.classList.remove('stop-scrolling'); }
+    Notification.requestPermission().then((permission) => {
+        if (permission === 'granted') triggerInstantNotification('🍕 Alerts Enabled! Your live tracking is active.');
+        else initNotificationGestureCheck();
+    });
+}
+function triggerInstantNotification(messageText) {
+    if ('Notification' in window && Notification.permission === 'granted') {
+        navigator.serviceWorker.ready.then((reg) => { reg.showNotification('Foodies Point', { body: messageText, icon: 'icon.png', badge: 'icon.png', vibrate: [200, 100, 200] }); });
+    }
+}
+
 // ==========================================
-// 3. FIREBASE REALTIME INITIALIZATION
+// 4. FIREBASE REALTIME INITIALIZATION
 // ==========================================
 const firebaseConfig = { databaseURL: "https://foodiespoint-6760-default-rtdb.asia-southeast1.firebasedatabase.app/" };
 firebase.initializeApp(firebaseConfig);
 const database = firebase.database();
 
 // ==========================================
-// 4. BULLETPROOF IST TIMEZONE LOCKOUT ENGINE
+// 5. BULLETPROOF IST TIMEZONE LOCKOUT ENGINE
 // ==========================================
 function isKitchenBlackoutActive() {
     const now = new Date();
@@ -215,7 +265,7 @@ function enforceBlackoutUILayout() {
 }
 
 // ==========================================
-// 5. ARRAY-BASED DATA PIPELINES: CUSTOMER MENU
+// 6. MAIN DATA PIPELINES: LIVE MENU CONTROLLER
 // ==========================================
 const menuContainer = document.getElementById('menu-container');
 const cartBtn = document.getElementById('cart-btn');
@@ -259,7 +309,7 @@ function renderCustomerMenu() {
 }
 
 // ==========================================
-// 6. CLIENT-SIDE ORDER HISTORY PIPELINE
+// 7. CLIENT-SIDE ORDER HISTORY PIPELINE
 // ==========================================
 function listenToOrderHistory() {
     if (isKitchenBlackoutActive()) return enforceBlackoutUILayout();
@@ -337,7 +387,6 @@ function submitOrder() {
 // 🚀 8. KITCHEN CONSOLE ENGINE (WITH HARDWARE BACK-BUTTON FIX)
 // ==========================================================================
 function authenticateConsoleAccess() {
-    // 🚀 FIXED: Exiting safely removes URL hash and returns to clean root.
     if (isConsoleViewActive) {
         history.replaceState(null, '', window.location.pathname + window.location.search);
         window.location.reload(); 
@@ -378,7 +427,6 @@ function launchConsoleLayout() {
     const searchBar = document.getElementById('console-search-bar');
     if (searchBar) searchBar.value = '';
 
-    // 🚀 NEW: Tell the hardware browser history that we moved into the console
     if (window.location.hash !== '#console') {
         history.pushState({ view: 'console' }, 'Console', window.location.pathname + window.location.search + '#console');
     }
@@ -557,20 +605,15 @@ function initializeKitchenOrderStream() {
 function updateTicketStatus(ticketId, targetState) { database.ref(`orders/${ticketId}`).update({ status: targetState }); }
 function archiveTicket(ticketId) { database.ref(`orders/${ticketId}`).update({ archived: true }); }
 
-// Prevent basic UI lockups
 window.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => { if (!installPromptSupported) initNotificationGestureCheck(); }, 2000);
     listenToOrderHistory();
     setInterval(() => { if (isKitchenBlackoutActive()) enforceBlackoutUILayout(); }, 30000);
 });
 
-// 🚀 NEW: MOBILE HARDWARE BACK-BUTTON INTERCEPTOR
 window.addEventListener('popstate', (event) => {
-    // If the physical back button is pressed, the browser removes the `#console` hash from the URL.
-    // We catch that here. If the console is open but the hash is gone, we execute a clean exit!
     if (isConsoleViewActive && window.location.hash !== '#console') {
         isConsoleViewActive = false;
-        // Strip the hash entirely and reload to simulate an app-like screen pop
         history.replaceState(null, '', window.location.pathname + window.location.search);
         window.location.reload();
     }
