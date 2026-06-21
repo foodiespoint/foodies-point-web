@@ -1,6 +1,14 @@
 // ==========================================================================
-// 1. GLOBAL PRODUCTION CONFIGURATIONS & STATE REGISTRY (VERSION 46)
+// 1. GLOBAL PRODUCTION CONFIGURATIONS & STATE REGISTRY (VERSION 47)
 // ==========================================================================
+
+// FORCE PURGE: Destroys buggy background workers before initializing
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then(function(registrations) {
+        for(let registration of registrations) { registration.unregister(); }
+    });
+}
+
 let deferredPrompt = null;
 let installPromptSupported = false; 
 let cart = [];
@@ -160,7 +168,7 @@ function forceDismissSplash() {
 
 window.addEventListener('load', () => {
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('sw.js?v=46').then(reg => {
+        navigator.serviceWorker.register('sw.js?v=47').then(reg => {
             if (!navigator.serviceWorker.controller) { tryDismissSplash(); return; }
             
             reg.onupdatefound = () => {
@@ -290,7 +298,7 @@ function enforceBlackoutUILayout() {
 }
 
 // ==========================================
-// 6. MAIN DATA PIPELINES: LIVE MENU CONTROLLER
+// 6. 🚀 LIVE MENU CONTROLLER WITH NOTIFICATIONS
 // ==========================================
 const menuContainer = document.getElementById('menu-container');
 const cartBtn = document.getElementById('cart-btn');
@@ -317,6 +325,15 @@ function renderCustomerMenu() {
     if (currentLiveMenuArray.length === 0) {
         menuContainer.innerHTML = '<p style="text-align: center; color: #9CA3AF; margin-top: 20px;">The kitchen has not posted a menu yet today.</p>';
         return;
+    }
+
+    // 🚀 NEW: Check if we need to fire the "Menu is Live" notification
+    const todayStr = new Date().toLocaleDateString();
+    const lastNotifiedDate = localStorage.getItem('foodies_menu_notified_date');
+    
+    if (lastNotifiedDate !== todayStr) {
+        triggerInstantNotification('🍽️ Today\'s Menu is Live! Tap here to check what\'s cooking.');
+        localStorage.setItem('foodies_menu_notified_date', todayStr);
     }
 
     currentLiveMenuArray.forEach((item) => {
@@ -674,10 +691,27 @@ function updateTicketStatus(ticketId, targetState) {
 
 function archiveTicket(ticketId) { database.ref(`orders/${ticketId}`).update({ archived: true }); }
 
+// 🚀 FIXED TIMER TRACKING LOGIC: Listens for the exact moment the blackout ends!
+let blackoutStateMemory = isKitchenBlackoutActive();
+
 window.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => { if (!installPromptSupported) initNotificationGestureCheck(); }, 2000);
     listenToOrderHistory();
-    setInterval(() => { if (isKitchenBlackoutActive()) enforceBlackoutUILayout(); }, 30000);
+    
+    setInterval(() => { 
+        const currentlyBlackedOut = isKitchenBlackoutActive();
+        if (currentlyBlackedOut !== blackoutStateMemory) {
+            blackoutStateMemory = currentlyBlackedOut;
+            if (currentlyBlackedOut) {
+                enforceBlackoutUILayout();
+            } else {
+                // If it hits 9:30 PM, this fires, building the menu and pushing the notification!
+                renderCustomerMenu();
+            }
+        } else if (currentlyBlackedOut) {
+            enforceBlackoutUILayout();
+        }
+    }, 5000); // Checks clock every 5 seconds for precision
 });
 
 window.addEventListener('popstate', (event) => {
