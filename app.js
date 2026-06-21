@@ -1,5 +1,5 @@
 // ==========================================================================
-// 1. GLOBAL PRODUCTION CONFIGURATIONS & STATE REGISTRY (VERSION 45)
+// 1. GLOBAL PRODUCTION CONFIGURATIONS & STATE REGISTRY (VERSION 46)
 // ==========================================================================
 let deferredPrompt = null;
 let installPromptSupported = false; 
@@ -160,7 +160,7 @@ function forceDismissSplash() {
 
 window.addEventListener('load', () => {
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('sw.js?v=45').then(reg => {
+        navigator.serviceWorker.register('sw.js?v=46').then(reg => {
             if (!navigator.serviceWorker.controller) { tryDismissSplash(); return; }
             
             reg.onupdatefound = () => {
@@ -436,7 +436,7 @@ function submitOrder() {
 }
 
 // ==========================================================================
-// 🚀 8. KITCHEN CONSOLE ENGINE 
+// 🚀 8. KITCHEN CONSOLE ENGINE (WITH HARDWARE BACK-BUTTON FIX)
 // ==========================================================================
 function authenticateConsoleAccess() {
     if (isConsoleViewActive) {
@@ -613,7 +613,6 @@ function publishSelectedLiveMenu() {
         .catch((err) => { alert("Error updating live database nodes."); console.error(err); });
 }
 
-// 🚀 FIXED: Order action buttons disable and swap to purely status indicators upon interaction
 function initializeKitchenOrderStream() {
     const ordersContainer = document.getElementById('kitchen-orders-container');
     database.ref('orders').orderByChild('timestamp').on('value', (snapshot) => {
@@ -637,7 +636,6 @@ function initializeKitchenOrderStream() {
             if (order.status === "ACCEPTED") { statusBadgeColor = "#10B981"; statusLabel = "ACCEPTED"; }
             if (order.status === "REJECTED") { statusBadgeColor = "#EF4444"; statusLabel = "REJECTED"; }
 
-            // 🚀 DYNAMIC BUTTON LOGIC
             let actionButtonsHTML = '';
             if (order.status === "PENDING" || order.status === "HOLD") {
                 actionButtonsHTML = `
@@ -676,7 +674,6 @@ function updateTicketStatus(ticketId, targetState) {
 
 function archiveTicket(ticketId) { database.ref(`orders/${ticketId}`).update({ archived: true }); }
 
-// Prevent basic UI lockups
 window.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => { if (!installPromptSupported) initNotificationGestureCheck(); }, 2000);
     listenToOrderHistory();
