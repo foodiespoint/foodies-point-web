@@ -1,5 +1,5 @@
 // ==========================================================================
-// 1. GLOBAL PRODUCTION CONFIGURATIONS & STATE REGISTRY (VERSION 44)
+// 1. GLOBAL PRODUCTION CONFIGURATIONS & STATE REGISTRY (VERSION 45)
 // ==========================================================================
 let deferredPrompt = null;
 let installPromptSupported = false; 
@@ -160,7 +160,7 @@ function forceDismissSplash() {
 
 window.addEventListener('load', () => {
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('sw.js?v=44').then(reg => {
+        navigator.serviceWorker.register('sw.js?v=45').then(reg => {
             if (!navigator.serviceWorker.controller) { tryDismissSplash(); return; }
             
             reg.onupdatefound = () => {
@@ -334,7 +334,7 @@ function renderCustomerMenu() {
 }
 
 // ==========================================
-// 7. CLIENT-SIDE ORDER HISTORY PIPELINE (WITH NOTIFICATIONS)
+// 7. CLIENT-SIDE ORDER HISTORY PIPELINE
 // ==========================================
 function listenToOrderHistory() {
     if (isKitchenBlackoutActive()) return enforceBlackoutUILayout();
@@ -349,7 +349,7 @@ function listenToOrderHistory() {
     if (historyContainer.innerHTML.includes("No orders placed today") || historyContainer.innerHTML.includes("History cleared")) {
         historyContainer.innerHTML = '';
     }
-    
+
     let notifiedStatuses = JSON.parse(localStorage.getItem('foodies_notified_statuses') || '{}');
     
     trackList.forEach(orderId => {
@@ -436,7 +436,7 @@ function submitOrder() {
 }
 
 // ==========================================================================
-// 🚀 8. KITCHEN CONSOLE ENGINE (WITH HARDWARE BACK-BUTTON FIX)
+// 🚀 8. KITCHEN CONSOLE ENGINE 
 // ==========================================================================
 function authenticateConsoleAccess() {
     if (isConsoleViewActive) {
@@ -613,6 +613,7 @@ function publishSelectedLiveMenu() {
         .catch((err) => { alert("Error updating live database nodes."); console.error(err); });
 }
 
+// 🚀 FIXED: Order action buttons disable and swap to purely status indicators upon interaction
 function initializeKitchenOrderStream() {
     const ordersContainer = document.getElementById('kitchen-orders-container');
     database.ref('orders').orderByChild('timestamp').on('value', (snapshot) => {
@@ -636,6 +637,19 @@ function initializeKitchenOrderStream() {
             if (order.status === "ACCEPTED") { statusBadgeColor = "#10B981"; statusLabel = "ACCEPTED"; }
             if (order.status === "REJECTED") { statusBadgeColor = "#EF4444"; statusLabel = "REJECTED"; }
 
+            // 🚀 DYNAMIC BUTTON LOGIC
+            let actionButtonsHTML = '';
+            if (order.status === "PENDING" || order.status === "HOLD") {
+                actionButtonsHTML = `
+                    <button onclick="updateTicketStatus('${order.id}', 'ACCEPTED')" style="flex: 1; background-color: #10B981; color: white; border: none; padding: 8px; border-radius: 8px; font-weight: 600; font-size: 11px; cursor: pointer;">✓ Accept</button>
+                    <button onclick="updateTicketStatus('${order.id}', 'REJECTED')" style="flex: 1; background-color: #EF4444; color: white; border: none; padding: 8px; border-radius: 8px; font-weight: 600; font-size: 11px; cursor: pointer;">✕ Reject</button>
+                `;
+            } else {
+                actionButtonsHTML = `
+                    <div style="flex: 2; display: flex; align-items: center; justify-content: center; background-color: #F3F4F6; color: #9CA3AF; border-radius: 8px; font-weight: 600; font-size: 11px; padding: 8px;">Processed: ${statusLabel}</div>
+                `;
+            }
+
             rowItem.style.cssText = `background-color: #FFFFFF; padding: 14px; border-radius: 14px; box-shadow: 0 4px 10px rgba(0,0,0,0.02); border-left: 5px solid ${statusBadgeColor}; display: flex; flex-direction: column; gap: 8px; margin-bottom: 4px; text-align: left;`;
             rowItem.innerHTML = `
                 <div style="display: flex; justify-content: space-between; align-items: flex-start;">
@@ -644,9 +658,8 @@ function initializeKitchenOrderStream() {
                 </div>
                 <div style="font-size: 13px; color: #374151; font-weight: 500; line-height: 1.4; background-color: #F9FAFB; padding: 8px; border-radius: 8px;">${order.items}</div>
                 <div style="display: flex; gap: 8px; margin-top: 4px;">
-                    <button onclick="updateTicketStatus('${order.id}', 'ACCEPTED')" style="flex: 1; background-color: #10B981; color: white; border: none; padding: 8px; border-radius: 8px; font-weight: 600; font-size: 11px; cursor: pointer;">✓ Accept</button>
-                    <button onclick="updateTicketStatus('${order.id}', 'REJECTED')" style="flex: 1; background-color: #EF4444; color: white; border: none; padding: 8px; border-radius: 8px; font-weight: 600; font-size: 11px; cursor: pointer;">✕ Reject</button>
-                    <button onclick="archiveTicket('${order.id}')" style="background-color: #6B7280; color: white; border: none; padding: 8px 12px; border-radius: 8px; font-weight: 600; font-size: 11px; cursor: pointer;">Archive</button>
+                    ${actionButtonsHTML}
+                    <button onclick="archiveTicket('${order.id}')" style="flex: ${order.status === 'PENDING' ? 'initial' : '1'}; background-color: #6B7280; color: white; border: none; padding: 8px 12px; border-radius: 8px; font-weight: 600; font-size: 11px; cursor: pointer;">Archive</button>
                 </div>
             `;
             ordersContainer.appendChild(rowItem);
@@ -654,7 +667,13 @@ function initializeKitchenOrderStream() {
     });
 }
 
-function updateTicketStatus(ticketId, targetState) { database.ref(`orders/${ticketId}`).update({ status: targetState }); }
+function updateTicketStatus(ticketId, targetState) { 
+    const doubleCheck = confirm(`Confirm Action:\n\nAre you sure you want to mark this order as ${targetState}?`);
+    if(doubleCheck) {
+        database.ref(`orders/${ticketId}`).update({ status: targetState }); 
+    }
+}
+
 function archiveTicket(ticketId) { database.ref(`orders/${ticketId}`).update({ archived: true }); }
 
 // Prevent basic UI lockups
