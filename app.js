@@ -1,8 +1,6 @@
 // ==========================================================================
-// 1. GLOBAL PRODUCTION CONFIGURATIONS & STATE REGISTRY (VERSION 47)
+// 1. GLOBAL PRODUCTION CONFIGURATIONS & STATE REGISTRY (VERSION 48)
 // ==========================================================================
-
-// FORCE PURGE: Destroys buggy background workers before initializing
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.getRegistrations().then(function(registrations) {
         for(let registration of registrations) { registration.unregister(); }
@@ -168,9 +166,8 @@ function forceDismissSplash() {
 
 window.addEventListener('load', () => {
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('sw.js?v=47').then(reg => {
+        navigator.serviceWorker.register('sw.js?v=48').then(reg => {
             if (!navigator.serviceWorker.controller) { tryDismissSplash(); return; }
-            
             reg.onupdatefound = () => {
                 const installingWorker = reg.installing;
                 installingWorker.onstatechange = () => {
@@ -179,10 +176,7 @@ window.addEventListener('load', () => {
                     }
                 };
             };
-        }).catch(err => {
-            console.error("SW Error:", err);
-            tryDismissSplash();
-        });
+        }).catch(err => { console.error("SW Error:", err); tryDismissSplash(); });
     } else {
         tryDismissSplash();
     }
@@ -191,15 +185,12 @@ window.addEventListener('load', () => {
 let refreshing = false;
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.addEventListener('controllerchange', () => {
-        if (!refreshing) {
-            refreshing = true;
-            window.location.reload();
-        }
+        if (!refreshing) { refreshing = true; window.location.reload(); }
     });
 }
 
 // ==========================================
-// 3. MANDATORY UI & NOTIFICATION ENGINE
+// 3. MANDATORY UI & HYBRID NOTIFICATION ENGINE
 // ==========================================
 window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault(); deferredPrompt = e; installPromptSupported = true; 
@@ -218,22 +209,8 @@ window.addEventListener('appinstalled', () => {
     dismissMandatoryModal(); 
 });
 
-function showMandatoryModal() { 
-    if (pwaModal && pwaOverlay) { 
-        pwaModal.style.display = 'flex'; 
-        pwaOverlay.style.display = 'block'; 
-        body.classList.add('stop-scrolling'); 
-    } 
-}
-
-function dismissMandatoryModal() { 
-    if (pwaModal && pwaOverlay) { 
-        pwaModal.style.display = 'none'; 
-        pwaOverlay.style.display = 'none'; 
-        body.classList.remove('stop-scrolling'); 
-        initNotificationGestureCheck(); 
-    } 
-}
+function showMandatoryModal() { if (pwaModal && pwaOverlay) { pwaModal.style.display = 'flex'; pwaOverlay.style.display = 'block'; body.classList.add('stop-scrolling'); } }
+function dismissMandatoryModal() { if (pwaModal && pwaOverlay) { pwaModal.style.display = 'none'; pwaOverlay.style.display = 'none'; body.classList.remove('stop-scrolling'); initNotificationGestureCheck(); } }
 
 function initNotificationGestureCheck() {
     if (!('Notification' in window)) return;
@@ -252,14 +229,33 @@ function showNotificationModal() { if (notifModal && notifOverlay) { notifModal.
 function acceptNotificationModal() {
     if (notifModal && notifOverlay) { notifModal.style.display = 'none'; notifOverlay.style.display = 'none'; body.classList.remove('stop-scrolling'); }
     Notification.requestPermission().then((permission) => {
-        if (permission === 'granted') triggerInstantNotification('🍕 Alerts Enabled! Your live tracking is active.');
+        if (permission === 'granted') triggerInstantNotification('🍕 Alerts Enabled! Your live tracking is active.', 'success');
         else initNotificationGestureCheck();
     });
 }
 
-function triggerInstantNotification(messageText) {
+// 🚀 FIXED: Hybrid Notification. Drops a visible toast AND tries a system push
+function triggerInstantNotification(messageText, type = 'success') {
+    // 1. Fire the visual In-App Toast
+    const toastContainer = document.getElementById('toast-container');
+    if (toastContainer) {
+        const toast = document.createElement('div');
+        const bgColor = type === 'error' ? '#EF4444' : (type === 'info' ? '#3B82F6' : '#10B981');
+        toast.style.cssText = `background: ${bgColor}; color: white; padding: 14px 20px; border-radius: 12px; font-size: 14px; font-weight: 600; box-shadow: 0 10px 25px rgba(0,0,0,0.2); animation: toastFadeIn 0.3s forwards; pointer-events: auto;`;
+        toast.innerText = messageText;
+        toastContainer.appendChild(toast);
+        
+        setTimeout(() => {
+            toast.style.animation = 'toastFadeOut 0.3s forwards';
+            setTimeout(() => toast.remove(), 300);
+        }, 4000);
+    }
+
+    // 2. Fire the Background System Push (If allowed and supported)
     if ('Notification' in window && Notification.permission === 'granted') {
-        navigator.serviceWorker.ready.then((reg) => { reg.showNotification('Foodies Point', { body: messageText, icon: 'icon.png', badge: 'icon.png', vibrate: [200, 100, 200] }); });
+        navigator.serviceWorker.ready.then((reg) => { 
+            reg.showNotification('Foodies Point', { body: messageText, icon: 'icon.png', badge: 'icon.png', vibrate: [200, 100, 200] }); 
+        });
     }
 }
 
@@ -298,41 +294,30 @@ function enforceBlackoutUILayout() {
 }
 
 // ==========================================
-// 6. 🚀 LIVE MENU CONTROLLER WITH NOTIFICATIONS
+// 6. MAIN DATA PIPELINES: LIVE MENU CONTROLLER
 // ==========================================
 const menuContainer = document.getElementById('menu-container');
 const cartBtn = document.getElementById('cart-btn');
 
 database.ref('daily_live_menu').on('value', (snapshot) => {
     currentLiveMenuArray = [];
-    snapshot.forEach((child) => {
-        currentLiveMenuArray.push(child.val());
-    });
+    snapshot.forEach((child) => { currentLiveMenuArray.push(child.val()); });
 
-    if (isKitchenBlackoutActive()) {
-        enforceBlackoutUILayout();
-        return;
-    }
-
+    if (isKitchenBlackoutActive()) { enforceBlackoutUILayout(); return; }
     if (isConsoleViewActive) return; 
-
     renderCustomerMenu();
 });
 
 function renderCustomerMenu() {
     menuContainer.innerHTML = ''; 
-
     if (currentLiveMenuArray.length === 0) {
-        menuContainer.innerHTML = '<p style="text-align: center; color: #9CA3AF; margin-top: 20px;">The kitchen has not posted a menu yet today.</p>';
-        return;
+        menuContainer.innerHTML = '<p style="text-align: center; color: #9CA3AF; margin-top: 20px;">The kitchen has not posted a menu yet today.</p>'; return;
     }
 
-    // 🚀 NEW: Check if we need to fire the "Menu is Live" notification
     const todayStr = new Date().toLocaleDateString();
     const lastNotifiedDate = localStorage.getItem('foodies_menu_notified_date');
-    
     if (lastNotifiedDate !== todayStr) {
-        triggerInstantNotification('🍽️ Today\'s Menu is Live! Tap here to check what\'s cooking.');
+        triggerInstantNotification('🍽️ Today\'s Menu is Live! Tap here to check what\'s cooking.', 'info');
         localStorage.setItem('foodies_menu_notified_date', todayStr);
     }
 
@@ -359,13 +344,9 @@ function listenToOrderHistory() {
     const trackList = JSON.parse(localStorage.getItem('foodies_tracked_orders') || '[]');
     
     if (trackList.length === 0) { 
-        historyContainer.innerHTML = '<p style="text-align: center; color: #9CA3AF; font-size: 13px; margin-top: 12px;">No orders placed today yet.</p>'; 
-        return; 
+        historyContainer.innerHTML = '<p style="text-align: center; color: #9CA3AF; font-size: 13px; margin-top: 12px;">No orders placed today yet.</p>'; return; 
     }
-    
-    if (historyContainer.innerHTML.includes("No orders placed today") || historyContainer.innerHTML.includes("History cleared")) {
-        historyContainer.innerHTML = '';
-    }
+    if (historyContainer.innerHTML.includes("No orders placed today") || historyContainer.innerHTML.includes("History cleared")) { historyContainer.innerHTML = ''; }
 
     let notifiedStatuses = JSON.parse(localStorage.getItem('foodies_notified_statuses') || '{}');
     
@@ -385,7 +366,7 @@ function listenToOrderHistory() {
             if (order.status === "ACCEPTED") { 
                 statusText = "Accepted"; badgeColor = "#059669"; bgColor = "#D1FAE5"; 
                 if (!notifiedStatuses[currentStatusKey]) {
-                    triggerInstantNotification(`✅ Order Accepted! The kitchen is preparing your food.`);
+                    triggerInstantNotification(`✅ Order Accepted! The kitchen is preparing your food.`, 'success');
                     notifiedStatuses[currentStatusKey] = true;
                     localStorage.setItem('foodies_notified_statuses', JSON.stringify(notifiedStatuses));
                 }
@@ -393,7 +374,7 @@ function listenToOrderHistory() {
             else if (order.status === "REJECTED") { 
                 statusText = "Rejected"; badgeColor = "#DC2626"; bgColor = "#FEE2E2"; 
                 if (!notifiedStatuses[currentStatusKey]) {
-                    triggerInstantNotification(`❌ Order Rejected. Please contact the kitchen.`);
+                    triggerInstantNotification(`❌ Order Rejected. Please contact the kitchen.`, 'error');
                     notifiedStatuses[currentStatusKey] = true;
                     localStorage.setItem('foodies_notified_statuses', JSON.stringify(notifiedStatuses));
                 }
@@ -453,7 +434,7 @@ function submitOrder() {
 }
 
 // ==========================================================================
-// 🚀 8. KITCHEN CONSOLE ENGINE (WITH HARDWARE BACK-BUTTON FIX)
+// 🚀 8. KITCHEN CONSOLE ENGINE 
 // ==========================================================================
 function authenticateConsoleAccess() {
     if (isConsoleViewActive) {
@@ -461,7 +442,6 @@ function authenticateConsoleAccess() {
         window.location.reload(); 
         return; 
     } 
-
     if (localStorage.getItem('foodies_console_authenticated') === 'true') { launchConsoleLayout(); return; }
     
     document.getElementById('admin-auth-overlay').style.display = 'block';
@@ -496,9 +476,7 @@ function launchConsoleLayout() {
     const searchBar = document.getElementById('console-search-bar');
     if (searchBar) searchBar.value = '';
 
-    if (window.location.hash !== '#console') {
-        history.pushState({ view: 'console' }, 'Console', window.location.pathname + window.location.search + '#console');
-    }
+    if (window.location.hash !== '#console') history.pushState({ view: 'console' }, 'Console', window.location.pathname + window.location.search + '#console');
 
     initializeKitchenOrderStream();
     
@@ -569,7 +547,6 @@ function toggleLocalStockState(btnElement, itemId) {
         
         const targetItem = MASTER_MENU.find(m => m.id === itemId);
         const statusText = newOutState ? "OUT OF STOCK" : "IN STOCK";
-        
         const confirmChange = confirm(`⚠️ Change Stock Status:\n\nAre you sure you want to mark "${targetItem.title}" as ${statusText}?`);
         if (!confirmChange) return; 
         
@@ -593,10 +570,7 @@ function previewSelectedLiveMenu() {
             if (item) {
                 const liveRec = currentLiveMenuArray.find(m => m.id === itemId);
                 const outOfStock = liveRec ? liveRec.isOutOfStock : false;
-
-                pendingLiveArray.push({
-                    id: item.id, title: item.title, details: item.details, category: item.category, isOutOfStock: outOfStock
-                });
+                pendingLiveArray.push({ id: item.id, title: item.title, details: item.details, category: item.category, isOutOfStock: outOfStock });
 
                 const line = document.createElement('div');
                 line.style.cssText = "font-size: 13px; font-weight: 600; color: #111827; display: flex; align-items: center; gap: 6px;";
@@ -606,11 +580,7 @@ function previewSelectedLiveMenu() {
         }
     }
 
-    if (pendingLiveArray.length === 0) {
-        alert("⚠️ Menu empty:\n\nPlease select at least one item before posting today's menu!");
-        return;
-    }
-
+    if (pendingLiveArray.length === 0) { alert("⚠️ Menu empty:\n\nPlease select at least one item before posting today's menu!"); return; }
     document.getElementById('menu-confirm-overlay').style.display = 'block';
     document.getElementById('menu-confirm-modal').style.display = 'flex';
 }
@@ -626,16 +596,19 @@ function publishSelectedLiveMenu() {
         .then(() => {
             alert(`🚀 Success!\n\n${pendingLiveArray.length} items successfully published.`);
             closeMenuConfirmModal(); launchConsoleLayout(); 
-        })
-        .catch((err) => { alert("Error updating live database nodes."); console.error(err); });
+        }).catch((err) => { alert("Error updating live database nodes."); console.error(err); });
 }
 
+// 🚀 FIXED: Added incoming order notification trigger for the Kitchen!
 function initializeKitchenOrderStream() {
     const ordersContainer = document.getElementById('kitchen-orders-container');
+    let notifiedKitchenOrders = JSON.parse(localStorage.getItem('foodies_kitchen_notified') || '{}');
+
     database.ref('orders').orderByChild('timestamp').on('value', (snapshot) => {
         if (!isConsoleViewActive) return;
         ordersContainer.innerHTML = '';
         const trackingList = [];
+        
         snapshot.forEach((child) => {
             const rawOrder = child.val();
             if (!rawOrder.archived) trackingList.push(rawOrder);
@@ -647,7 +620,15 @@ function initializeKitchenOrderStream() {
         }
 
         trackingList.sort((a, b) => b.timestamp - a.timestamp);
+        
         trackingList.forEach((order) => {
+            // Check if this is a brand new PENDING order that the kitchen hasn't seen yet
+            if (order.status === "PENDING" && !notifiedKitchenOrders[order.id]) {
+                triggerInstantNotification(`🔔 New Order from ${order.customerName}!`, 'info');
+                notifiedKitchenOrders[order.id] = true;
+                localStorage.setItem('foodies_kitchen_notified', JSON.stringify(notifiedKitchenOrders));
+            }
+
             const rowItem = document.createElement('div');
             let statusBadgeColor = "#D97706"; let statusLabel = "PENDING";
             if (order.status === "ACCEPTED") { statusBadgeColor = "#10B981"; statusLabel = "ACCEPTED"; }
@@ -684,14 +665,11 @@ function initializeKitchenOrderStream() {
 
 function updateTicketStatus(ticketId, targetState) { 
     const doubleCheck = confirm(`Confirm Action:\n\nAre you sure you want to mark this order as ${targetState}?`);
-    if(doubleCheck) {
-        database.ref(`orders/${ticketId}`).update({ status: targetState }); 
-    }
+    if(doubleCheck) { database.ref(`orders/${ticketId}`).update({ status: targetState }); }
 }
 
 function archiveTicket(ticketId) { database.ref(`orders/${ticketId}`).update({ archived: true }); }
 
-// 🚀 FIXED TIMER TRACKING LOGIC: Listens for the exact moment the blackout ends!
 let blackoutStateMemory = isKitchenBlackoutActive();
 
 window.addEventListener('DOMContentLoaded', () => {
@@ -702,16 +680,12 @@ window.addEventListener('DOMContentLoaded', () => {
         const currentlyBlackedOut = isKitchenBlackoutActive();
         if (currentlyBlackedOut !== blackoutStateMemory) {
             blackoutStateMemory = currentlyBlackedOut;
-            if (currentlyBlackedOut) {
-                enforceBlackoutUILayout();
-            } else {
-                // If it hits 9:30 PM, this fires, building the menu and pushing the notification!
-                renderCustomerMenu();
-            }
+            if (currentlyBlackedOut) enforceBlackoutUILayout();
+            else renderCustomerMenu();
         } else if (currentlyBlackedOut) {
             enforceBlackoutUILayout();
         }
-    }, 5000); // Checks clock every 5 seconds for precision
+    }, 5000);
 });
 
 window.addEventListener('popstate', (event) => {
