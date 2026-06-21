@@ -1,5 +1,5 @@
 // ==========================================================================
-// 1. GLOBAL PRODUCTION CONFIGURATIONS & STATE REGISTRY (VERSION 48)
+// 1. GLOBAL PRODUCTION CONFIGURATIONS & STATE REGISTRY (VERSION 49)
 // ==========================================================================
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.getRegistrations().then(function(registrations) {
@@ -144,16 +144,14 @@ const MASTER_MENU = [
 ];
 
 // ==========================================================================
-// 2. MINIMUM SPLASH LOAD TIME
+// 2. MINIMUM SPLASH LOAD TIME & SERVICE WORKER
 // ==========================================================================
 let minimumSplashTimeMet = false;
 setTimeout(() => { minimumSplashTimeMet = true; tryDismissSplash(); }, 1200);
 
 const splashFailSafeGuard = setTimeout(() => { forceDismissSplash(); }, 4000);
 
-function tryDismissSplash() {
-    if (minimumSplashTimeMet) forceDismissSplash();
-}
+function tryDismissSplash() { if (minimumSplashTimeMet) forceDismissSplash(); }
 
 function forceDismissSplash() {
     clearTimeout(splashFailSafeGuard);
@@ -166,7 +164,7 @@ function forceDismissSplash() {
 
 window.addEventListener('load', () => {
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('sw.js?v=48').then(reg => {
+        navigator.serviceWorker.register('sw.js?v=49').then(reg => {
             if (!navigator.serviceWorker.controller) { tryDismissSplash(); return; }
             reg.onupdatefound = () => {
                 const installingWorker = reg.installing;
@@ -190,7 +188,25 @@ if ('serviceWorker' in navigator) {
 }
 
 // ==========================================
-// 3. MANDATORY UI & HYBRID NOTIFICATION ENGINE
+// 3. FIREBASE REALTIME INITIALIZATION & FCM
+// ==========================================
+const firebaseConfig = { 
+    databaseURL: "https://foodiespoint-6760-default-rtdb.asia-southeast1.firebasedatabase.app/" 
+    // IMPORTANT: Make sure to include messagingSenderId, appId, and projectId here if you have them!
+};
+firebase.initializeApp(firebaseConfig);
+const database = firebase.database();
+
+// Initialize Firebase Cloud Messaging
+let messaging;
+try {
+    messaging = firebase.messaging();
+} catch (e) {
+    console.error("FCM Not Supported in this browser environment", e);
+}
+
+// ==========================================
+// 4. MANDATORY UI & HYBRID NOTIFICATION ENGINE
 // ==========================================
 window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault(); deferredPrompt = e; installPromptSupported = true; 
@@ -229,14 +245,15 @@ function showNotificationModal() { if (notifModal && notifOverlay) { notifModal.
 function acceptNotificationModal() {
     if (notifModal && notifOverlay) { notifModal.style.display = 'none'; notifOverlay.style.display = 'none'; body.classList.remove('stop-scrolling'); }
     Notification.requestPermission().then((permission) => {
-        if (permission === 'granted') triggerInstantNotification('🍕 Alerts Enabled! Your live tracking is active.', 'success');
-        else initNotificationGestureCheck();
+        if (permission === 'granted') {
+            triggerInstantNotification('🍕 Alerts Enabled! Your live tracking is active.', 'success');
+        } else {
+            initNotificationGestureCheck();
+        }
     });
 }
 
-// 🚀 FIXED: Hybrid Notification. Drops a visible toast AND tries a system push
 function triggerInstantNotification(messageText, type = 'success') {
-    // 1. Fire the visual In-App Toast
     const toastContainer = document.getElementById('toast-container');
     if (toastContainer) {
         const toast = document.createElement('div');
@@ -250,21 +267,28 @@ function triggerInstantNotification(messageText, type = 'success') {
             setTimeout(() => toast.remove(), 300);
         }, 4000);
     }
-
-    // 2. Fire the Background System Push (If allowed and supported)
-    if ('Notification' in window && Notification.permission === 'granted') {
-        navigator.serviceWorker.ready.then((reg) => { 
-            reg.showNotification('Foodies Point', { body: messageText, icon: 'icon.png', badge: 'icon.png', vibrate: [200, 100, 200] }); 
-        });
-    }
 }
 
-// ==========================================
-// 4. FIREBASE REALTIME INITIALIZATION
-// ==========================================
-const firebaseConfig = { databaseURL: "https://foodiespoint-6760-default-rtdb.asia-southeast1.firebasedatabase.app/" };
-firebase.initializeApp(firebaseConfig);
-const database = firebase.database();
+// 🚀 FCM DEVICE TOKEN REGISTRATION 
+function configureFcmToken(orderId) {
+    if (!messaging) return;
+    if (!('Notification' in window) || Notification.permission !== 'granted') return;
+
+    navigator.serviceWorker.ready.then((registration) => {
+        messaging.getToken({ 
+            serviceWorkerRegistration: registration,
+            vapidKey: 'YOUR_PUBLIC_VAPID_KEY_HERE' // UPDATE THIS
+        }).then((currentToken) => {
+            if (currentToken) {
+                // Attach the device token to the order in the database
+                database.ref(`orders/${orderId}`).update({ fcmToken: currentToken });
+            }
+        }).catch((err) => {
+            console.error('Error retrieving FCM token.', err);
+        });
+    });
+}
+
 
 // ==========================================
 // 5. BULLETPROOF IST TIMEZONE LOCKOUT ENGINE
@@ -284,13 +308,11 @@ function isKitchenBlackoutActive() {
 function enforceBlackoutUILayout() {
     if (isConsoleViewActive) return;
     const historyContainer = document.getElementById('history-container');
-    localStorage.removeItem('foodies_tracked_orders');
     cart = [];
     if (cartBtn) cartBtn.style.display = 'none';
     
     const menuContainer = document.getElementById('menu-container');
     menuContainer.innerHTML = `<div style="text-align: center; padding: 32px 16px; background-color: #FFFFFF; border-radius: 18px; border: 1px dashed #E5E7EB; width: 100%; box-sizing: border-box;"><div style="font-size: 32px; margin-bottom: 8px;">⏰</div><div style="font-weight: 700; font-size: 15px; color: #111827;">Kitchen Closed for Today</div><div style="color: #6B7280; font-size: 13px; margin-top: 4px; line-height: 1.5;">Tomorrow's live menu will be available after 9:30 PM IST.</div></div>`;
-    if (historyContainer) historyContainer.innerHTML = `<p style="text-align: center; color: #9CA3AF; font-size: 13px; margin-top: 12px; font-style: italic;">History cleared for the day.</p>`;
 }
 
 // ==========================================
@@ -427,6 +449,10 @@ function submitOrder() {
     const newOrderRef = database.ref('orders').push();
     newOrderRef.set({ id: newOrderRef.key, customerName: completeFullName, customerPhone: phone, items: itemSummaryString, status: "PENDING", timestamp: Date.now(), archived: false }).then(() => {
         let trackList = JSON.parse(localStorage.getItem('foodies_tracked_orders') || '[]'); trackList.push(newOrderRef.key); localStorage.setItem('foodies_tracked_orders', JSON.stringify(trackList));
+        
+        // 🚀 LINK DEVICE TOKEN TO ORDER
+        configureFcmToken(newOrderRef.key);
+
         listenToOrderHistory(); alert("Order dispatched to the kitchen!");
         cart = []; cartBtn.style.display = 'none'; closeCheckout();
         document.getElementById('customer-first-name').value = ''; document.getElementById('customer-last-name').value = ''; document.getElementById('customer-phone').value = '';
@@ -434,7 +460,7 @@ function submitOrder() {
 }
 
 // ==========================================================================
-// 🚀 8. KITCHEN CONSOLE ENGINE 
+// 🚀 8. KITCHEN CONSOLE ENGINE
 // ==========================================================================
 function authenticateConsoleAccess() {
     if (isConsoleViewActive) {
@@ -599,7 +625,6 @@ function publishSelectedLiveMenu() {
         }).catch((err) => { alert("Error updating live database nodes."); console.error(err); });
 }
 
-// 🚀 FIXED: Added incoming order notification trigger for the Kitchen!
 function initializeKitchenOrderStream() {
     const ordersContainer = document.getElementById('kitchen-orders-container');
     let notifiedKitchenOrders = JSON.parse(localStorage.getItem('foodies_kitchen_notified') || '{}');
@@ -622,7 +647,6 @@ function initializeKitchenOrderStream() {
         trackingList.sort((a, b) => b.timestamp - a.timestamp);
         
         trackingList.forEach((order) => {
-            // Check if this is a brand new PENDING order that the kitchen hasn't seen yet
             if (order.status === "PENDING" && !notifiedKitchenOrders[order.id]) {
                 triggerInstantNotification(`🔔 New Order from ${order.customerName}!`, 'info');
                 notifiedKitchenOrders[order.id] = true;
