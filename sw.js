@@ -1,8 +1,8 @@
 // ==========================================================================
-// FOODIES POINT - SERVICE WORKER (PRODUCTION ENGINE V30)
+// FOODIES POINT - SERVICE WORKER (PRODUCTION ENGINE V42)
 // ==========================================================================
 
-const CACHE_NAME = 'foodies-cache-v45';
+const CACHE_NAME = 'foodies-cache-v50';
 
 const ASSETS = [
   '',
@@ -13,13 +13,9 @@ const ASSETS = [
 ];
 
 self.addEventListener('install', (event) => {
+    self.skipWaiting();
     event.waitUntil(
-        caches.open(CACHE_NAME)
-            .then((cache) => {
-                console.log('PWA Cache Engine V30: Deploying atomic write matrices');
-                return cache.addAll(ASSETS);
-            })
-            .then(() => self.skipWaiting())
+        caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
     );
 });
 
@@ -28,10 +24,7 @@ self.addEventListener('activate', (event) => {
         caches.keys().then((keys) => {
             return Promise.all(
                 keys.map((key) => {
-                    if (key !== CACHE_NAME) {
-                        console.log('PWA Cache Engine V30: Evicting older storage nodes:', key);
-                        return caches.delete(key);
-                    }
+                    if (key !== CACHE_NAME) return caches.delete(key);
                 })
             );
         }).then(() => self.clients.claim())
@@ -39,23 +32,16 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-    if (!event.request.url.startsWith(self.location.origin)) {
-        return; 
-    }
-
+    if (!event.request.url.startsWith(self.location.origin)) return; 
     event.respondWith(
         fetch(event.request)
             .then((networkResponse) => {
                 if (networkResponse && networkResponse.status === 200) {
                     const responseClone = networkResponse.clone();
-                    caches.open(CACHE_NAME).then((cache) => {
-                        cache.put(event.request, responseClone);
-                    });
+                    caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseClone));
                 }
                 return networkResponse;
             })
-            .catch(() => {
-                return caches.match(event.request);
-            })
+            .catch(() => caches.match(event.request))
     );
 });
