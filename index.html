@@ -62,10 +62,15 @@
     
     <div id="kitchen-view-layout" class="kitchen-layout" style="display: none;">
         <div class="top-section" style="flex: 1.2; box-sizing: border-box; background-color: #FFFFFF; display: flex; flex-direction: column; margin: 0;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-shrink: 0;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-shrink: 0;">
                 <h3 class="section-title" style="margin-bottom: 0;">Stock Allocation <span class="section-title-badge" style="background-color:#4B5563;">MASTER</span></h3>
                 <button type="button" onclick="previewSelectedLiveMenu()" style="background-color: #FF4B3A; color: white; border: none; padding: 8px 16px; border-radius: 10px; font-weight: 600; font-size: 12px; cursor: pointer; box-shadow: 0 4px 12px rgba(255, 75, 58, 0.2);">Post Menu</button>
             </div>
+            
+            <div style="margin-bottom: 12px; flex-shrink: 0;">
+                <input type="text" id="console-search-bar" oninput="filterConsoleMenu()" placeholder="🔍 Search dishes or categories..." style="width: 100%; padding: 10px 14px; border: 1.5px solid #E5E7EB; border-radius: 10px; font-family: 'Poppins', sans-serif; font-size: 13px; outline: none; background-color: #F9FAFB; box-sizing: border-box;">
+            </div>
+
             <div id="kitchen-inventory-container" style="flex-grow: 1; overflow-y: auto;">
                 <p style="text-align: center; color: #9CA3AF; font-size: 13px; margin-top: 12px;">Loading catalog mapping tree...</p>
             </div>
