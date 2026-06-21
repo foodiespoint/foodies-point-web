@@ -1,5 +1,5 @@
 // ==========================================================================
-// 1. GLOBAL PRODUCTION CONFIGURATIONS & STATE REGISTRY (VERSION 39)
+// 1. GLOBAL PRODUCTION CONFIGURATIONS & STATE REGISTRY (VERSION 40)
 // ==========================================================================
 
 // FORCE PURGE: Destroys buggy background workers before initializing
@@ -14,8 +14,8 @@ let installPromptSupported = false;
 let cart = [];
 
 let isConsoleViewActive = false;
-let currentLiveMenuArray = []; // 🚀 ARRAY ENGINE: Flawless ordered lists
-let pendingLiveArray = [];     // 🚀 STAGING ARRAY: For atomic batch publishing
+let currentLiveMenuArray = []; 
+let pendingLiveArray = [];     
 
 const ROUTING_SECRET_PIN = "validatefoodies2026"; 
 
@@ -168,7 +168,7 @@ function forceDismissSplash() {
 
 window.addEventListener('load', () => {
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('sw.js?v=39').then(reg => {
+        navigator.serviceWorker.register('sw.js?v=40').then(reg => {
             if (!navigator.serviceWorker.controller) { tryDismissSplash(); return; }
             reg.onupdatefound = () => {
                 if (splashText) splashText.innerHTML = "New update found!<br><span style='color:#FF4B3A; font-size:14px; font-weight:500;'>Installing assets... Please do not close the app.</span>";
@@ -231,7 +231,7 @@ database.ref('daily_live_menu').on('value', (snapshot) => {
         return;
     }
 
-    if (isConsoleViewActive) return; // Do not render customer view while in Console Mode
+    if (isConsoleViewActive) return; 
 
     renderCustomerMenu();
 });
@@ -334,7 +334,7 @@ function submitOrder() {
 }
 
 // ==========================================================================
-// 🚀 8. KITCHEN CONSOLE - ARRAY-SORTING TOP-PIN ENGINE (VERSION 39)
+// 🚀 8. KITCHEN CONSOLE - SEARCH ENGINE & STOCK CONFIRMATION UPDATE (V40)
 // ==========================================================================
 function authenticateConsoleAccess() {
     if (isConsoleViewActive) { window.location.reload(); return; } 
@@ -369,22 +369,30 @@ function launchConsoleLayout() {
     document.getElementById('view-toggle-action').innerText = "Exit";
     document.getElementById('view-toggle-action').style.backgroundColor = "#DC2626";
     
+    // Clear the search bar naturally when opening
+    const searchBar = document.getElementById('console-search-bar');
+    if (searchBar) searchBar.value = '';
+
     initializeKitchenOrderStream();
     
     const inventoryContainer = document.getElementById('kitchen-inventory-container');
     inventoryContainer.innerHTML = ''; 
     
-    // 🚀 NEW: Pins all currently "Live" checked items perfectly to the top of the grid!
     const sortedMenu = [...MASTER_MENU].sort((a, b) => {
         const aLive = currentLiveMenuArray.some(m => m.id === a.id);
         const bLive = currentLiveMenuArray.some(m => m.id === b.id);
         if (aLive && !bLive) return -1;
         if (!aLive && bLive) return 1;
-        return 0; // Keep their normal order otherwise
+        return 0; 
     });
 
     sortedMenu.forEach((item) => {
         const gridRow = document.createElement('div');
+        
+        // 🚀 Added search indexing classes directly to the generated rows
+        gridRow.className = "inventory-row";
+        gridRow.setAttribute('data-search', `${item.title.toLowerCase()} ${item.category.toLowerCase()}`);
+        
         gridRow.style.cssText = `background-color: #F9FAFB; padding: 14px; border-radius: 14px; border: 1px solid #E5E7EB; display: flex; justify-content: space-between; align-items: center; text-align: left; margin-bottom: 2px;`;
 
         const liveRec = currentLiveMenuArray.find(m => m.id === item.id);
@@ -407,10 +415,24 @@ function launchConsoleLayout() {
     });
 }
 
+// 🚀 NEW: Fast JS Search Filter logic mapped directly to the input box event
+function filterConsoleMenu() {
+    const query = document.getElementById('console-search-bar').value.toLowerCase();
+    const rows = document.querySelectorAll('.inventory-row');
+    
+    rows.forEach(row => {
+        const searchData = row.getAttribute('data-search');
+        if (searchData.includes(query)) {
+            row.style.display = 'flex';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+
 function handleCheckboxChange(chk, itemId) {
     const index = currentLiveMenuArray.findIndex(m => m.id === itemId);
     
-    // 🚀 NEW: Instantly remove item completely and smoothly if user confirms
     if (!chk.checked && index !== -1) {
         const targetItem = MASTER_MENU.find(m => m.id === itemId);
         const confirmRemove = confirm(`⚠️ Remove from Live Menu:\n\nRemove "${targetItem.title}" immediately?`);
@@ -418,21 +440,30 @@ function handleCheckboxChange(chk, itemId) {
         if (confirmRemove) {
             currentLiveMenuArray.splice(index, 1);
             database.ref('daily_live_menu').set(currentLiveMenuArray).then(() => {
-                // Re-sort the board to slide the unchecked item back down
                 launchConsoleLayout();
             });
         } else {
-            chk.checked = true; // User canceled the warning
+            chk.checked = true; 
         }
     }
 }
 
+// 🚀 FIXED: Inject confirmation prompt before actually mutating the database value
 function toggleLocalStockState(btnElement, itemId) {
     const index = currentLiveMenuArray.findIndex(m => m.id === itemId);
     if (index !== -1) {
         const isCurrentlyOut = btnElement.innerText === "Out of Stock";
         const newOutState = !isCurrentlyOut;
         
+        // Grab item text for the confirmation window
+        const targetItem = MASTER_MENU.find(m => m.id === itemId);
+        const statusText = newOutState ? "OUT OF STOCK" : "IN STOCK";
+        
+        // Confirm execution with the user
+        const confirmChange = confirm(`⚠️ Change Stock Status:\n\nAre you sure you want to mark "${targetItem.title}" as ${statusText}?`);
+        if (!confirmChange) return; // Halt script if canceled
+        
+        // Push verified update
         database.ref(`daily_live_menu/${index}`).update({ isOutOfStock: newOutState });
         btnElement.innerText = newOutState ? "Out of Stock" : "In Stock";
         btnElement.style.backgroundColor = newOutState ? "#EF4444" : "#10B981";
@@ -445,7 +476,7 @@ function toggleLocalStockState(btnElement, itemId) {
 function previewSelectedLiveMenu() {
     const previewList = document.getElementById('menu-preview-list');
     previewList.innerHTML = '';
-    pendingLiveArray = []; // Global reset for batch
+    pendingLiveArray = []; 
 
     const allCheckboxes = document.querySelectorAll('.console-checkbox');
     
@@ -454,7 +485,6 @@ function previewSelectedLiveMenu() {
             const itemId = allCheckboxes[i].getAttribute('data-id');
             const item = MASTER_MENU.find(m => m.id === itemId);
             if (item) {
-                // Keep its stock state if it was already published
                 const liveRec = currentLiveMenuArray.find(m => m.id === itemId);
                 const outOfStock = liveRec ? liveRec.isOutOfStock : false;
 
@@ -488,7 +518,6 @@ function closeMenuConfirmModal() {
     document.getElementById('menu-confirm-modal').style.display = 'none';
 }
 
-// 🚀 ARRAY PIPELINE: Pushes the exact numbered list directly into the database block
 function publishSelectedLiveMenu() {
     if (pendingLiveArray.length === 0) return;
 
@@ -496,8 +525,6 @@ function publishSelectedLiveMenu() {
         .then(() => {
             alert(`🚀 Success!\n\n${pendingLiveArray.length} items successfully published.`);
             closeMenuConfirmModal();
-            
-            // Re-open console to visually sort the newly checked items exactly to the top
             launchConsoleLayout(); 
         })
         .catch((err) => {
@@ -506,6 +533,7 @@ function publishSelectedLiveMenu() {
         });
 }
 
+// Global Order History UI Monitor Loop
 function initializeKitchenOrderStream() {
     const ordersContainer = document.getElementById('kitchen-orders-container');
     database.ref('orders').orderByChild('timestamp').on('value', (snapshot) => {
@@ -552,7 +580,9 @@ function archiveTicket(ticketId) { database.ref(`orders/${ticketId}`).update({ a
 
 // Prevent basic modal UI lockups on returning customers
 window.addEventListener('DOMContentLoaded', () => {
+    // Basic permissions check bypass 
     setTimeout(() => { if (!installPromptSupported) initNotificationGestureCheck(); }, 2000);
+    
     listenToOrderHistory();
     setInterval(() => { if (isKitchenBlackoutActive()) enforceBlackoutUILayout(); }, 30000);
 });
