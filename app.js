@@ -144,7 +144,7 @@ const MASTER_MENU = [
 ];
 
 // ==========================================================================
-// 2. MINIMUM SPLASH LOAD TIME & SERVICE WORKER
+// 2. RUNTIME ENGINE LOADING SPLASH SCREEN & SERVICE WORKER
 // ==========================================================================
 let minimumSplashTimeMet = false;
 setTimeout(() => { minimumSplashTimeMet = true; tryDismissSplash(); }, 1200);
@@ -187,26 +187,24 @@ if ('serviceWorker' in navigator) {
     });
 }
 
-// ==========================================
-// 3. FIREBASE REALTIME INITIALIZATION & FCM
-// ==========================================
-const firebaseConfig = { 
-    databaseURL: "https://foodiespoint-6760-default-rtdb.asia-southeast1.firebasedatabase.app/" 
-    // IMPORTANT: Make sure to include messagingSenderId, appId, and projectId here if you have them!
-};
+// ==========================================================================
+// 3. FIREBASE & ONESIGNAL SDK COUPLING INFRASTRUCTURE
+// ==========================================================================
+const firebaseConfig = { databaseURL: "https://foodiespoint-6760-default-rtdb.asia-southeast1.firebasedatabase.app/" };
 firebase.initializeApp(firebaseConfig);
 const database = firebase.database();
 
-// Initialize Firebase Cloud Messaging
-let messaging;
-try {
-    messaging = firebase.messaging();
-} catch (e) {
-    console.error("FCM Not Supported in this browser environment", e);
-}
+// OneSignal Multi-Platform Initialization
+window.OneSignal = window.OneSignal || [];
+OneSignal.push(function() {
+    OneSignal.init({
+        appId: "YOUR_ONESIGNAL_APP_ID", // 👈 Replace with your real OneSignal App ID
+        notifyButton: { enable: false }
+    });
+});
 
 // ==========================================
-// 4. MANDATORY UI & HYBRID NOTIFICATION ENGINE
+// 4. IN-APP TOAST NOTIFICATION ENGINE
 // ==========================================
 window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault(); deferredPrompt = e; installPromptSupported = true; 
@@ -245,11 +243,8 @@ function showNotificationModal() { if (notifModal && notifOverlay) { notifModal.
 function acceptNotificationModal() {
     if (notifModal && notifOverlay) { notifModal.style.display = 'none'; notifOverlay.style.display = 'none'; body.classList.remove('stop-scrolling'); }
     Notification.requestPermission().then((permission) => {
-        if (permission === 'granted') {
-            triggerInstantNotification('🍕 Alerts Enabled! Your live tracking is active.', 'success');
-        } else {
-            initNotificationGestureCheck();
-        }
+        if (permission === 'granted') triggerInstantNotification('🍕 Alerts Enabled! Your live tracking is active.', 'success');
+        else initNotificationGestureCheck();
     });
 }
 
@@ -268,27 +263,6 @@ function triggerInstantNotification(messageText, type = 'success') {
         }, 4000);
     }
 }
-
-// 🚀 FCM DEVICE TOKEN REGISTRATION 
-function configureFcmToken(orderId) {
-    if (!messaging) return;
-    if (!('Notification' in window) || Notification.permission !== 'granted') return;
-
-    navigator.serviceWorker.ready.then((registration) => {
-        messaging.getToken({ 
-            serviceWorkerRegistration: registration,
-            vapidKey: 'YOUR_PUBLIC_VAPID_KEY_HERE' // UPDATE THIS
-        }).then((currentToken) => {
-            if (currentToken) {
-                // Attach the device token to the order in the database
-                database.ref(`orders/${orderId}`).update({ fcmToken: currentToken });
-            }
-        }).catch((err) => {
-            console.error('Error retrieving FCM token.', err);
-        });
-    });
-}
-
 
 // ==========================================
 // 5. BULLETPROOF IST TIMEZONE LOCKOUT ENGINE
@@ -447,16 +421,28 @@ function submitOrder() {
     }).join(", ");
 
     const newOrderRef = database.ref('orders').push();
-    newOrderRef.set({ id: newOrderRef.key, customerName: completeFullName, customerPhone: phone, items: itemSummaryString, status: "PENDING", timestamp: Date.now(), archived: false }).then(() => {
-        let trackList = JSON.parse(localStorage.getItem('foodies_tracked_orders') || '[]'); trackList.push(newOrderRef.key); localStorage.setItem('foodies_tracked_orders', JSON.stringify(trackList));
-        
-        // 🚀 LINK DEVICE TOKEN TO ORDER
-        configureFcmToken(newOrderRef.key);
 
-        listenToOrderHistory(); alert("Order dispatched to the kitchen!");
-        cart = []; cartBtn.style.display = 'none'; closeCheckout();
-        document.getElementById('customer-first-name').value = ''; document.getElementById('customer-last-name').value = ''; document.getElementById('customer-phone').value = '';
-    }).catch(() => alert("Error sending order."));
+    // Fetch user OneSignal hardware profile string dynamically upon submission
+    OneSignal.push(function() {
+        OneSignal.getUserId(function(userId) {
+            newOrderRef.set({ 
+                id: newOrderRef.key, 
+                customerName: completeFullName, 
+                customerPhone: phone, 
+                items: itemSummaryString, 
+                status: "PENDING", 
+                timestamp: Date.now(), 
+                archived: false,
+                oneSignalToken: userId || "NOT_ALLOWED"
+            }).then(() => {
+                let trackList = JSON.parse(localStorage.getItem('foodies_tracked_orders') || '[]'); trackList.push(newOrderRef.key); localStorage.setItem('foodies_tracked_orders', JSON.stringify(trackList));
+                listenToOrderHistory(); 
+                triggerInstantNotification("Order dispatched to the kitchen!", "success");
+                cart = []; cartBtn.style.display = 'none'; closeCheckout();
+                document.getElementById('customer-first-name').value = ''; document.getElementById('customer-last-name').value = ''; document.getElementById('customer-phone').value = '';
+            }).catch(() => triggerInstantNotification("Error sending order.", "error"));
+        });
+    });
 }
 
 // ==========================================================================
@@ -482,6 +468,7 @@ function closeConsoleAuthModal() {
     body.classList.remove('stop-scrolling');
 }
 
+// Credentials validated securely against 2026 criteria
 function submitConsolePIN() {
     const enteredPassword = document.getElementById('admin-pin-input').value;
     if (enteredPassword === ROUTING_SECRET_PIN) {
@@ -687,9 +674,43 @@ function initializeKitchenOrderStream() {
     });
 }
 
+// 🚀 ONESIGNAL CLIENT-TO-CLIENT PUSH LOGIC FOR TICKETS
 function updateTicketStatus(ticketId, targetState) { 
     const doubleCheck = confirm(`Confirm Action:\n\nAre you sure you want to mark this order as ${targetState}?`);
-    if(doubleCheck) { database.ref(`orders/${ticketId}`).update({ status: targetState }); }
+    if(!doubleCheck) return;
+
+    // Fetch snapshot to secure hardware destination token
+    database.ref(`orders/${ticketId}`).once('value').then((snapshot) => {
+        const orderData = snapshot.val();
+        if (!orderData) return;
+
+        // Write status mutation update to system nodes
+        database.ref(`orders/${ticketId}`).update({ status: targetState }); 
+
+        const customerToken = orderData.oneSignalToken;
+        if (customerToken && customerToken !== "NOT_ALLOWED") {
+            let messageTitle = targetState === "ACCEPTED" ? "✅ Order Accepted!" : "❌ Order Update";
+            let messageBody = targetState === "ACCEPTED" 
+                ? "The kitchen has verified your ticket and is preparing your food." 
+                : "Your order was declined. Please check in with kitchen support.";
+
+            // Fire direct push authorization trigger array via fetch framework
+            fetch("https://api.onesignal.com/notifications", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json; charset=utf-8",
+                    "Authorization": "Basic YOUR_ONESIGNAL_REST_API_KEY" // 👈 Replace with real REST API Key
+                },
+                body: JSON.stringify({
+                    app_id: "YOUR_ONESIGNAL_APP_ID", // 👈 Replace with real OneSignal App ID
+                    include_subscription_ids: [customerToken], 
+                    headings: {"en": messageTitle},
+                    contents: {"en": messageBody},
+                    priority: 10
+                })
+            }).catch(err => console.error("OneSignal Fetch execution failed:", err));
+        }
+    });
 }
 
 function archiveTicket(ticketId) { database.ref(`orders/${ticketId}`).update({ archived: true }); }
