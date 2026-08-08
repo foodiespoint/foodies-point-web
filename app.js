@@ -1,7 +1,7 @@
 // ==========================================================================
-// 1. FIREBASE & RENDER VAPID CONFIGURATION (v58 - RENDER ROOT FIX)
+// 1. FIREBASE & RENDER VAPID CONFIGURATION (v60)
 // ==========================================================================
-const CURRENT_APP_VERSION = "v58";
+const CURRENT_APP_VERSION = "v60";
 const VAPID_PUBLIC_KEY = "BCYZCGMueIWWUU7cA2m4-fmHK0gEbmwqfSMHyzXr4AGdyhDi53mct0OoEfnPttK-1D3LV8guB3-RtfFYABa82bo";
 const RENDER_BACKEND_URL = "https://foodies-backend-9vvj.onrender.com";
 
@@ -60,7 +60,7 @@ function checkDaily6PMReset() {
 }
 
 // ==========================================================================
-// 3. FAIL-PROOF PUSH SUBSCRIPTION & AUTO-REPAIR ENGINE
+// 3. MANDATORY APP ONBOARDING & FAIL-PROOF PUSH ENGINE (v60)
 // ==========================================================================
 function urlBase64ToUint8Array(base64String) {
   const padding = '='.repeat((4 - base64String.length % 4) % 4);
@@ -71,6 +71,63 @@ function urlBase64ToUint8Array(base64String) {
     outputArray[i] = rawData.charCodeAt(i);
   }
   return outputArray;
+}
+
+// Chained Onboarding Logic 
+function checkAppOnboarding() {
+  if (isKitchenMode) {
+     document.getElementById('profile-modal').style.display = 'none';
+     document.getElementById('notification-permission-modal').style.display = 'none';
+     return;
+  }
+
+  const profileStr = localStorage.getItem('fp_customer_profile');
+  if (!profileStr) {
+     document.getElementById('profile-modal').style.display = 'flex';
+     document.getElementById('notification-permission-modal').style.display = 'none';
+     return;
+  }
+
+  if ('Notification' in window && Notification.permission === 'default') {
+     document.getElementById('profile-modal').style.display = 'none';
+     document.getElementById('notification-permission-modal').style.display = 'flex';
+     return;
+  }
+
+  document.getElementById('profile-modal').style.display = 'none';
+  document.getElementById('notification-permission-modal').style.display = 'none';
+}
+
+function saveCustomerProfile() {
+  const nameInput = document.getElementById('cust-name-input');
+  const mobileInput = document.getElementById('cust-mobile-input');
+  
+  const nameVal = nameInput ? nameInput.value.trim() : '';
+  const mobileVal = mobileInput ? mobileInput.value.trim() : '';
+
+  if (nameVal.length < 2) {
+    alert("Please enter a valid Name (at least 2 characters).");
+    return;
+  }
+  if (!/^[0-9]{10}$/.test(mobileVal)) {
+    alert("Please enter a valid 10-digit Mobile Number.");
+    return;
+  }
+
+  const customerProfile = { name: nameVal, mobile: mobileVal };
+  localStorage.setItem('fp_customer_profile', JSON.stringify(customerProfile));
+  
+  if (db) {
+    db.ref(`customers/${customerProfile.mobile}`).update({
+      name: customerProfile.name,
+      mobile: customerProfile.mobile,
+      appVersion: CURRENT_APP_VERSION,
+      lastSeen: firebase.database.ServerValue.TIMESTAMP
+    }).catch(e => console.error(e));
+  }
+  
+  // Proceed instantly to the next mandatory step
+  checkAppOnboarding();
 }
 
 async function autoSyncPushToken() {
@@ -136,22 +193,15 @@ async function openAlertsModal() {
   }
   if (Notification.permission === 'granted') {
     await requestPushAccess(true);
+    alert("✅ Notifications are already enabled!");
   } else if (Notification.permission === 'denied') {
     alert("🚫 Notifications are blocked in your browser/phone settings. Please tap the Lock icon 🔒 in your address bar -> Permissions -> Allow.");
   } else {
-    const modal = document.getElementById('notification-permission-modal');
-    if (modal) modal.style.display = 'flex';
+    document.getElementById('notification-permission-modal').style.display = 'flex';
   }
 }
 
-function closeNotificationModal() {
-  const modal = document.getElementById('notification-permission-modal');
-  if (modal) modal.style.display = 'none';
-}
-
 async function requestPushAccess(isSilentSync = false) {
-  if (!isSilentSync) closeNotificationModal();
-
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
     if (!isSilentSync) alert("Push notifications are not supported on this browser.");
     return;
@@ -159,8 +209,13 @@ async function requestPushAccess(isSilentSync = false) {
 
   try {
     const permission = await Notification.requestPermission();
+    
+    if (!isSilentSync) {
+       checkAppOnboarding();
+    }
+
     if (permission !== 'granted') {
-      if (!isSilentSync) alert("🚫 Notifications were denied.");
+      if (!isSilentSync) alert("🚫 Notifications were blocked. You will not receive live order updates.");
       return;
     }
 
@@ -187,13 +242,12 @@ async function requestPushAccess(isSilentSync = false) {
     }
 
     if (isSilentSync) {
-      alert("✅ Push connection verified and synced!");
+      console.log("Push connection verified.");
     } else {
       alert("✅ Notifications enabled successfully!");
     }
   } catch (error) {
-    console.error(`[Push ${CURRENT_APP_VERSION}] Subscription error:`, error);
-    if (!isSilentSync) alert("Could not enable notifications. Check console for details.");
+    console.error(`[Push] Error:`, error);
   }
 }
 
@@ -333,12 +387,10 @@ function enforceInstallGate() {
     if (installGate) installGate.style.setProperty('display', 'none', 'important');
     if (appContent) appContent.style.setProperty('display', 'block', 'important');
     
+    // Launch the mandatory onboarding sequence as soon as the app opens
     setTimeout(() => {
-      if ('Notification' in window && Notification.permission === 'default') {
-        const modal = document.getElementById('notification-permission-modal');
-        if (modal) modal.style.display = 'flex';
-      }
-    }, 3000);
+      checkAppOnboarding();
+    }, 500);
   }
 }
 
@@ -702,18 +754,8 @@ function updateQuantity(dishId, change) {
 }
 
 // ==========================================================================
-// 11. ORDER SUBMISSION & TARGETED SUBSCRIPTION ENGINE
+// 11. ORDER SUBMISSION ENGINE
 // ==========================================================================
-function syncCustomerVersionToFirebase(profile) {
-  if (!db || !profile || !profile.mobile) return;
-  db.ref(`customers/${profile.mobile}`).update({
-    name: profile.name,
-    mobile: profile.mobile,
-    appVersion: CURRENT_APP_VERSION,
-    lastSeen: firebase.database.ServerValue.TIMESTAMP
-  }).catch((err) => console.error("Error syncing customer version:", err));
-}
-
 async function placeOrder() {
   if (isDuringBreakWindow()) {
     alert("Orders are closed for today. Tomorrow's menu will be available starting at 9:00 PM tonight!");
@@ -743,56 +785,13 @@ async function placeOrder() {
 
   const profileStr = localStorage.getItem('fp_customer_profile');
   if (!profileStr) {
-    const profileModal = document.getElementById('profile-modal');
-    if (profileModal) profileModal.style.display = 'flex';
+    checkAppOnboarding(); 
     return;
   }
 
   const customerProfile = JSON.parse(profileStr);
-  syncCustomerVersionToFirebase(customerProfile);
-  
   const localPushSub = await getLocalPushSubscription();
-  executeFirebaseOrderSubmission(orderItems, totalAmount, customerProfile, localPushSub);
-}
-
-function closeProfileModal() {
-  const profileModal = document.getElementById('profile-modal');
-  if (profileModal) profileModal.style.display = 'none';
-}
-
-async function saveProfileAndPlaceOrder() {
-  const nameInput = document.getElementById('cust-name-input');
-  const mobileInput = document.getElementById('cust-mobile-input');
   
-  const nameVal = nameInput ? nameInput.value.trim() : '';
-  const mobileVal = mobileInput ? mobileInput.value.trim() : '';
-
-  if (nameVal.length < 2) {
-    alert("Please enter a valid Name (at least 2 characters).");
-    return;
-  }
-  if (!/^[0-9]{10}$/.test(mobileVal)) {
-    alert("Please enter a valid 10-digit Mobile Number.");
-    return;
-  }
-
-  const customerProfile = { name: nameVal, mobile: mobileVal };
-
-  localStorage.setItem('fp_customer_profile', JSON.stringify(customerProfile));
-  syncCustomerVersionToFirebase(customerProfile);
-  closeProfileModal();
-
-  const orderItems = [];
-  let totalAmount = 0;
-  MENU_ITEMS.forEach((dish) => {
-    const qty = cart[dish.id] || 0;
-    if (qty > 0) {
-      orderItems.push({ id: dish.id, name: dish.name, price: dish.price, quantity: qty });
-      totalAmount += dish.price * qty;
-    }
-  });
-
-  const localPushSub = await getLocalPushSubscription();
   executeFirebaseOrderSubmission(orderItems, totalAmount, customerProfile, localPushSub);
 }
 
@@ -970,6 +969,9 @@ function enterKitchenMode() {
   document.getElementById('header-exit-btn').style.display = 'inline-block';
 
   document.getElementById('kitchen-view').style.display = 'flex';
+  
+  // Kitchen doesn't need to do onboarding
+  checkAppOnboarding();
 
   if (db) {
     db.ref('dailyMenu').on('value', (snapshot) => {
@@ -1011,6 +1013,9 @@ function exitKitchenMode(triggerHistoryBack = true) {
   document.getElementById('header-drawer-btn').style.display = 'none';
   document.getElementById('kitchen-version-badge').style.display = 'none';
   document.getElementById('header-exit-btn').style.display = 'none';
+  
+  // Ensure we check onboarding after leaving kitchen mode
+  checkAppOnboarding();
 
   if (db) {
     db.ref('orders').off();
