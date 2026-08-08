@@ -1,742 +1,1317 @@
 // ==========================================================================
-// 1. GLOBAL PRODUCTION CONFIGURATIONS & STATE REGISTRY (VERSION 49)
+// 1. FIREBASE & RENDER VAPID CONFIGURATION (v55)
 // ==========================================================================
-if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.getRegistrations().then(function(registrations) {
-        for(let registration of registrations) { registration.unregister(); }
-    });
+const CURRENT_APP_VERSION = "v55";
+const VAPID_PUBLIC_KEY = "BCYZCGMueIWWUU7cA2m4-fmHK0gEbmwqfSMHyzXr4AGdyhDi53mct0OoEfnPttK-1D3LV8guB3-RtfFYABa82bo";
+const RENDER_BACKEND_URL = "https://foodies-backend-9vvj.onrender.com";
+
+let db = null;
+
+try {
+  const firebaseConfig = {
+    apiKey: "AIzaSyDu-pEongNewYbzc9-FG477NRVW2izilzM",
+    authDomain: "foodiespoint-6760.firebaseapp.com",
+    databaseURL: "https://foodiespoint-6760-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "foodiespoint-6760",
+    storageBucket: "foodiespoint-6760.firebasestorage.app",
+    messagingSenderId: "160661145433",
+    appId: "1:160661145433:web:616afe0d7ca7cdf0faae48"
+  };
+
+  if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+  }
+  db = firebase.database();
+  console.log(`[Firebase ${CURRENT_APP_VERSION}] Initialized successfully.`);
+} catch (error) {
+  console.error(`[Firebase ${CURRENT_APP_VERSION}] Initialization error:`, error);
 }
 
-let deferredPrompt = null;
-let installPromptSupported = false; 
-let cart = [];
+// ==========================================================================
+// 2. TIME-BOUND OPERATING WINDOW & 6:00 PM AUTOMATIC RESET ENGINE
+// ==========================================================================
+function isDuringBreakWindow() {
+  const now = new Date();
+  const hour = now.getHours();
+  return (hour >= 18 && hour < 21);
+}
 
-let isConsoleViewActive = false;
-let currentLiveMenuArray = []; 
-let pendingLiveArray = [];     
+function checkDaily6PMReset() {
+  const now = new Date();
+  const hour = now.getHours();
+  const todayStr = now.toDateString();
+  const lastResetDate = localStorage.getItem('fp_last_reset_date');
 
-const ROUTING_SECRET_PIN = "validatefoodies2026"; 
+  if (hour >= 18 && hour < 21 && lastResetDate !== todayStr) {
+    localStorage.setItem('fp_last_reset_date', todayStr);
+    kitchenCheckedState = {};
 
-const pwaModal = document.getElementById('pwa-modal');
-const pwaOverlay = document.getElementById('pwa-overlay');
-const notifModal = document.getElementById('notification-modal');
-const notifOverlay = document.getElementById('notification-overlay');
-const body = document.body;
-const updateSplash = document.getElementById('update-splash');
-const splashText = document.getElementById('splash-text');
+    if (db) {
+      db.ref('dailyMenu').remove()
+        .then(() => {
+          console.log(`[${CURRENT_APP_VERSION}] 6:00 PM reached: Kitchen list checks reset & live menu cleared.`);
+          renderKitchenMenu();
+        })
+        .catch((err) => console.error("Error clearing menu at 6 PM:", err));
+    } else {
+      renderKitchenMenu();
+    }
+  }
+}
 
-// MASTER CATALOG DATA CONTAINER (102 Items)
-const MASTER_MENU = [
-    { id: "roll_1", title: "Dahi Bread Roll", details: "15/- per pc.", category: "ROLLS" },
-    { id: "roll_2", title: "Bread Roll", details: "80/- per plate (8 pc.)", category: "ROLLS" },
-    { id: "roll_3", title: "Spring Roll", details: "25/- per pc.", category: "ROLLS" },
-    { id: "roll_4", title: "Veg Kebab Roll", details: "20/- per pc.", category: "ROLLS" },
-    { id: "roll_5", title: "Paneer Roll", details: "45/- per pc.", category: "ROLLS" },
-    { id: "roll_6", title: "Egg Mayonaise & Cheese Mix Roll", details: "50/- per pc.", category: "ROLLS" },
-    { id: "roll_7", title: "Egg Mayonaise Roll", details: "40/- per pc.", category: "ROLLS" },
-    { id: "roll_8", title: "Egg Roll", details: "35/- per pc.", category: "ROLLS" },
-    { id: "roll_9", title: "Chicken Roll", details: "55/- pr pc.", category: "ROLLS" },
-    { id: "roll_10", title: "Chicken Mayonaise Roll", details: "60/- per pc.", category: "ROLLS" },
-    { id: "roll_11", title: "Chicken Egg Roll", details: "70/- per pc.", category: "ROLLS" },
-    { id: "roll_12", title: "Chicken Egg Mayonaise Roll", details: "75/-", category: "ROLLS" },
+// ==========================================================================
+// 3. FAIL-PROOF PUSH SUBSCRIPTION & AUTO-REPAIR ENGINE (v55)
+// ==========================================================================
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
 
-    { id: "pak_1", title: "Pyaaz ki Pakodi", details: "60 (250gm)", category: "PAKODI" },
-    { id: "pak_2", title: "Paalak ki pakodi", details: "60 (250gm)", category: "PAKODI" },
-    { id: "pak_3", title: "Gobhi ki pajkodi", details: "60 (250gm)", category: "PAKODI" },
-    { id: "pak_4", title: "Mirch ki pakodi", details: "15 per pc.", category: "PAKODI" },
-    { id: "pak_5", title: "Bread Pakoda", details: "20/- per pc.", category: "PAKODI" },
-    { id: "pak_6", title: "Egg pakodi", details: "10/- per pc", category: "PAKODI" },
-    { id: "pak_7", title: "Moong daal ke mongode", details: "75 (250gm)", category: "PAKODI" },
+// AUTO-REPAIR: Silently restores deleted tokens when app is opened
+async function autoSyncPushToken() {
+  if ('serviceWorker' in navigator && 'PushManager' in window && Notification.permission === 'granted') {
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      let sub = await reg.pushManager.getSubscription();
+      if (!sub) {
+        sub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+        });
+      }
+      if (sub && db) {
+        const subJson = sub.toJSON();
+        localStorage.setItem('fp_push_sub_cached', JSON.stringify(subJson));
+        
+        // Save to global list (for Live Menu Broadcasts)
+        const dbKey = btoa(subJson.endpoint).replace(/[.#$/\[\]]/g, "_");
+        db.ref(`pushSubscriptions/${dbKey}`).set(subJson);
+        
+        // Link to Customer Profile (for Targeted Order Alerts)
+        const profileStr = localStorage.getItem('fp_customer_profile');
+        if (profileStr) {
+           const profile = JSON.parse(profileStr);
+           db.ref(`customers/${profile.mobile}/pushSubscription`).set(subJson);
+        }
+      }
+    } catch(e) {
+      console.warn("Silent token auto-sync skipped:", e);
+    }
+  }
+}
 
-    { id: "sand_1", title: "Veg Grilled Mayonaise Sandwich", details: "55/- (2 pc)", category: "SANDWICH" },
-    { id: "sand_2", title: "Veg Cheese Sandwich", details: "60/- (2 pc)", category: "SANDWICH" },
-    { id: "sand_3", title: "Veg Sandwich", details: "18/- per pc", category: "SANDWICH" },
+async function getLocalPushSubscription() {
+  if ('serviceWorker' in navigator && 'PushManager' in window) {
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      let subscription = await reg.pushManager.getSubscription();
 
-    { id: "snack_1", title: "Chocolate Croissant", details: "48 per pc", category: "SNACKS" },
-    { id: "snack_2", title: "Zingy Parcel (Paneer)", details: "60 per pc", category: "SNACKS" },
-    { id: "snack_3", title: "Pizza Puff", details: "18 per pc", category: "SNACKS" },
-    { id: "snack_4", title: "Mini Pizza", details: "45 per pc", category: "SNACKS" },
-    { id: "snack_5", title: "Veg Burger", details: "50 per pc", category: "SNACKS" },
-    { id: "snack_6", title: "Aloo Patty", details: "17 per pc", category: "SNACKS" },
-    { id: "snack_7", title: "Paneer Patty", details: "25 per pc", category: "SNACKS" },
-    { id: "snack_8", title: "Veg Appe", details: "65 per plate", category: "SNACKS" },
-    { id: "snack_9", title: "Phare", details: "70 250gm", category: "SNACKS" },
-    { id: "snack_10", title: "Veg Masala Idli", details: "45 per plate", category: "SNACKS" },
-    { id: "snack_11", title: "Fried Idli", details: "50 per plate", category: "SNACKS" },
-    { id: "snack_12", title: "Poha", details: "80 per plate", category: "SNACKS" },
-    { id: "snack_13", title: "Stuffed Mushroom", details: "65 per plate (4 pc)", category: "SNACKS" },
-    { id: "snack_14", title: "Aloo Bonda", details: "12 per pc", category: "SNACKS" },
-    { id: "snack_15", title: "Vada Pav", details: "25 per pc", category: "SNACKS" },
-    { id: "snack_16", title: "Cheese Balls", details: "80 per plate (8 pc)", category: "SNACKS" },
-    { id: "snack_17", title: "Masala Vada", details: "80 per plate (8 pc)", category: "SNACKS" },
-    { id: "snack_18", title: "Falafel Mushakkal Veg. Roll", details: "40", category: "SNACKS" },
-    { id: "snack_19", title: "Pani Poori", details: "15 (5 pc)", category: "SNACKS" },
-    { id: "snack_20", title: "Tikki Chaat", details: "55 per plate", category: "SNACKS" },
-    { id: "snack_21", title: "Dahi vada", details: "60 per plate (4pc)", category: "SNACKS" },
-    { id: "snack_22", title: "Raj Kachori", details: "85 per plate", category: "SNACKS" },
-    { id: "snack_23", title: "Samosa", details: "12 per pc", category: "SNACKS" },
-    { id: "snack_24", title: "Paneer Tikka", details: "240 per plate", category: "SNACKS" },
-    { id: "snack_25", title: "Paneer Malai Tikka", details: "260 per plate", category: "SNACKS" },
+      if (!subscription && Notification.permission === 'granted') {
+        subscription = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+        });
+      }
 
-    { id: "chin_1", title: "Honey Chilli Potato", details: "90 per plate", category: "CHINESE" },
-    { id: "chin_2", title: "Chowmein", details: "80 per plate", category: "CHINESE" },
-    { id: "chin_3", title: "Macaroni", details: "80 per plate", category: "CHINESE" },
-    { id: "chin_4", title: "Fried Rice", details: "80 per plate", category: "CHINESE" },
-    { id: "chin_5", title: "Veg Manchurian", details: "80 pr plate", category: "CHINESE" },
-    { id: "chin_6", title: "Paneer Manchurian", details: "160 per plate", category: "CHINESE" },
-    { id: "chin_7", title: "Chilli Paneer", details: "140 per plate", category: "CHINESE" },
-    { id: "chin_8", title: "Veg momos", details: "55 per plate (10 pc)", category: "CHINESE" },
-    { id: "chin_9", title: "Paneer momos", details: "75 per plate (10 pc)", category: "CHINESE" },
-    { id: "chin_10", title: "Chicken momos", details: "100 per plate (10 pc)", category: "CHINESE" },
-    { id: "chin_11", title: "White Pasta", details: "100 per plate", category: "CHINESE" },
+      if (subscription) {
+        const subJson = subscription.toJSON();
+        localStorage.setItem('fp_push_sub_cached', JSON.stringify(subJson));
+        return subJson;
+      }
+    } catch (e) {
+      console.warn("Could not fetch active push sub from service worker:", e);
+    }
+  }
+  const cached = localStorage.getItem('fp_push_sub_cached');
+  return cached ? JSON.parse(cached) : null;
+}
 
-    { id: "keb_1", title: "Veg. Seekh Kebab", details: "15 per pc", category: "KEBEBS" },
-    { id: "keb_2", title: "Veg Kebab", details: "17 per pc", category: "KEBEBS" },
-    { id: "keb_3", title: "Dahi ke kebab", details: "25 per pc", category: "KEBEBS" },
-    { id: "keb_4", title: "Hariyali kebab", details: "25 per pc", category: "KEBEBS" },
+async function openAlertsModal() {
+  if (!('Notification' in window)) {
+    alert("Push notifications are not supported on this browser/device.");
+    return;
+  }
+  if (Notification.permission === 'granted') {
+    await requestPushAccess(true);
+  } else if (Notification.permission === 'denied') {
+    alert("🚫 Notifications are blocked in your browser/phone settings. Please tap the Lock icon 🔒 in your address bar -> Permissions -> Allow.");
+  } else {
+    const modal = document.getElementById('notification-permission-modal');
+    if (modal) modal.style.display = 'flex';
+  }
+}
 
-    { id: "cake_1", title: "Tutti Frutti Cup Cake", details: "18 per pc", category: "CAKE (Egg-Less)" },
-    { id: "cake_2", title: "Chocolate Cup Cake", details: "20 per pc", category: "CAKE (Egg-Less)" },
-    { id: "cake_3", title: "Chocolava Cup Cake", details: "38 per pc", category: "CAKE (Egg-Less)" },
+function closeNotificationModal() {
+  const modal = document.getElementById('notification-permission-modal');
+  if (modal) modal.style.display = 'none';
+}
 
-    { id: "shake_1", title: "Mango Shake", details: "30", category: "SHAKES" },
-    { id: "shake_2", title: "Lassi", details: "45", category: "SHAKES" },
-    { id: "shake_3", title: "Panna", details: "12", category: "SHAKES" },
+async function requestPushAccess(isSilentSync = false) {
+  if (!isSilentSync) closeNotificationModal();
 
-    { id: "trad_1", title: "Chokha Baati", details: "50 per plate (2 pc)", category: "COMBOS" },
-    { id: "trad_2", title: "Chole Aloo Kulche", details: "70 per plate", category: "COMBOS" },
-    { id: "trad_3", title: "Chole Bhature", details: "60 per plate", category: "COMBOS" },
-    { id: "trad_4", title: "Khasta Aloo Matar", details: "55 per plate (2 pc)", category: "COMBOS" },
-    { id: "trad_5", title: "Sambhar Vada", details: "55 per plate (4 pc)", category: "COMBOS" },
-    { id: "trad_6", title: "Idli Sambhar", details: "55 per plate (4 pc)", category: "COMBOS" },
-    { id: "trad_7", title: "Pav Bhaaji", details: "60 per plate", category: "COMBOS" },
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+    if (!isSilentSync) alert("Push notifications are not supported on this browser.");
+    return;
+  }
 
-    { id: "sweet_1", title: "Gulab Jamun", details: "20", category: "SWEETS" },
-    { id: "sweet_2", title: "Kheer", details: "80", category: "SWEETS" },
-    { id: "sweet_3", title: "Sweet Rice", details: "90", category: "SWEETS" },
-    { id: "sweet_4", title: "Shrikhand", details: "85 (250 gm)", category: "SWEETS" },
+  try {
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') {
+      if (!isSilentSync) alert("🚫 Notifications were denied.");
+      return;
+    }
 
-    { id: "sabzi_1", title: "Shaahi Paneer", details: "300", category: "SABZI" },
-    { id: "sabzi_2", title: "Paneer Masala", details: "220", category: "SABZI" },
-    { id: "sabzi_3", title: "Paneer Angara", details: "280", category: "SABZI" },
-    { id: "sabzi_4", title: "Paneer Korma", details: "Price on request", category: "SABZI" },
-    { id: "sabzi_5", title: "Palak Paneer", details: "200", category: "SABZI" },
-    { id: "sabzi_6", title: "Matar Paneer", details: "200", category: "SABZI" },
+    const reg = await navigator.serviceWorker.ready;
+    let subscription = await reg.pushManager.getSubscription();
 
-    { id: "nv_1", title: "Chichen Afghani", details: "500", category: "NON-VEG" },
-    { id: "nv_2", title: "Roasted Chicken", details: "340", category: "NON-VEG" },
-    { id: "nv_3", title: "Chilli Chicken", details: "440", category: "NON-VEG" },
-    { id: "nv_4", title: "Egg Curry", details: "75", category: "NON-VEG" },
-    { id: "nv_5", title: "Fish Fry (boneless)", details: "180 (250 gm)", category: "NON-VEG" },
-    { id: "nv_6", title: "Fish Dry (boneless)", details: "165 (250 gm)", category: "NON-VEG" },
-    { id: "nv_7", title: "Chicken Shawarma", details: "90", category: "NON-VEG" },
-    { id: "nv_8", title: "Mutton Curry", details: "400", category: "NON-VEG" },
-    { id: "nv_9", title: "Mutton Korma", details: "430", category: "NON-VEG" },
-    { id: "nv_10", title: "Keema Kaleji", details: "400", category: "NON-VEG" },
-    { id: "nv_11", title: "Chicken Curry", details: "360", category: "NON-VEG" },
-    { id: "nv_12", title: "Chicken Masala", details: "400", category: "NON-VEG" },
-    { id: "nv_13", title: "Butter Chicken", details: "500", category: "NON-VEG" },
+    if (!subscription) {
+      subscription = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+      });
+    }
 
-    { id: "rice_1", title: "Plain Rice", details: "90", category: "RICE" },
-    { id: "rice_2", title: "Jeera Rice", details: "120", category: "RICE" },
-    { id: "rice_3", title: "Matar Pulao", details: "140", category: "RICE" },
-    { id: "rice_4", title: "Veg. Biryani", details: "180", category: "RICE" }
+    const subJson = subscription.toJSON();
+    localStorage.setItem('fp_push_sub_cached', JSON.stringify(subJson));
+
+    const dbKey = btoa(subJson.endpoint).replace(/[.#$/\[\]]/g, "_");
+    await db.ref(`pushSubscriptions/${dbKey}`).set(subJson);
+    
+    const profileStr = localStorage.getItem('fp_customer_profile');
+    if (profileStr) {
+       const profile = JSON.parse(profileStr);
+       await db.ref(`customers/${profile.mobile}/pushSubscription`).set(subJson);
+    }
+
+    if (isSilentSync) {
+      alert("✅ Push connection verified and synced!");
+    } else {
+      alert("✅ Notifications enabled successfully!");
+    }
+  } catch (error) {
+    console.error(`[Push ${CURRENT_APP_VERSION}] Subscription error:`, error);
+    if (!isSilentSync) alert("Could not enable notifications. Check console for details.");
+  }
+}
+
+async function sendRenderPushBroadcast(title, message) {
+  try {
+    const snap = await db.ref('pushSubscriptions').once('value');
+    const subsObj = snap.val();
+    if (!subsObj) return;
+
+    const subscriptions = Object.values(subsObj);
+    const response = await fetch(`${RENDER_BACKEND_URL}/api/broadcast`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title, message, subscriptions })
+    });
+
+    const data = await response.json();
+    if (data.expiredEndpoints && data.expiredEndpoints.length > 0) {
+      data.expiredEndpoints.forEach((expiredUrl) => {
+        const dbKey = btoa(expiredUrl).replace(/[.#$/\[\]]/g, "_");
+        db.ref(`pushSubscriptions/${dbKey}`).remove();
+      });
+    }
+  } catch (error) {
+    console.error(`[Push ${CURRENT_APP_VERSION}] Error contacting Render push API:`, error);
+  }
+}
+
+async function sendTargetedRenderPush(subscription, title, message) {
+  if (!subscription || !subscription.endpoint) return;
+  try {
+    await fetch(`${RENDER_BACKEND_URL}/api/broadcast`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title, message, subscriptions: [subscription] })
+    });
+  } catch (error) {
+    console.error(`[Push ${CURRENT_APP_VERSION}] Error sending targeted push:`, error);
+  }
+}
+
+// THE MAGNET FIX: Looks ONLY at the order ticket or the customer's personal profile!
+async function resolveTargetSubscription(order) {
+  if (order.pushSubscription && order.pushSubscription.endpoint) {
+    return order.pushSubscription;
+  }
+  if (order.customerMobile) {
+    try {
+      const snap = await db.ref(`customers/${order.customerMobile}/pushSubscription`).once('value');
+      const sub = snap.val();
+      if (sub && sub.endpoint) return sub;
+    } catch(e) {
+      console.error("Subscription fallback lookup error:", e);
+    }
+  }
+  return null; // NO GUESSING! If we can't find their token, it aborts silently.
+}
+
+// ==========================================================================
+// 4. SERVICE WORKER REGISTRATION
+// ==========================================================================
+let swRegistration = null;
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/foodies-point-beta/sw.js', {
+      scope: '/foodies-point-beta/'
+    })
+    .then((reg) => {
+      swRegistration = reg;
+      reg.update();
+
+      if (reg.waiting) {
+        reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+      }
+
+      reg.addEventListener('updatefound', () => {
+        const newWorker = reg.installing;
+        if (newWorker) {
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              newWorker.postMessage({ type: 'SKIP_WAITING' });
+            }
+          });
+        }
+      });
+    })
+    .catch((err) => {
+      console.error(`[SW ${CURRENT_APP_VERSION}] Registration failed:`, err);
+    });
+  });
+}
+
+// ==========================================================================
+// 5. STANDALONE DETECTION & INSTALLATION ENGINE
+// ==========================================================================
+let deferredInstallPrompt = null;
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+});
+
+function triggerAppInstall() {
+  if (deferredInstallPrompt) {
+    deferredInstallPrompt.prompt();
+    deferredInstallPrompt.userChoice.then((choiceResult) => {
+      deferredInstallPrompt = null;
+    });
+  } else {
+    const guide = document.getElementById('install-manual-guide');
+    if (guide) guide.style.display = 'block';
+  }
+}
+
+function isStandalonePWA() {
+  return (
+    window.matchMedia('(display-mode: standalone)').matches ||
+    window.matchMedia('(display-mode: fullscreen)').matches ||
+    window.matchMedia('(display-mode: minimal-ui)').matches ||
+    window.navigator.standalone === true ||
+    document.referrer.includes('android-app://')
+  );
+}
+
+function enforceInstallGate() {
+  const installGate = document.getElementById('install-gate-overlay');
+  const appContent = document.getElementById('main-app-content');
+
+  if (isStandalonePWA()) {
+    if (installGate) installGate.style.setProperty('display', 'none', 'important');
+    if (appContent) appContent.style.setProperty('display', 'block', 'important');
+    
+    setTimeout(() => {
+      if ('Notification' in window && Notification.permission === 'default') {
+        const modal = document.getElementById('notification-permission-modal');
+        if (modal) modal.style.display = 'flex';
+      }
+    }, 3000);
+  }
+}
+
+// ==========================================================================
+// 6. COMPLETE FOODIES POINT MENU (102 ITEMS - MASTER DATA)
+// ==========================================================================
+const MENU_ITEMS = [
+  { id: 'dish-001', category: 'Rolls', name: 'Dahi Bread Roll (1 pc)', price: 15 },
+  { id: 'dish-002', category: 'Rolls', name: 'Bread Roll (8 pc plate)', price: 80 },
+  { id: 'dish-003', category: 'Rolls', name: 'Spring Roll', price: 25 },
+  { id: 'dish-004', category: 'Rolls', name: 'Veg Kebab Roll', price: 20 },
+  { id: 'dish-005', category: 'Rolls', name: 'Paneer Roll', price: 45 },
+  { id: 'dish-006', category: 'Rolls', name: 'Egg Mayonnaise & Cheese Mix Roll', price: 50 },
+  { id: 'dish-007', category: 'Rolls', name: 'Egg Mayonnaise Roll', price: 40 },
+  { id: 'dish-008', category: 'Rolls', name: 'Egg Roll', price: 35 },
+  { id: 'dish-009', category: 'Rolls', name: 'Chicken Roll', price: 55 },
+  { id: 'dish-010', category: 'Rolls', name: 'Chicken Mayonnaise Roll', price: 60 },
+  { id: 'dish-011', category: 'Rolls', name: 'Chicken Egg Roll', price: 70 },
+  { id: 'dish-012', category: 'Rolls', name: 'Chicken Egg Mayonnaise Roll', price: 75 },
+  { id: 'dish-013', category: 'Pakodi', name: 'Pyaaz ki Pakodi (250gm)', price: 60 },
+  { id: 'dish-014', category: 'Pakodi', name: 'Paalak ki Pakodi (250gm)', price: 60 },
+  { id: 'dish-015', category: 'Pakodi', name: 'Gobhi ki Pakodi (250gm)', price: 60 },
+  { id: 'dish-016', category: 'Pakodi', name: 'Mirch ki Pakodi', price: 15 },
+  { id: 'dish-017', category: 'Pakodi', name: 'Bread Pakoda', price: 20 },
+  { id: 'dish-018', category: 'Pakodi', name: 'Egg Pakodi', price: 10 },
+  { id: 'dish-019', category: 'Pakodi', name: 'Moong Daal ke Mongode (250gm)', price: 75 },
+  { id: 'dish-020', category: 'Sandwich', name: 'Veg Grilled Mayonnaise Sandwich (2 pc)', price: 55 },
+  { id: 'dish-021', category: 'Sandwich', name: 'Veg Cheese Sandwich (2 pc)', price: 60 },
+  { id: 'dish-022', category: 'Sandwich', name: 'Veg Sandwich', price: 18 },
+  { id: 'dish-023', category: 'Snacks', name: 'Chocolate Croissant', price: 48 },
+  { id: 'dish-024', category: 'Snacks', name: 'Zingy Parcel (Paneer)', price: 60 },
+  { id: 'dish-025', category: 'Snacks', name: 'Pizza Puff', price: 18 },
+  { id: 'dish-026', category: 'Snacks', name: 'Mini Pizza', price: 45 },
+  { id: 'dish-027', category: 'Snacks', name: 'Veg Burger', price: 50 },
+  { id: 'dish-028', category: 'Snacks', name: 'Aloo Patty', price: 17 },
+  { id: 'dish-029', category: 'Snacks', name: 'Paneer Patty', price: 25 },
+  { id: 'dish-030', category: 'Snacks', name: 'Veg Appe (per plate)', price: 65 },
+  { id: 'dish-031', category: 'Snacks', name: 'Phare (250gm)', price: 70 },
+  { id: 'dish-032', category: 'Snacks', name: 'Veg Masala Idli (per plate)', price: 45 },
+  { id: 'dish-033', category: 'Snacks', name: 'Fried Idli (per plate)', price: 50 },
+  { id: 'dish-034', category: 'Snacks', name: 'Poha (per plate)', price: 80 },
+  { id: 'dish-035', category: 'Snacks', name: 'Crispy Stuffed Mushroom (4 pc)', price: 65 },
+  { id: 'dish-036', category: 'Snacks', name: 'Aloo Bonda', price: 12 },
+  { id: 'dish-037', category: 'Snacks', name: 'Vada Pav', price: 25 },
+  { id: 'dish-038', category: 'Snacks', name: 'Cheese Balls (8 pc plate)', price: 80 },
+  { id: 'dish-039', category: 'Snacks', name: 'Masala Vada (8 pc plate)', price: 80 },
+  { id: 'dish-040', category: 'Snacks', name: 'Falafel Mushakkal Veg. Roll', price: 40 },
+  { id: 'dish-041', category: 'Snacks', name: 'Pani Poori (5 pc)', price: 15 },
+  { id: 'dish-042', category: 'Snacks', name: 'Tikki Chaat (per plate)', price: 55 },
+  { id: 'dish-043', category: 'Snacks', name: 'Dahi Vada (4 pc plate)', price: 60 },
+  { id: 'dish-044', category: 'Snacks', name: 'Raj Kachori (per plate)', price: 85 },
+  { id: 'dish-045', category: 'Snacks', name: 'Samosa', price: 12 },
+  { id: 'dish-046', category: 'Snacks', name: 'Paneer Tikka (per plate)', price: 240 },
+  { id: 'dish-047', category: 'Snacks', name: 'Paneer Malai Tikka (per plate)', price: 260 },
+  { id: 'dish-048', category: 'Chinese', name: 'Honey Chilli Potato', price: 90 },
+  { id: 'dish-049', category: 'Chinese', name: 'Chowmein', price: 80 },
+  { id: 'dish-050', category: 'Chinese', name: 'Macaroni', price: 80 },
+  { id: 'dish-051', category: 'Chinese', name: 'Fried Rice', price: 80 },
+  { id: 'dish-052', category: 'Chinese', name: 'Veg Manchurian', price: 80 },
+  { id: 'dish-053', category: 'Chinese', name: 'Paneer Manchurian', price: 160 },
+  { id: 'dish-054', category: 'Chinese', name: 'Chilli Paneer', price: 140 },
+  { id: 'dish-055', category: 'Chinese', name: 'Veg Momos (10 pc)', price: 55 },
+  { id: 'dish-056', category: 'Chinese', name: 'Paneer Momos (10 pc)', price: 75 },
+  { id: 'dish-057', category: 'Chinese', name: 'Chicken Momos (10 pc)', price: 100 },
+  { id: 'dish-058', category: 'Chinese', name: 'White Pasta', price: 100 },
+  { id: 'dish-059', category: 'Kebabs', name: 'Veg. Seekh Kebab', price: 15 },
+  { id: 'dish-060', category: 'Kebabs', name: 'Veg Kebab', price: 17 },
+  { id: 'dish-061', category: 'Kebabs', name: 'Dahi ke Kebab', price: 25 },
+  { id: 'dish-062', category: 'Kebabs', name: 'Hariyali Kebab', price: 25 },
+  { id: 'dish-063', category: 'Cake (Egg-Less)', name: 'Tutti Frutti Cup Cake', price: 18 },
+  { id: 'dish-064', category: 'Cake (Egg-Less)', name: 'Chocolate Cup Cake', price: 20 },
+  { id: 'dish-065', category: 'Cake (Egg-Less)', name: 'Chocolava Cup Cake', price: 38 },
+  { id: 'dish-066', category: 'Shakes', name: 'Mango Shake', price: 30 },
+  { id: 'dish-067', category: 'Shakes', name: 'Lassi', price: 45 },
+  { id: 'dish-068', category: 'Shakes', name: 'Panna', price: 12 },
+  { id: 'dish-069', category: 'Meals & Combos', name: 'Chokha Baati (2 pc plate)', price: 50 },
+  { id: 'dish-070', category: 'Meals & Combos', name: 'Chole Aloo Kulche (per plate)', price: 70 },
+  { id: 'dish-071', category: 'Meals & Combos', name: 'Chole Bhature (per plate)', price: 60 },
+  { id: 'dish-072', category: 'Meals & Combos', name: 'Khasta Aloo Matar (2 pc plate)', price: 55 },
+  { id: 'dish-073', category: 'Meals & Combos', name: 'Sambhar Vada (4 pc plate)', price: 55 },
+  { id: 'dish-074', category: 'Meals & Combos', name: 'Idli Sambhar (4 pc plate)', price: 55 },
+  { id: 'dish-075', category: 'Meals & Combos', name: 'Pav Bhaaji (per plate)', price: 60 },
+  { id: 'dish-076', category: 'Sweets', name: 'Gulab Jamun', price: 20 },
+  { id: 'dish-077', category: 'Sweets', name: 'Kheer', price: 80 },
+  { id: 'dish-078', category: 'Sweets', name: 'Sweet Rice', price: 90 },
+  { id: 'dish-079', category: 'Sweets', name: 'Shrikhand (250 gm)', price: 85 },
+  { id: 'dish-080', category: 'Sabzi', name: 'Shaahi Paneer', price: 300 },
+  { id: 'dish-081', category: 'Sabzi', name: 'Paneer Masala', price: 220 },
+  { id: 'dish-082', category: 'Sabzi', name: 'Paneer Angara', price: 280 },
+  { id: 'dish-083', category: 'Sabzi', name: 'Paneer Korma', price: 260 },
+  { id: 'dish-084', category: 'Sabzi', name: 'Palak Paneer', price: 200 },
+  { id: 'dish-085', category: 'Sabzi', name: 'Matar Paneer', price: 200 },
+  { id: 'dish-086', category: 'Non-Veg', name: 'Chicken Afghani', price: 500 },
+  { id: 'dish-087', category: 'Non-Veg', name: 'Roasted Chicken', price: 340 },
+  { id: 'dish-088', category: 'Non-Veg', name: 'Chilli Chicken', price: 440 },
+  { id: 'dish-089', category: 'Non-Veg', name: 'Egg Curry', price: 75 },
+  { id: 'dish-090', category: 'Non-Veg', name: 'Fish Fry (boneless - 250 gm)', price: 180 },
+  { id: 'dish-091', category: 'Non-Veg', name: 'Fish Dry (boneless - 250 gm)', price: 165 },
+  { id: 'dish-092', category: 'Non-Veg', name: 'Chicken Shawarma', price: 90 },
+  { id: 'dish-093', category: 'Non-Veg', name: 'Mutton Curry', price: 400 },
+  { id: 'dish-094', category: 'Non-Veg', name: 'Mutton Korma', price: 430 },
+  { id: 'dish-095', category: 'Non-Veg', name: 'Keema Kaleji', price: 400 },
+  { id: 'dish-096', category: 'Non-Veg', name: 'Chicken Curry', price: 360 },
+  { id: 'dish-097', category: 'Non-Veg', name: 'Chicken Masala', price: 400 },
+  { id: 'dish-098', category: 'Non-Veg', name: 'Butter Chicken', price: 500 },
+  { id: 'dish-099', category: 'Rice', name: 'Plain Rice', price: 90 },
+  { id: 'dish-100', category: 'Rice', name: 'Jeera Rice', price: 120 },
+  { id: 'dish-101', category: 'Rice', name: 'Matar Pulao', price: 140 },
+  { id: 'dish-102', category: 'Rice', name: 'Veg. Biryani', price: 180 }
 ];
 
+const cart = {};
+let kitchenCheckedState = {};
+let latestFirebaseMenuSnapshot = null;
+
 // ==========================================================================
-// 2. RUNTIME ENGINE LOADING SPLASH SCREEN & SERVICE WORKER
+// 7. KITCHEN DRAWER
 // ==========================================================================
-let minimumSplashTimeMet = false;
-setTimeout(() => { minimumSplashTimeMet = true; tryDismissSplash(); }, 1200);
+function toggleKitchenDrawer(forceState) {
+  const drawer = document.getElementById('kitchen-left-drawer');
+  const backdrop = document.getElementById('kitchen-drawer-backdrop');
+  if (!drawer || !backdrop) return;
 
-const splashFailSafeGuard = setTimeout(() => { forceDismissSplash(); }, 4000);
+  const isOpen = drawer.classList.contains('open');
+  const shouldOpen = (typeof forceState === 'boolean') ? forceState : !isOpen;
 
-function tryDismissSplash() { if (minimumSplashTimeMet) forceDismissSplash(); }
-
-function forceDismissSplash() {
-    clearTimeout(splashFailSafeGuard);
-    if (updateSplash) {
-        updateSplash.style.transition = "opacity 0.4s ease, visibility 0.4s";
-        updateSplash.style.opacity = "0";
-        setTimeout(() => { updateSplash.style.display = "none"; }, 400);
-    }
-}
-
-window.addEventListener('load', () => {
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('sw.js?v=49').then(reg => {
-            if (!navigator.serviceWorker.controller) { tryDismissSplash(); return; }
-            reg.onupdatefound = () => {
-                const installingWorker = reg.installing;
-                installingWorker.onstatechange = () => {
-                    if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                        if (splashText) splashText.innerHTML = "New update found!<br><span style='color:#FF4B3A; font-size:14px; font-weight:500;'>Installing assets... Please do not close the app.</span>";
-                    }
-                };
-            };
-        }).catch(err => { console.error("SW Error:", err); tryDismissSplash(); });
-    } else {
-        tryDismissSplash();
-    }
-});
-
-let refreshing = false;
-if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.addEventListener('controllerchange', () => {
-        if (!refreshing) { refreshing = true; window.location.reload(); }
-    });
+  if (shouldOpen) {
+    drawer.classList.add('open');
+    backdrop.classList.add('active');
+  } else {
+    drawer.classList.remove('open');
+    backdrop.classList.remove('active');
+  }
 }
 
 // ==========================================================================
-// 3. FIREBASE & ONESIGNAL SDK COUPLING INFRASTRUCTURE
+// 8. RENDER KITCHEN MENU
 // ==========================================================================
-const firebaseConfig = { databaseURL: "https://foodiespoint-6760-default-rtdb.asia-southeast1.firebasedatabase.app/" };
-firebase.initializeApp(firebaseConfig);
-const database = firebase.database();
+function renderKitchenMenu() {
+  const container = document.getElementById('kitchen-menu-container');
+  if (!container) return;
 
-// OneSignal Multi-Platform Initialization
-window.OneSignal = window.OneSignal || [];
-OneSignal.push(function() {
-    OneSignal.init({
-        appId: "YOUR_ONESIGNAL_APP_ID", // 👈 Replace with your real OneSignal App ID
-        notifyButton: { enable: false }
-    });
-});
+  container.innerHTML = '';
 
-// ==========================================
-// 4. IN-APP TOAST NOTIFICATION ENGINE
-// ==========================================
-window.addEventListener('beforeinstallprompt', (e) => {
-    e.preventDefault(); deferredPrompt = e; installPromptSupported = true; 
-    if (localStorage.getItem('pwa_installed_successfully') !== 'true') showMandatoryModal();
-    else initNotificationGestureCheck(); 
-});
+  const checkedDishes = MENU_ITEMS.filter(d => kitchenCheckedState[d.id]);
 
-function triggerNativeInstall() {
-    if (!deferredPrompt) { dismissMandatoryModal(); return; }
-    deferredPrompt.prompt();
-    deferredPrompt.userChoice.then(() => { deferredPrompt = null; dismissMandatoryModal(); });
-}
+  checkedDishes.forEach((dish) => {
+    const isOOS = (kitchenCheckedState[dish.id] === 'OOS');
+    const card = document.createElement('div');
+    card.className = 'menu-card';
+    card.setAttribute('data-item-id', dish.id);
 
-window.addEventListener('appinstalled', () => { 
-    localStorage.setItem('pwa_installed_successfully', 'true'); 
-    dismissMandatoryModal(); 
-});
+    card.innerHTML = `
+      <div class="dish-select-area">
+        <input type="checkbox" class="dish-checkbox" id="chk-top-${dish.id}" checked onchange="toggleKitchenItem('${dish.id}', false)">
+        <div class="dish-info">
+          <h4>${dish.name} <span style="font-size:0.78rem; color:#777; font-weight:normal;">(${dish.category})</span></h4>
+          <div class="price">₹${dish.price}</div>
+        </div>
+      </div>
+      <button type="button" class="btn-oos ${isOOS ? 'is-oos' : ''}" onclick="toggleOutOfStock('${dish.id}')">
+        ${isOOS ? '🔴 Out of Stock' : '🟢 In Stock'}
+      </button>
+    `;
+    container.appendChild(card);
+  });
 
-function showMandatoryModal() { if (pwaModal && pwaOverlay) { pwaModal.style.display = 'flex'; pwaOverlay.style.display = 'block'; body.classList.add('stop-scrolling'); } }
-function dismissMandatoryModal() { if (pwaModal && pwaOverlay) { pwaModal.style.display = 'none'; pwaOverlay.style.display = 'none'; body.classList.remove('stop-scrolling'); initNotificationGestureCheck(); } }
+  const categories = [...new Set(MENU_ITEMS.map(item => item.category))];
+  categories.forEach((cat) => {
+    const uncheckedCatItems = MENU_ITEMS.filter(item => item.category === cat && !kitchenCheckedState[item.id]);
 
-function initNotificationGestureCheck() {
-    if (!('Notification' in window)) return;
-    if (Notification.permission === 'granted') return;
-    const triggerBlocker = () => {
-        if (pwaModal && pwaModal.style.display === 'flex') return;
-        if (updateSplash && updateSplash.style.display !== 'none') return;
-        if (Notification.permission !== 'granted') showNotificationModal();
-    };
-    window.addEventListener('click', triggerBlocker, { once: true });
-    window.addEventListener('touchstart', triggerBlocker, { once: true });
-}
+    if (uncheckedCatItems.length > 0) {
+      const categoryHeader = document.createElement('h3');
+      categoryHeader.style.cssText = "margin: 16px 0 6px 0; font-size: 0.95rem; color: #FF4B3A; border-bottom: 2px solid #EAEAEA; padding-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;";
+      categoryHeader.textContent = cat;
+      container.appendChild(categoryHeader);
 
-function showNotificationModal() { if (notifModal && notifOverlay) { notifModal.style.display = 'flex'; notifOverlay.style.display = 'block'; body.classList.add('stop-scrolling'); } }
-
-function acceptNotificationModal() {
-    if (notifModal && notifOverlay) { notifModal.style.display = 'none'; notifOverlay.style.display = 'none'; body.classList.remove('stop-scrolling'); }
-    Notification.requestPermission().then((permission) => {
-        if (permission === 'granted') triggerInstantNotification('🍕 Alerts Enabled! Your live tracking is active.', 'success');
-        else initNotificationGestureCheck();
-    });
-}
-
-function triggerInstantNotification(messageText, type = 'success') {
-    const toastContainer = document.getElementById('toast-container');
-    if (toastContainer) {
-        const toast = document.createElement('div');
-        const bgColor = type === 'error' ? '#EF4444' : (type === 'info' ? '#3B82F6' : '#10B981');
-        toast.style.cssText = `background: ${bgColor}; color: white; padding: 14px 20px; border-radius: 12px; font-size: 14px; font-weight: 600; box-shadow: 0 10px 25px rgba(0,0,0,0.2); animation: toastFadeIn 0.3s forwards; pointer-events: auto;`;
-        toast.innerText = messageText;
-        toastContainer.appendChild(toast);
-        
-        setTimeout(() => {
-            toast.style.animation = 'toastFadeOut 0.3s forwards';
-            setTimeout(() => toast.remove(), 300);
-        }, 4000);
-    }
-}
-
-// ==========================================
-// 5. BULLETPROOF IST TIMEZONE LOCKOUT ENGINE
-// ==========================================
-function isKitchenBlackoutActive() {
-    const now = new Date();
-    const istFormatter = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: false });
-    const istTimeParts = istFormatter.format(now).split(':');
-    const currentHour = parseInt(istTimeParts[0], 10);
-    const currentMinute = parseInt(istTimeParts[1], 10);
-    const totalMinutesPassed = (currentHour * 60) + currentMinute;
-    const lockStartMinutes = 18 * 60; // 6:00 PM
-    const lockReleaseMinutes = (21 * 60) + 30; // 9:30 PM
-    return (totalMinutesPassed >= lockStartMinutes && totalMinutesPassed < lockReleaseMinutes);
-}
-
-function enforceBlackoutUILayout() {
-    if (isConsoleViewActive) return;
-    const historyContainer = document.getElementById('history-container');
-    cart = [];
-    if (cartBtn) cartBtn.style.display = 'none';
-    
-    const menuContainer = document.getElementById('menu-container');
-    menuContainer.innerHTML = `<div style="text-align: center; padding: 32px 16px; background-color: #FFFFFF; border-radius: 18px; border: 1px dashed #E5E7EB; width: 100%; box-sizing: border-box;"><div style="font-size: 32px; margin-bottom: 8px;">⏰</div><div style="font-weight: 700; font-size: 15px; color: #111827;">Kitchen Closed for Today</div><div style="color: #6B7280; font-size: 13px; margin-top: 4px; line-height: 1.5;">Tomorrow's live menu will be available after 9:30 PM IST.</div></div>`;
-}
-
-// ==========================================
-// 6. MAIN DATA PIPELINES: LIVE MENU CONTROLLER
-// ==========================================
-const menuContainer = document.getElementById('menu-container');
-const cartBtn = document.getElementById('cart-btn');
-
-database.ref('daily_live_menu').on('value', (snapshot) => {
-    currentLiveMenuArray = [];
-    snapshot.forEach((child) => { currentLiveMenuArray.push(child.val()); });
-
-    if (isKitchenBlackoutActive()) { enforceBlackoutUILayout(); return; }
-    if (isConsoleViewActive) return; 
-    renderCustomerMenu();
-});
-
-function renderCustomerMenu() {
-    menuContainer.innerHTML = ''; 
-    if (currentLiveMenuArray.length === 0) {
-        menuContainer.innerHTML = '<p style="text-align: center; color: #9CA3AF; margin-top: 20px;">The kitchen has not posted a menu yet today.</p>'; return;
-    }
-
-    const todayStr = new Date().toLocaleDateString();
-    const lastNotifiedDate = localStorage.getItem('foodies_menu_notified_date');
-    if (lastNotifiedDate !== todayStr) {
-        triggerInstantNotification('🍽️ Today\'s Menu is Live! Tap here to check what\'s cooking.', 'info');
-        localStorage.setItem('foodies_menu_notified_date', todayStr);
-    }
-
-    currentLiveMenuArray.forEach((item) => {
+      uncheckedCatItems.forEach((dish) => {
         const card = document.createElement('div');
-        const isStocked = !item.isOutOfStock;
-        const opacitySetting = isStocked ? '1.0' : '0.6';
-        
-        const badgeHTML = isStocked ? `<span style="background-color: #EEF2F6; color: #4B5563; font-size: 10px; font-weight: 600; padding: 4px 8px; border-radius: 6px; text-transform: uppercase;">${item.category}</span>` : `<span style="background-color: #FEE2E2; color: #EF4444; font-size: 10px; font-weight: 700; padding: 4px 8px; border-radius: 6px;">OUT OF STOCK</span>`;
-        const actionButtonHTML = isStocked ? `<button onclick="addToCart('${item.id}', '${item.title}', '${item.details}')" style="background-color: #FF4B3A; color: white; padding: 8px 16px; border: none; border-radius: 10px; font-weight: 600; font-size: 13px; cursor: pointer; box-shadow: 0 4px 10px rgba(255, 75, 58, 0.15);">+ Add</button>` : `<button disabled style="background-color: #F3F4F6; color: #9CA3AF; padding: 8px 14px; border: none; border-radius: 10px; font-weight: 500; font-size: 13px;">N/A</button>`;
+        card.className = 'menu-card';
+        card.setAttribute('data-item-id', dish.id);
 
-        card.style.cssText = `background-color: #FFFFFF; padding: 16px; border-radius: 18px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03); border: 1px solid #F3F4F6; opacity: ${opacitySetting}; display: flex; justify-content: space-between; align-items: center;`;
-        card.innerHTML = `<div style="flex-grow: 1; padding-right: 16px;"><div style="margin-bottom: 6px; display: inline-block;">${badgeHTML}</div><div style="font-size: 16px; font-weight: 600; color: #111827; letter-spacing: -0.3px; margin-top: 2px;">${item.title}</div><div style="color: #6B7280; font-size: 13px; margin-top: 3px; line-height: 1.4;">${item.details}</div></div><div style="flex-shrink: 0;">${actionButtonHTML}</div>`;
-        menuContainer.appendChild(card);
-    });
-}
-
-// ==========================================
-// 7. CLIENT-SIDE ORDER HISTORY PIPELINE
-// ==========================================
-function listenToOrderHistory() {
-    if (isKitchenBlackoutActive()) return enforceBlackoutUILayout();
-    const historyContainer = document.getElementById('history-container');
-    const trackList = JSON.parse(localStorage.getItem('foodies_tracked_orders') || '[]');
-    
-    if (trackList.length === 0) { 
-        historyContainer.innerHTML = '<p style="text-align: center; color: #9CA3AF; font-size: 13px; margin-top: 12px;">No orders placed today yet.</p>'; return; 
-    }
-    if (historyContainer.innerHTML.includes("No orders placed today") || historyContainer.innerHTML.includes("History cleared")) { historyContainer.innerHTML = ''; }
-
-    let notifiedStatuses = JSON.parse(localStorage.getItem('foodies_notified_statuses') || '{}');
-    
-    trackList.forEach(orderId => {
-        database.ref(`orders/${orderId}`).on('value', (snapshot) => {
-            if (isKitchenBlackoutActive() || isConsoleViewActive) return; 
-            const order = snapshot.val();
-            if (!order) return;
-            
-            let card = document.getElementById(`history-card-${orderId}`);
-            let isNew = false;
-            if (!card) { card = document.createElement('div'); card.id = `history-card-${orderId}`; isNew = true; }
-            
-            let statusText = "On Hold"; let badgeColor = "#D97706"; let bgColor = "#FEF3C7";
-            const currentStatusKey = `${orderId}_${order.status}`;
-            
-            if (order.status === "ACCEPTED") { 
-                statusText = "Accepted"; badgeColor = "#059669"; bgColor = "#D1FAE5"; 
-                if (!notifiedStatuses[currentStatusKey]) {
-                    triggerInstantNotification(`✅ Order Accepted! The kitchen is preparing your food.`, 'success');
-                    notifiedStatuses[currentStatusKey] = true;
-                    localStorage.setItem('foodies_notified_statuses', JSON.stringify(notifiedStatuses));
-                }
-            } 
-            else if (order.status === "REJECTED") { 
-                statusText = "Rejected"; badgeColor = "#DC2626"; bgColor = "#FEE2E2"; 
-                if (!notifiedStatuses[currentStatusKey]) {
-                    triggerInstantNotification(`❌ Order Rejected. Please contact the kitchen.`, 'error');
-                    notifiedStatuses[currentStatusKey] = true;
-                    localStorage.setItem('foodies_notified_statuses', JSON.stringify(notifiedStatuses));
-                }
-            } else if (order.status === "HOLD" || order.status === "PENDING") {
-                statusText = "On Hold"; badgeColor = "#D97706"; bgColor = "#FEF3C7";
-            }
-            
-            card.style.cssText = `background-color: #F9FAFB; padding: 14px; border-radius: 14px; border: 1px solid #E5E7EB; display: flex; justify-content: space-between; align-items: center;`;
-            card.innerHTML = `<div style="flex-grow: 1; padding-right: 12px;"><div style="font-size: 13px; font-weight: 600; color: #111827; line-height: 1.4;">${order.items}</div><div style="font-size: 11px; color: #9CA3AF; margin-top: 4px;">Ordered at ${new Date(order.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div></div><span style="background-color: ${bgColor}; color: ${badgeColor}; font-size: 11px; font-weight: 700; padding: 6px 12px; border-radius: 20px; text-transform: uppercase; white-space: nowrap; letter-spacing: 0.3px;">${statusText}</span>`;
-            if (isNew) historyContainer.insertBefore(card, historyContainer.firstChild);
-        });
-    });
-}
-
-function addToCart(id, title, details) {
-    if (isKitchenBlackoutActive()) return alert("The kitchen is currently closed.");
-    const existingItem = cart.find(i => i.id === id);
-    if (details.toLowerCase().includes("per plate") && existingItem && existingItem.quantity >= 5) return alert(`⚠️ Order Limit Exceeded!`);
-    if (existingItem) existingItem.quantity += 1; else cart.push({ id, title, details, quantity: 1 });
-    const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
-    cartBtn.style.display = 'block'; cartBtn.innerText = `View Order (${totalItems} items)`;
-}
-
-function openCheckout() {
-    if (isKitchenBlackoutActive()) return;
-    document.getElementById('checkout-modal').style.display = 'flex'; body.classList.add('stop-scrolling'); 
-    const summaryDiv = document.getElementById('cart-summary');
-    let summaryHTML = '<div style="font-weight: 600; color: #111827; margin-bottom: 8px; font-size: 15px;">Selected Items:</div>';
-    cart.forEach(item => { summaryHTML += `<div style="display: flex; justify-content: space-between; margin-bottom: 4px;"><span>🟢 ${item.title}</span><span style="font-weight: 600; color: #111827;">x${item.quantity}</span></div>`; });
-    summaryDiv.innerHTML = summaryHTML;
-}
-
-function closeCheckout() { document.getElementById('checkout-modal').style.display = 'none'; body.classList.remove('stop-scrolling'); }
-
-function submitOrder() {
-    if (isKitchenBlackoutActive()) return alert("The kitchen is currently closed for the day.");
-    const firstName = document.getElementById('customer-first-name').value.trim();
-    const lastName = document.getElementById('customer-last-name').value.trim();
-    const phone = document.getElementById('customer-phone').value.trim();
-
-    if (firstName === "" || lastName === "") return alert("Please enter both your First Name and Last Name.");
-    if (phone === "" || phone.length !== 10) return alert("Please enter a valid 10-digit mobile number.");
-    if (cart.length === 0) return;
-
-    const completeFullName = `${firstName} ${lastName}`;
-    const itemSummaryString = cart.map(item => {
-        return item.details.toLowerCase().includes("per plate") ? `${item.quantity}x ${item.title} (${item.details})` : `${item.title} (${item.details})`;
-    }).join(", ");
-
-    const newOrderRef = database.ref('orders').push();
-
-    // Fetch user OneSignal hardware profile string dynamically upon submission
-    OneSignal.push(function() {
-        OneSignal.getUserId(function(userId) {
-            newOrderRef.set({ 
-                id: newOrderRef.key, 
-                customerName: completeFullName, 
-                customerPhone: phone, 
-                items: itemSummaryString, 
-                status: "PENDING", 
-                timestamp: Date.now(), 
-                archived: false,
-                oneSignalToken: userId || "NOT_ALLOWED"
-            }).then(() => {
-                let trackList = JSON.parse(localStorage.getItem('foodies_tracked_orders') || '[]'); trackList.push(newOrderRef.key); localStorage.setItem('foodies_tracked_orders', JSON.stringify(trackList));
-                listenToOrderHistory(); 
-                triggerInstantNotification("Order dispatched to the kitchen!", "success");
-                cart = []; cartBtn.style.display = 'none'; closeCheckout();
-                document.getElementById('customer-first-name').value = ''; document.getElementById('customer-last-name').value = ''; document.getElementById('customer-phone').value = '';
-            }).catch(() => triggerInstantNotification("Error sending order.", "error"));
-        });
-    });
-}
-
-// ==========================================================================
-// 🚀 8. KITCHEN CONSOLE ENGINE
-// ==========================================================================
-function authenticateConsoleAccess() {
-    if (isConsoleViewActive) {
-        history.replaceState(null, '', window.location.pathname + window.location.search);
-        window.location.reload(); 
-        return; 
-    } 
-    if (localStorage.getItem('foodies_console_authenticated') === 'true') { launchConsoleLayout(); return; }
-    
-    document.getElementById('admin-auth-overlay').style.display = 'block';
-    document.getElementById('admin-auth-modal').style.display = 'flex';
-    document.getElementById('admin-pin-input').value = ''; document.getElementById('admin-pin-input').focus();
-    body.classList.add('stop-scrolling');
-}
-
-function closeConsoleAuthModal() {
-    document.getElementById('admin-auth-overlay').style.display = 'none';
-    document.getElementById('admin-auth-modal').style.display = 'none';
-    body.classList.remove('stop-scrolling');
-}
-
-// Credentials validated securely against 2026 criteria
-function submitConsolePIN() {
-    const enteredPassword = document.getElementById('admin-pin-input').value;
-    if (enteredPassword === ROUTING_SECRET_PIN) {
-        localStorage.setItem('foodies_console_authenticated', 'true');
-        closeConsoleAuthModal(); launchConsoleLayout();
-    } else { alert("✕ Authentication Failed."); document.getElementById('admin-pin-input').value = ''; }
-}
-
-function launchConsoleLayout() {
-    isConsoleViewActive = true;
-    document.getElementById('customer-view-layout').style.display = 'none';
-    if (cartBtn) cartBtn.style.display = 'none';
-    document.getElementById('kitchen-view-layout').style.display = 'flex';
-    document.getElementById('header-title-text').innerText = "Kitchen Console";
-    document.getElementById('view-toggle-action').innerText = "Exit";
-    document.getElementById('view-toggle-action').style.backgroundColor = "#DC2626";
-    
-    const searchBar = document.getElementById('console-search-bar');
-    if (searchBar) searchBar.value = '';
-
-    if (window.location.hash !== '#console') history.pushState({ view: 'console' }, 'Console', window.location.pathname + window.location.search + '#console');
-
-    initializeKitchenOrderStream();
-    
-    const inventoryContainer = document.getElementById('kitchen-inventory-container');
-    inventoryContainer.innerHTML = ''; 
-    
-    const sortedMenu = [...MASTER_MENU].sort((a, b) => {
-        const aLive = currentLiveMenuArray.some(m => m.id === a.id);
-        const bLive = currentLiveMenuArray.some(m => m.id === b.id);
-        if (aLive && !bLive) return -1;
-        if (!aLive && bLive) return 1;
-        return 0; 
-    });
-
-    sortedMenu.forEach((item) => {
-        const gridRow = document.createElement('div');
-        gridRow.className = "inventory-row";
-        gridRow.setAttribute('data-search', `${item.title.toLowerCase()} ${item.category.toLowerCase()}`);
-        gridRow.style.cssText = `background-color: #F9FAFB; padding: 14px; border-radius: 14px; border: 1px solid #E5E7EB; display: flex; justify-content: space-between; align-items: center; text-align: left; margin-bottom: 2px;`;
-
-        const liveRec = currentLiveMenuArray.find(m => m.id === item.id);
-        const isLive = !!liveRec;
-        const isOutOfStock = liveRec ? (liveRec.isOutOfStock === true) : false;
-
-        gridRow.innerHTML = `
-            <div style="flex-grow: 1; padding-right: 8px;">
-                <div style="font-size: 14px; font-weight: 600; color: #111827;">${item.title}</div>
-                <div style="font-size: 11px; color: #6B7280;">${item.category} • ${item.details}</div>
+        card.innerHTML = `
+          <div class="dish-select-area">
+            <input type="checkbox" class="dish-checkbox" id="chk-${dish.id}" onchange="toggleKitchenItem('${dish.id}', true)">
+            <div class="dish-info">
+              <h4>${dish.name}</h4>
+              <div class="price">₹${dish.price}</div>
             </div>
-            <div style="display: flex; align-items: center; flex-shrink: 0; gap: 12px;">
-                <button type="button" id="stock-btn-${item.id}" onclick="toggleLocalStockState(this, '${item.id}')" style="display: ${isLive ? 'block' : 'none'}; background-color: ${isOutOfStock ? '#EF4444' : '#10B981'}; color: white; border: none; padding: 6px 12px; border-radius: 8px; font-size: 11px; font-weight: 600; cursor: pointer; min-width: 95px;">
-                    ${isOutOfStock ? 'Out of Stock' : 'In Stock'}
-                </button>
-                <input type="checkbox" class="console-checkbox" data-id="${item.id}" ${isLive ? 'checked' : ''} onchange="handleCheckboxChange(this, '${item.id}')" style="width: 26px; height: 26px; accent-color: #FF4B3A; cursor: pointer;">
-            </div>
+          </div>
         `;
-        inventoryContainer.appendChild(gridRow);
-    });
-}
-
-function filterConsoleMenu() {
-    const query = document.getElementById('console-search-bar').value.toLowerCase();
-    const rows = document.querySelectorAll('.inventory-row');
-    rows.forEach(row => {
-        const searchData = row.getAttribute('data-search');
-        if (searchData.includes(query)) row.style.display = 'flex';
-        else row.style.display = 'none';
-    });
-}
-
-function handleCheckboxChange(chk, itemId) {
-    const index = currentLiveMenuArray.findIndex(m => m.id === itemId);
-    if (!chk.checked && index !== -1) {
-        const targetItem = MASTER_MENU.find(m => m.id === itemId);
-        const confirmRemove = confirm(`⚠️ Remove from Live Menu:\n\nRemove "${targetItem.title}" immediately?`);
-        if (confirmRemove) {
-            currentLiveMenuArray.splice(index, 1);
-            database.ref('daily_live_menu').set(currentLiveMenuArray).then(() => { launchConsoleLayout(); });
-        } else { chk.checked = true; }
+        container.appendChild(card);
+      });
     }
+  });
 }
 
-function toggleLocalStockState(btnElement, itemId) {
-    const index = currentLiveMenuArray.findIndex(m => m.id === itemId);
-    if (index !== -1) {
-        const isCurrentlyOut = btnElement.innerText === "Out of Stock";
-        const newOutState = !isCurrentlyOut;
-        
-        const targetItem = MASTER_MENU.find(m => m.id === itemId);
-        const statusText = newOutState ? "OUT OF STOCK" : "IN STOCK";
-        const confirmChange = confirm(`⚠️ Change Stock Status:\n\nAre you sure you want to mark "${targetItem.title}" as ${statusText}?`);
-        if (!confirmChange) return; 
-        
-        database.ref(`daily_live_menu/${index}`).update({ isOutOfStock: newOutState });
-        btnElement.innerText = newOutState ? "Out of Stock" : "In Stock";
-        btnElement.style.backgroundColor = newOutState ? "#EF4444" : "#10B981";
-        currentLiveMenuArray[index].isOutOfStock = newOutState;
-    } else { alert("Please Post Menu first before modifying stock."); }
+function toggleKitchenItem(dishId, isChecked) {
+  if (isChecked) {
+    kitchenCheckedState[dishId] = true;
+  } else {
+    delete kitchenCheckedState[dishId];
+  }
+  renderKitchenMenu();
 }
 
-function previewSelectedLiveMenu() {
-    const previewList = document.getElementById('menu-preview-list');
-    previewList.innerHTML = '';
-    pendingLiveArray = []; 
+function toggleOutOfStock(dishId) {
+  const current = kitchenCheckedState[dishId];
+  const newState = (current === 'OOS') ? true : 'OOS';
+  kitchenCheckedState[dishId] = newState;
 
-    const allCheckboxes = document.querySelectorAll('.console-checkbox');
-    for (let i = 0; i < allCheckboxes.length; i++) {
-        if (allCheckboxes[i].checked === true) {
-            const itemId = allCheckboxes[i].getAttribute('data-id');
-            const item = MASTER_MENU.find(m => m.id === itemId);
-            if (item) {
-                const liveRec = currentLiveMenuArray.find(m => m.id === itemId);
-                const outOfStock = liveRec ? liveRec.isOutOfStock : false;
-                pendingLiveArray.push({ id: item.id, title: item.title, details: item.details, category: item.category, isOutOfStock: outOfStock });
+  if (db) {
+    db.ref(`dailyMenu/${dishId}`).set(newState);
+  }
+  renderKitchenMenu();
+}
 
-                const line = document.createElement('div');
-                line.style.cssText = "font-size: 13px; font-weight: 600; color: #111827; display: flex; align-items: center; gap: 6px;";
-                line.innerHTML = `<span>🟢</span> ${item.title} <span style="font-size:10px; font-weight:400; color:#6B7280;">(${item.category})</span>`;
-                previewList.appendChild(line);
-            }
+// ==========================================================================
+// 9. PUBLISH OR CLEAR DAILY LIVE MENU
+// ==========================================================================
+function publishDailyMenu() {
+  if (!db) {
+    alert("Database connection is not ready. Please refresh the page.");
+    return;
+  }
+
+  const selectedCount = Object.keys(kitchenCheckedState).length;
+
+  if (selectedCount === 0) {
+    if (confirm("No items selected. Do you want to clear all items from the customer's live menu page?")) {
+      clearDailyMenu();
+    }
+    return;
+  }
+
+  const confirmMsg = isDuringBreakWindow()
+    ? `It is currently between 6:00 PM and 9:00 PM.\n\nAre you sure you want to publish these ${selectedCount} selected items? (They will automatically go live for customers at 9:00 PM tonight for tomorrow's orders.)`
+    : `Are you sure you want to publish ${selectedCount} selected items to the live customer menu?`;
+
+  if (!confirm(confirmMsg)) return;
+
+  db.ref('dailyMenu').set(kitchenCheckedState)
+    .then(() => {
+      alert(`Daily Live Menu published successfully (${selectedCount} items)! Notification broadcasted.`);
+      sendRenderPushBroadcast(
+        "Today's Live Menu is Up! 🍛",
+        `We just published ${selectedCount} fresh items for today's cafeteria menu. Open the app to order now!`
+      );
+    })
+    .catch((error) => {
+      console.error("Error publishing menu:", error);
+      alert("Failed to publish daily menu. Please check your network connection.");
+    });
+}
+
+function clearDailyMenu() {
+  if (!db) return;
+  if (confirm("Remove all items from the customer's live menu page?")) {
+    db.ref('dailyMenu').remove()
+      .then(() => {
+        kitchenCheckedState = {};
+        renderKitchenMenu();
+        alert("All items have been removed from the customer page!");
+      })
+      .catch((error) => console.error("Error clearing daily menu:", error));
+  }
+}
+
+// ==========================================================================
+// 10. CUSTOMER LIVE MENU LISTENER
+// ==========================================================================
+function renderCustomerMenuFromSnapshot(activeIds) {
+  const container = document.getElementById('customer-menu-container');
+  const placeOrderBtn = document.getElementById('btn-place-order');
+  if (!container) return;
+
+  container.innerHTML = '';
+
+  if (isDuringBreakWindow()) {
+    container.innerHTML = `
+      <div style="text-align:center; padding: 40px 20px; color:#555;">
+        <div style="font-size: 2.5rem; margin-bottom: 12px;">🌙</div>
+        <h3 style="color:#FF4B3A; font-size: 1.15rem; margin-bottom: 8px;">We're Closed for the Day!</h3>
+        <p style="font-size: 0.95rem; line-height: 1.5; color: #666;">
+          Orders are now closed for today.<br>
+          Tomorrow's live menu will be available starting at <strong>9:00 PM tonight</strong>!
+        </p>
+      </div>
+    `;
+    if (placeOrderBtn) placeOrderBtn.disabled = true;
+    return;
+  }
+
+  if (placeOrderBtn) placeOrderBtn.disabled = false;
+
+  if (!activeIds || Object.keys(activeIds).length === 0) {
+    container.innerHTML = `<p style="text-align:center; padding: 40px 20px; color:#666;">The kitchen is preparing today's live menu. Please check back shortly!</p>`;
+    return;
+  }
+
+  let currentCategory = '';
+
+  MENU_ITEMS.forEach((dish) => {
+    if (activeIds[dish.id]) {
+      cart[dish.id] = cart[dish.id] || 0;
+      const isOOS = (activeIds[dish.id] === 'OOS');
+
+      if (isOOS && cart[dish.id] > 0) cart[dish.id] = 0;
+
+      if (dish.category !== currentCategory) {
+        currentCategory = dish.category;
+        const categoryHeader = document.createElement('h3');
+        categoryHeader.style.cssText = "margin: 18px 0 6px 0; font-size: 1.05rem; color: #FF4B3A; border-bottom: 2px solid #EAEAEA; padding-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;";
+        categoryHeader.textContent = currentCategory;
+        container.appendChild(categoryHeader);
+      }
+
+      const card = document.createElement('div');
+      card.className = 'menu-card';
+      card.setAttribute('data-item-id', dish.id);
+
+      const actionAreaHtml = isOOS
+        ? `<span class="badge-oos">Out of Stock</span>`
+        : `<div class="quantity-stepper">
+             <button type="button" aria-label="Decrease quantity" onclick="updateQuantity('${dish.id}', -1)">−</button>
+             <span id="qty-${dish.id}">${cart[dish.id]}</span>
+             <button type="button" aria-label="Increase quantity" onclick="updateQuantity('${dish.id}', 1)">+</button>
+           </div>`;
+
+      card.innerHTML = `
+        <div class="dish-info" style="${isOOS ? 'opacity: 0.5;' : ''}">
+          <h4>${dish.name}</h4>
+          <div class="price">₹${dish.price}</div>
+        </div>
+        ${actionAreaHtml}
+      `;
+      container.appendChild(card);
+    }
+  });
+}
+
+function listenForCustomerLiveMenu() {
+  if (!db) return;
+  db.ref('dailyMenu').on('value', (snapshot) => {
+    latestFirebaseMenuSnapshot = snapshot.val();
+    renderCustomerMenuFromSnapshot(latestFirebaseMenuSnapshot);
+  });
+}
+
+function updateQuantity(dishId, change) {
+  const currentQty = cart[dishId] || 0;
+  let newQty = currentQty + change;
+  if (newQty < 0) newQty = 0;
+  if (newQty > 10) {
+    alert("Quantity cap reached: Maximum 10 items per dish.");
+    newQty = 10;
+  }
+  cart[dishId] = newQty;
+  const qtySpan = document.getElementById(`qty-${dishId}`);
+  if (qtySpan) qtySpan.textContent = newQty;
+}
+
+// ==========================================================================
+// 11. ORDER SUBMISSION & TARGETED SUBSCRIPTION ENGINE (v55)
+// ==========================================================================
+function syncCustomerVersionToFirebase(profile) {
+  if (!db || !profile || !profile.mobile) return;
+  db.ref(`customers/${profile.mobile}`).update({
+    name: profile.name,
+    mobile: profile.mobile,
+    appVersion: CURRENT_APP_VERSION,
+    lastSeen: firebase.database.ServerValue.TIMESTAMP
+  }).catch((err) => console.error("Error syncing customer version:", err));
+}
+
+async function placeOrder() {
+  if (isDuringBreakWindow()) {
+    alert("Orders are closed for today. Tomorrow's menu will be available starting at 9:00 PM tonight!");
+    return;
+  }
+
+  if (!db) {
+    alert("Database connection is not ready. Please refresh the page.");
+    return;
+  }
+
+  const orderItems = [];
+  let totalAmount = 0;
+
+  MENU_ITEMS.forEach((dish) => {
+    const qty = cart[dish.id] || 0;
+    if (qty > 0) {
+      orderItems.push({ id: dish.id, name: dish.name, price: dish.price, quantity: qty });
+      totalAmount += dish.price * qty;
+    }
+  });
+
+  if (orderItems.length === 0) {
+    alert("Please add at least one item to your order.");
+    return;
+  }
+
+  const profileStr = localStorage.getItem('fp_customer_profile');
+  if (!profileStr) {
+    const profileModal = document.getElementById('profile-modal');
+    if (profileModal) profileModal.style.display = 'flex';
+    return;
+  }
+
+  const customerProfile = JSON.parse(profileStr);
+  syncCustomerVersionToFirebase(customerProfile);
+  
+  const localPushSub = await getLocalPushSubscription();
+  executeFirebaseOrderSubmission(orderItems, totalAmount, customerProfile, localPushSub);
+}
+
+function closeProfileModal() {
+  const profileModal = document.getElementById('profile-modal');
+  if (profileModal) profileModal.style.display = 'none';
+}
+
+async function saveProfileAndPlaceOrder() {
+  const nameInput = document.getElementById('cust-name-input');
+  const mobileInput = document.getElementById('cust-mobile-input');
+  
+  const nameVal = nameInput ? nameInput.value.trim() : '';
+  const mobileVal = mobileInput ? mobileInput.value.trim() : '';
+
+  if (nameVal.length < 2) {
+    alert("Please enter a valid Name (at least 2 characters).");
+    return;
+  }
+  if (!/^[0-9]{10}$/.test(mobileVal)) {
+    alert("Please enter a valid 10-digit Mobile Number.");
+    return;
+  }
+
+  const customerProfile = { name: nameVal, mobile: mobileVal };
+
+  localStorage.setItem('fp_customer_profile', JSON.stringify(customerProfile));
+  syncCustomerVersionToFirebase(customerProfile);
+  closeProfileModal();
+
+  const orderItems = [];
+  let totalAmount = 0;
+  MENU_ITEMS.forEach((dish) => {
+    const qty = cart[dish.id] || 0;
+    if (qty > 0) {
+      orderItems.push({ id: dish.id, name: dish.name, price: dish.price, quantity: qty });
+      totalAmount += dish.price * qty;
+    }
+  });
+
+  const localPushSub = await getLocalPushSubscription();
+  executeFirebaseOrderSubmission(orderItems, totalAmount, customerProfile, localPushSub);
+}
+
+function executeFirebaseOrderSubmission(orderItems, totalAmount, customerProfile, pushSub) {
+  const newOrderRef = db.ref('orders').push();
+  
+  const orderData = {
+    orderId: newOrderRef.key.slice(-4).toUpperCase(),
+    items: orderItems,
+    total: totalAmount,
+    status: 'PENDING',
+    customerName: customerProfile.name,
+    customerMobile: customerProfile.mobile,
+    customerVersion: CURRENT_APP_VERSION,
+    timestamp: firebase.database.ServerValue.TIMESTAMP
+  };
+
+  if (pushSub && pushSub.endpoint) {
+    orderData.pushSubscription = pushSub;
+  }
+
+  newOrderRef.set(orderData)
+    .then(() => {
+      alert(`Order placed successfully! Your Order ID is #${orderData.orderId}`);
+      
+      const myOrder = {
+        firebaseKey: newOrderRef.key,
+        orderId: orderData.orderId,
+        items: orderItems,
+        total: totalAmount,
+        status: 'PENDING',
+        timestamp: Date.now()
+      };
+      const pastOrders = JSON.parse(localStorage.getItem('fp_customer_orders') || '[]');
+      pastOrders.unshift(myOrder);
+      localStorage.setItem('fp_customer_orders', JSON.stringify(pastOrders));
+      renderCustomerOrderHistory();
+
+      MENU_ITEMS.forEach((dish) => { cart[dish.id] = 0; });
+      Object.keys(cart).forEach(id => {
+        const span = document.getElementById(`qty-${id}`);
+        if (span) span.textContent = 0;
+      });
+    })
+    .catch((error) => {
+      console.error("Error placing order:", error);
+      alert("Failed to place order. Please check your internet connection.");
+    });
+}
+
+function renderCustomerOrderHistory() {
+  const container = document.getElementById('customer-orders-container');
+  if (!container) return;
+
+  const pastOrders = JSON.parse(localStorage.getItem('fp_customer_orders') || '[]');
+
+  if (pastOrders.length === 0) {
+    container.innerHTML = `<p style="text-align:center; padding: 20px; color:#666;">No past orders yet. Orders placed from this device will appear here!</p>`;
+    return;
+  }
+
+  container.innerHTML = '';
+
+  pastOrders.forEach((myOrder) => {
+    const card = document.createElement('div');
+    card.className = 'customer-order-card';
+
+    const itemsSummary = myOrder.items
+      .map(i => `<strong>${i.quantity}x</strong> ${i.name}`)
+      .join(', ');
+
+    const dateStr = new Date(myOrder.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    card.innerHTML = `
+      <div class="customer-order-header">
+        <span><strong>Order #${myOrder.orderId}</strong> (${dateStr})</span>
+        <span class="status-badge status-${myOrder.status}">${myOrder.status}</span>
+      </div>
+      <p style="font-size: 0.88rem; color: #444; margin-bottom: 6px; line-height: 1.4;">${itemsSummary}</p>
+      <div style="font-weight: 700; color: #FF4B3A; font-size: 0.95rem;">Total: ₹${myOrder.total}</div>
+    `;
+
+    container.appendChild(card);
+  });
+}
+
+function clearCustomerHistory() {
+  if (confirm("Clear your order history from this device?")) {
+    localStorage.removeItem('fp_customer_orders');
+    renderCustomerOrderHistory();
+  }
+}
+
+function listenForCustomerOrderUpdates() {
+  if (!db) return;
+
+  db.ref('orders').on('value', (snapshot) => {
+    const activeOrders = snapshot.val() || {};
+    const pastOrders = JSON.parse(localStorage.getItem('fp_customer_orders') || '[]');
+    let hasChanges = false;
+
+    pastOrders.forEach((myOrder) => {
+      const liveOrder = activeOrders[myOrder.firebaseKey];
+      if (liveOrder) {
+        if (myOrder.status !== liveOrder.status) {
+          myOrder.status = liveOrder.status;
+          hasChanges = true;
         }
+      }
+    });
+
+    if (hasChanges) {
+      localStorage.setItem('fp_customer_orders', JSON.stringify(pastOrders));
+      renderCustomerOrderHistory();
+    }
+  });
+}
+
+// ==========================================================================
+// 12. KITCHEN LOGIN & NAVIGATION (v55)
+// ==========================================================================
+const KITCHEN_PIN = "validatefoodies2026";
+let isKitchenMode = false;
+
+function openKitchenPINModal() {
+  if (localStorage.getItem('fp_kitchen_auth') === 'true') {
+    enterKitchenMode();
+    return;
+  }
+  document.getElementById('pin-modal').style.display = 'flex';
+  const input = document.getElementById('kitchen-pin-input');
+  if (input) { input.value = ''; input.type = 'password'; }
+}
+
+function closePINModal() {
+  document.getElementById('pin-modal').style.display = 'none';
+}
+
+function togglePasscodeVisibility() {
+  const input = document.getElementById('kitchen-pin-input');
+  const eyeBtn = document.getElementById('toggle-passcode-eye');
+  if (!input) return;
+  if (input.type === 'password') {
+    input.type = 'text';
+    if (eyeBtn) eyeBtn.textContent = '🔒';
+  } else {
+    input.type = 'password';
+    if (eyeBtn) eyeBtn.textContent = '👁️';
+  }
+}
+
+function verifyKitchenPIN() {
+  const inputPin = document.getElementById('kitchen-pin-input').value;
+  if (inputPin === KITCHEN_PIN) {
+    localStorage.setItem('fp_kitchen_auth', 'true');
+    closePINModal();
+    enterKitchenMode();
+  } else {
+    alert("Incorrect passcode. Access denied.");
+  }
+}
+
+function enterKitchenMode() {
+  if (!isKitchenMode) history.pushState({ kitchenMode: true }, '', '#kitchen');
+  isKitchenMode = true;
+
+  document.getElementById('main-app-title').style.display = 'none';
+  document.getElementById('customer-view').style.display = 'none';
+
+  document.getElementById('header-notify-btn').style.display = 'none';
+  document.getElementById('header-kitchen-btn').style.display = 'none';
+  document.getElementById('header-back-btn').style.display = 'inline-flex';
+  document.getElementById('header-drawer-btn').style.display = 'inline-block';
+  document.getElementById('kitchen-version-badge').style.display = 'inline-block';
+  document.getElementById('header-exit-btn').style.display = 'inline-block';
+
+  document.getElementById('kitchen-view').style.display = 'flex';
+
+  if (db) {
+    db.ref('dailyMenu').on('value', (snapshot) => {
+      kitchenCheckedState = snapshot.val() || {};
+      renderKitchenMenu();
+    });
+  } else {
+    renderKitchenMenu();
+  }
+
+  listenForKitchenOrders();
+}
+
+function handleHeaderBack() {
+  const custPage = document.getElementById('customer-data-view');
+  const payPage = document.getElementById('payment-details-view');
+  if ((custPage && custPage.style.display === 'flex') || (payPage && payPage.style.display === 'flex')) {
+    closeKitchenSubPage(true);
+  } else {
+    exitKitchenMode(true);
+  }
+}
+
+function exitKitchenMode(triggerHistoryBack = true) {
+  if (!isKitchenMode) return;
+  isKitchenMode = false;
+
+  toggleKitchenDrawer(false);
+  closeKitchenSubPage(false);
+  if (triggerHistoryBack && window.location.hash.startsWith('#kitchen')) history.back();
+
+  document.getElementById('main-app-title').style.display = 'block';
+  document.getElementById('kitchen-view').style.display = 'none';
+  document.getElementById('customer-view').style.display = 'flex';
+
+  document.getElementById('header-notify-btn').style.display = 'inline-flex';
+  document.getElementById('header-kitchen-btn').style.display = 'inline-block';
+  document.getElementById('header-back-btn').style.display = 'none';
+  document.getElementById('header-drawer-btn').style.display = 'none';
+  document.getElementById('kitchen-version-badge').style.display = 'none';
+  document.getElementById('header-exit-btn').style.display = 'none';
+
+  if (db) {
+    db.ref('orders').off();
+    db.ref('dailyMenu').off();
+  }
+}
+
+// ==========================================================================
+// 13. DEDICATED KITCHEN SUB-PAGES & ATOMIC LEDGER WIPE ENGINE
+// ==========================================================================
+function openCustomerDataPage() {
+  toggleKitchenDrawer(false);
+  history.pushState({ kitchenSubPage: 'customers' }, '', '#kitchen-customers');
+  document.getElementById('kitchen-view').style.display = 'none';
+  document.getElementById('customer-data-view').style.display = 'flex';
+  fetchAndRenderCustomerDirectory();
+}
+
+function openPaymentDetailsPage() {
+  toggleKitchenDrawer(false);
+  history.pushState({ kitchenSubPage: 'payments' }, '', '#kitchen-payments');
+  document.getElementById('kitchen-view').style.display = 'none';
+  document.getElementById('payment-details-view').style.display = 'flex';
+  fetchAndRenderPaymentLedger();
+}
+
+function closeKitchenSubPage(triggerBack = true) {
+  document.getElementById('customer-data-view').style.display = 'none';
+  document.getElementById('payment-details-view').style.display = 'none';
+  if (isKitchenMode) document.getElementById('kitchen-view').style.display = 'flex';
+  if (triggerBack && (window.location.hash === '#kitchen-customers' || window.location.hash === '#kitchen-payments')) {
+    history.back();
+  }
+}
+
+function clearPaymentLedger() {
+  if (!db) return;
+  if (confirm("Are you sure you want to wipe all billing records and order entries? This will reset the total ledger back to ₹0.")) {
+    db.ref('orders').remove()
+      .then(() => {
+        alert("Payment ledger wiped clean!");
+        fetchAndRenderPaymentLedger();
+      })
+      .catch((err) => console.error("Error clearing payment ledger:", err));
+  }
+}
+
+function fetchAndRenderCustomerDirectory() {
+  const container = document.getElementById('customer-directory-container');
+  if (!container || !db) return;
+
+  container.innerHTML = `<p style="text-align:center; padding: 30px; color:#666;">Fetching live directory...</p>`;
+
+  db.ref('customers').once('value').then((snapshot) => {
+    const customers = snapshot.val();
+    if (!customers) {
+      container.innerHTML = `<p style="text-align:center; padding: 30px; color:#666;">No customer version records synced yet.</p>`;
+      return;
+    }
+    container.innerHTML = '';
+    Object.values(customers).forEach((cust) => {
+      const card = document.createElement('div');
+      card.className = 'customer-data-card';
+      const dateStr = cust.lastSeen ? new Date(cust.lastSeen).toLocaleDateString() : 'Recently';
+      card.innerHTML = `
+        <div>
+          <h4 style="font-size:1.05rem; color:#2D2D2D; margin-bottom:3px;">${cust.name || 'Guest'}</h4>
+          <div style="font-size:0.85rem; color:#666;">📞 <strong>${cust.mobile}</strong></div>
+          <div style="font-size:0.75rem; color:#888; margin-top:2px;">Last Active: ${dateStr}</div>
+        </div>
+        <span class="version-badge">${cust.appVersion || 'Unknown'}</span>
+      `;
+      container.appendChild(card);
+    });
+  });
+}
+
+function fetchAndRenderPaymentLedger() {
+  const container = document.getElementById('payment-ledger-container');
+  if (!container || !db) return;
+
+  container.innerHTML = `<p style="text-align:center; padding: 30px; color:#666;">Calculating payment ledger...</p>`;
+
+  db.ref('orders').once('value').then((snapshot) => {
+    const orders = snapshot.val();
+    if (!orders) {
+      container.innerHTML = `
+        <div class="payment-summary-box">
+          <div style="font-size:0.85rem; color:#666; text-transform:uppercase; font-weight:700;">Active Orders Billing Total</div>
+          <div style="font-size:1.8rem; font-weight:800; color:#FF4B3A; margin:4px 0;">₹0</div>
+          <div style="font-size:0.85rem; color:#2E7D32;">✔ 0 Orders Accepted</div>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin: 16px 0 10px 0;">
+          <h3 style="font-size:1rem; color:#2D2D2D; margin: 0;">Recent Billing Entries</h3>
+          <button type="button" class="btn-clear-menu" onclick="clearPaymentLedger()" style="padding: 6px 12px; font-size: 0.8rem; width: auto; flex: none;">🗑️ Clear Entries</button>
+        </div>
+        <p style="text-align:center; padding: 30px; color:#666;">No active payment records found today.</p>
+      `;
+      return;
     }
 
-    if (pendingLiveArray.length === 0) { alert("⚠️ Menu empty:\n\nPlease select at least one item before posting today's menu!"); return; }
-    document.getElementById('menu-confirm-overlay').style.display = 'block';
-    document.getElementById('menu-confirm-modal').style.display = 'flex';
-}
+    let totalRevenue = 0;
+    let completedCount = 0;
+    const orderRows = Object.values(orders);
 
-function closeMenuConfirmModal() {
-    document.getElementById('menu-confirm-overlay').style.display = 'none';
-    document.getElementById('menu-confirm-modal').style.display = 'none';
-}
-
-function publishSelectedLiveMenu() {
-    if (pendingLiveArray.length === 0) return;
-    database.ref('daily_live_menu').set(pendingLiveArray)
-        .then(() => {
-            alert(`🚀 Success!\n\n${pendingLiveArray.length} items successfully published.`);
-            closeMenuConfirmModal(); launchConsoleLayout(); 
-        }).catch((err) => { alert("Error updating live database nodes."); console.error(err); });
-}
-
-function initializeKitchenOrderStream() {
-    const ordersContainer = document.getElementById('kitchen-orders-container');
-    let notifiedKitchenOrders = JSON.parse(localStorage.getItem('foodies_kitchen_notified') || '{}');
-
-    database.ref('orders').orderByChild('timestamp').on('value', (snapshot) => {
-        if (!isConsoleViewActive) return;
-        ordersContainer.innerHTML = '';
-        const trackingList = [];
-        
-        snapshot.forEach((child) => {
-            const rawOrder = child.val();
-            if (!rawOrder.archived) trackingList.push(rawOrder);
-        });
-
-        if (trackingList.length === 0) {
-            ordersContainer.innerHTML = '<p style="text-align: center; color: #6B7280; font-size: 13px; margin-top: 20px;">No active orders found today.</p>';
-            return;
-        }
-
-        trackingList.sort((a, b) => b.timestamp - a.timestamp);
-        
-        trackingList.forEach((order) => {
-            if (order.status === "PENDING" && !notifiedKitchenOrders[order.id]) {
-                triggerInstantNotification(`🔔 New Order from ${order.customerName}!`, 'info');
-                notifiedKitchenOrders[order.id] = true;
-                localStorage.setItem('foodies_kitchen_notified', JSON.stringify(notifiedKitchenOrders));
-            }
-
-            const rowItem = document.createElement('div');
-            let statusBadgeColor = "#D97706"; let statusLabel = "PENDING";
-            if (order.status === "ACCEPTED") { statusBadgeColor = "#10B981"; statusLabel = "ACCEPTED"; }
-            if (order.status === "REJECTED") { statusBadgeColor = "#EF4444"; statusLabel = "REJECTED"; }
-
-            let actionButtonsHTML = '';
-            if (order.status === "PENDING" || order.status === "HOLD") {
-                actionButtonsHTML = `
-                    <button onclick="updateTicketStatus('${order.id}', 'ACCEPTED')" style="flex: 1; background-color: #10B981; color: white; border: none; padding: 8px; border-radius: 8px; font-weight: 600; font-size: 11px; cursor: pointer;">✓ Accept</button>
-                    <button onclick="updateTicketStatus('${order.id}', 'REJECTED')" style="flex: 1; background-color: #EF4444; color: white; border: none; padding: 8px; border-radius: 8px; font-weight: 600; font-size: 11px; cursor: pointer;">✕ Reject</button>
-                `;
-            } else {
-                actionButtonsHTML = `
-                    <div style="flex: 2; display: flex; align-items: center; justify-content: center; background-color: #F3F4F6; color: #9CA3AF; border-radius: 8px; font-weight: 600; font-size: 11px; padding: 8px;">Processed: ${statusLabel}</div>
-                `;
-            }
-
-            rowItem.style.cssText = `background-color: #FFFFFF; padding: 14px; border-radius: 14px; box-shadow: 0 4px 10px rgba(0,0,0,0.02); border-left: 5px solid ${statusBadgeColor}; display: flex; flex-direction: column; gap: 8px; margin-bottom: 4px; text-align: left;`;
-            rowItem.innerHTML = `
-                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                    <div><div style="font-size: 14px; font-weight: 700; color: #111827;">${order.customerName}</div><div style="font-size: 11px; color: #4B5563; font-weight: 500;">📞 ${order.customerPhone}</div></div>
-                    <span style="font-size: 10px; font-weight: 700; color: white; background-color: ${statusBadgeColor}; padding: 3px 8px; border-radius: 6px;">${statusLabel}</span>
-                </div>
-                <div style="font-size: 13px; color: #374151; font-weight: 500; line-height: 1.4; background-color: #F9FAFB; padding: 8px; border-radius: 8px;">${order.items}</div>
-                <div style="display: flex; gap: 8px; margin-top: 4px;">
-                    ${actionButtonsHTML}
-                    <button onclick="archiveTicket('${order.id}')" style="flex: ${order.status === 'PENDING' ? 'initial' : '1'}; background-color: #6B7280; color: white; border: none; padding: 8px 12px; border-radius: 8px; font-weight: 600; font-size: 11px; cursor: pointer;">Archive</button>
-                </div>
-            `;
-            ordersContainer.appendChild(rowItem);
-        });
+    orderRows.forEach((o) => {
+      if (o.status === 'ACCEPTED') {
+        totalRevenue += (o.total || 0);
+        completedCount++;
+      }
     });
-}
 
-// 🚀 ONESIGNAL CLIENT-TO-CLIENT PUSH LOGIC FOR TICKETS
-function updateTicketStatus(ticketId, targetState) { 
-    const doubleCheck = confirm(`Confirm Action:\n\nAre you sure you want to mark this order as ${targetState}?`);
-    if(!doubleCheck) return;
+    container.innerHTML = `
+      <div class="payment-summary-box">
+        <div style="font-size:0.85rem; color:#666; text-transform:uppercase; font-weight:700;">Active Orders Billing Total</div>
+        <div style="font-size:1.8rem; font-weight:800; color:#FF4B3A; margin:4px 0;">₹${totalRevenue}</div>
+        <div style="font-size:0.85rem; color:#2E7D32;">✔ ${completedCount} Orders Accepted</div>
+      </div>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin: 16px 0 10px 0;">
+        <h3 style="font-size:1rem; color:#2D2D2D; margin: 0;">Recent Billing Entries</h3>
+        <button type="button" class="btn-clear-menu" onclick="clearPaymentLedger()" style="padding: 6px 12px; font-size: 0.8rem; width: auto; flex: none;">🗑️ Clear Entries</button>
+      </div>
+    `;
 
-    // Fetch snapshot to secure hardware destination token
-    database.ref(`orders/${ticketId}`).once('value').then((snapshot) => {
-        const orderData = snapshot.val();
-        if (!orderData) return;
-
-        // Write status mutation update to system nodes
-        database.ref(`orders/${ticketId}`).update({ status: targetState }); 
-
-        const customerToken = orderData.oneSignalToken;
-        if (customerToken && customerToken !== "NOT_ALLOWED") {
-            let messageTitle = targetState === "ACCEPTED" ? "✅ Order Accepted!" : "❌ Order Update";
-            let messageBody = targetState === "ACCEPTED" 
-                ? "The kitchen has verified your ticket and is preparing your food." 
-                : "Your order was declined. Please check in with kitchen support.";
-
-            // Fire direct push authorization trigger array via fetch framework
-            fetch("https://api.onesignal.com/notifications", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json; charset=utf-8",
-                    "Authorization": "Basic YOUR_ONESIGNAL_REST_API_KEY" // 👈 Replace with real REST API Key
-                },
-                body: JSON.stringify({
-                    app_id: "YOUR_ONESIGNAL_APP_ID", // 👈 Replace with real OneSignal App ID
-                    include_subscription_ids: [customerToken], 
-                    headings: {"en": messageTitle},
-                    contents: {"en": messageBody},
-                    priority: 10
-                })
-            }).catch(err => console.error("OneSignal Fetch execution failed:", err));
-        }
+    orderRows.sort((a,b) => (b.timestamp || 0) - (a.timestamp || 0)).forEach((order) => {
+      const row = document.createElement('div');
+      row.className = 'customer-data-card';
+      row.innerHTML = `
+        <div>
+          <h4 style="font-size:0.98rem; color:#2D2D2D;">Order #${order.orderId} — ₹${order.total}</h4>
+          <div style="font-size:0.8rem; color:#666;">${order.customerName || 'Guest'} (${order.customerMobile || 'N/A'})</div>
+        </div>
+        <span style="font-weight:700; font-size:0.85rem; color:#FF4B3A;">${order.status}</span>
+      `;
+      container.appendChild(row);
     });
+  });
 }
 
-function archiveTicket(ticketId) { database.ref(`orders/${ticketId}`).update({ archived: true }); }
+window.addEventListener('popstate', () => {
+  if (isKitchenMode) {
+    if (window.location.hash === '#kitchen') {
+      closeKitchenSubPage(false);
+    } else if (window.location.hash !== '#kitchen-customers' && window.location.hash !== '#kitchen-payments') {
+      exitKitchenMode(false);
+    }
+  }
+});
 
-let blackoutStateMemory = isKitchenBlackoutActive();
+// ==========================================================================
+// 14. LIVE KITCHEN ORDER LISTENER (v55)
+// ==========================================================================
+function listenForKitchenOrders() {
+  if (!db) return;
+  const ordersContainer = document.getElementById('kitchen-orders-container');
+  
+  db.ref('orders').on('value', (snapshot) => {
+    if (!ordersContainer) return;
+    ordersContainer.innerHTML = '';
 
-window.addEventListener('DOMContentLoaded', () => {
-    setTimeout(() => { if (!installPromptSupported) initNotificationGestureCheck(); }, 2000);
-    listenToOrderHistory();
+    const orders = snapshot.val();
+    if (!orders) {
+      ordersContainer.innerHTML = `<p style="text-align:center; padding:20px; color:#666;">No active incoming orders.</p>`;
+      return;
+    }
+
+    const ordersArray = Object.keys(orders).map(key => ({
+      firebaseKey: key,
+      ...orders[key]
+    })).filter(order => !order.archived);
+
+    if (ordersArray.length === 0) {
+      ordersContainer.innerHTML = `<p style="text-align:center; padding:20px; color:#666;">No active incoming orders.</p>`;
+      return;
+    }
+
+    ordersArray.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+
+    ordersArray.forEach((order) => {
+      const card = document.createElement('div');
+      card.className = 'order-card';
+      
+      const itemsListHtml = order.items
+        .map(i => `<p style="margin: 4px 0;"><strong>${i.quantity}x</strong> ${i.name}</p>`)
+        .join('');
+
+      const statusColors = {
+        PENDING: '#EF6C00',
+        ACCEPTED: '#2E7D32',
+        REJECTED: '#C62828'
+      };
+      const statusColor = statusColors[order.status] || '#FF4B3A';
+
+      let actionButtonsHtml = '';
+      if (order.status === 'PENDING') {
+        actionButtonsHtml = `
+          <button class="btn-action btn-accept" onclick="acceptOrder('${order.firebaseKey}')">Accept</button>
+          <button class="btn-action btn-deny" onclick="rejectOrder('${order.firebaseKey}')">Reject</button>
+        `;
+      } else {
+        actionButtonsHtml = `
+          <button class="btn-action" style="background: #EAEAEA; color: #555;" onclick="removeTicket('${order.firebaseKey}')">Remove Ticket</button>
+        `;
+      }
+
+      card.innerHTML = `
+        <div class="order-header">
+          <div>
+            <div style="font-size: 1.05rem;">Order #${order.orderId}</div>
+            <div style="font-size: 0.85rem; color: #444; margin-top: 3px; font-weight: 500;">
+              👤 <strong>${order.customerName || 'Guest'}</strong> (${order.customerMobile || 'N/A'})
+            </div>
+          </div>
+          <span style="color: ${statusColor}; font-weight: 700;">${order.status}</span>
+        </div>
+        <div class="order-body" style="margin: 6px 0 12px 0;">
+          ${itemsListHtml}
+          <p style="margin-top: 8px; font-weight: bold;">Total: ₹${order.total}</p>
+        </div>
+        <div class="order-actions">
+          ${actionButtonsHtml}
+        </div>
+      `;
+
+      ordersContainer.appendChild(card);
+    });
+  });
+}
+
+// ==========================================================================
+// 15. TARGETED ORDER ACTIONS WITH BULLETPROOF LOOKUP (v55)
+// ==========================================================================
+async function acceptOrder(firebaseKey) {
+  if (!db) return;
+  try {
+    await db.ref(`orders/${firebaseKey}`).update({ status: 'ACCEPTED' });
     
-    setInterval(() => { 
-        const currentlyBlackedOut = isKitchenBlackoutActive();
-        if (currentlyBlackedOut !== blackoutStateMemory) {
-            blackoutStateMemory = currentlyBlackedOut;
-            if (currentlyBlackedOut) enforceBlackoutUILayout();
-            else renderCustomerMenu();
-        } else if (currentlyBlackedOut) {
-            enforceBlackoutUILayout();
-        }
-    }, 5000);
-});
-
-window.addEventListener('popstate', (event) => {
-    if (isConsoleViewActive && window.location.hash !== '#console') {
-        isConsoleViewActive = false;
-        history.replaceState(null, '', window.location.pathname + window.location.search);
-        window.location.reload();
+    const snap = await db.ref(`orders/${firebaseKey}`).once('value');
+    const order = snap.val();
+    if (order) {
+      const targetSub = await resolveTargetSubscription(order);
+      if (targetSub) {
+        sendTargetedRenderPush(targetSub, "Order Accepted ✅", `Hi ${order.customerName}, your order #${order.orderId} has been accepted and is being prepared!`);
+      }
     }
-});
+  } catch (error) {
+    console.error("Error accepting order:", error);
+    alert("Could not update order status.");
+  }
+}
+
+async function rejectOrder(firebaseKey) {
+  if (!db) return;
+  if (confirm("Reject this order? The customer will be notified.")) {
+    try {
+      await db.ref(`orders/${firebaseKey}`).update({ status: 'REJECTED' });
+      
+      const snap = await db.ref(`orders/${firebaseKey}`).once('value');
+      const order = snap.val();
+      if (order) {
+        const targetSub = await resolveTargetSubscription(order);
+        if (targetSub) {
+          sendTargetedRenderPush(targetSub, "Order Rejected ❌", `Sorry ${order.customerName}, your order #${order.orderId} was declined by the kitchen.`);
+        }
+      }
+    } catch (error) {
+      console.error("Error rejecting order:", error);
+      alert("Could not update order status.");
+    }
+  }
+}
+
+async function removeTicket(firebaseKey) {
+  if (!db) return;
+  try {
+    await db.ref(`orders/${firebaseKey}`).update({ archived: true });
+  } catch (error) {
+    console.error("Error removing ticket from screen:", error);
+  }
+}
+
+// ==========================================================================
+// 16. INITIALIZE APP ON DOM READY
+// ==========================================================================
+function initFoodiesPoint() {
+  enforceInstallGate();
+  checkDaily6PMReset();
+  listenForCustomerLiveMenu();
+  renderCustomerOrderHistory();
+  listenForCustomerOrderUpdates();
+  
+  // NEW: Automatically restores tokens to Firebase in the background
+  autoSyncPushToken();
+
+  setInterval(() => {
+    checkDaily6PMReset();
+    if (!isKitchenMode && latestFirebaseMenuSnapshot) {
+      renderCustomerMenuFromSnapshot(latestFirebaseMenuSnapshot);
+    }
+  }, 30000);
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initFoodiesPoint);
+} else {
+  initFoodiesPoint();
+}
