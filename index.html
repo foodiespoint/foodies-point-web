@@ -6,9 +6,9 @@
   <title>Foodies Point</title>
 
   <!-- ====================================================================== -->
-  <!-- 1. PWA MANIFEST & THEME CONFIGURATION (v59)                            -->
+  <!-- 1. PWA MANIFEST & THEME CONFIGURATION (v60)                            -->
   <!-- ====================================================================== -->
-  <link rel="manifest" href="/manifest.json?v=59">
+  <link rel="manifest" href="/manifest.json?v=60">
   <meta name="theme-color" content="#FF4B3A">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -23,7 +23,7 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 
   <!-- ====================================================================== -->
-  <!-- 3. EMBEDDED MOBILE-FIRST PWA STYLES (v59)                              -->
+  <!-- 3. EMBEDDED MOBILE-FIRST PWA STYLES (v60)                              -->
   <!-- ====================================================================== -->
   <style>
     :root {
@@ -526,7 +526,7 @@
       color: #C62828;
     }
 
-    /* Primary Action - Highlighted Enable Button */
+    /* Primary Action - Highlighted Button */
     .btn-action.btn-complete {
       background: var(--primary-color);
       color: var(--white);
@@ -537,19 +537,6 @@
 
     .btn-action.btn-complete:active {
       transform: scale(0.97);
-    }
-
-    /* Secondary Action - Dimmed / Reduced Opacity "Not Now" Button */
-    .btn-action-dim {
-      background: #F0F0F0;
-      color: #777777;
-      opacity: 0.6;
-      font-weight: 500;
-      transition: opacity 0.2s ease;
-    }
-
-    .btn-action-dim:hover, .btn-action-dim:active {
-      opacity: 0.9;
     }
 
     .kitchen-subpage {
@@ -703,7 +690,7 @@
       position: fixed;
       inset: 0;
       background: rgba(0, 0, 0, 0.5);
-      z-index: 2000;
+      z-index: 3000;
       justify-content: center;
       align-items: center;
     }
@@ -807,7 +794,7 @@
 
       <div class="header-right-group">
         <button class="btn-icon" id="header-notify-btn" onclick="openAlertsModal()" aria-label="Notifications">🔔</button>
-        <span id="kitchen-version-badge">v59</span>
+        <span id="kitchen-version-badge">v60</span>
         <button class="btn-kitchen" id="header-exit-btn" onclick="exitKitchenMode(true)" style="display: none;">Exit</button>
       </div>
     </header>
@@ -894,7 +881,26 @@
     </div>
   </aside>
 
-  <!-- Notification Permission Modal (UPDATED BUTTONS) -->
+  <!-- ====================================================================== -->
+  <!-- 6. UNDISMISSABLE ONBOARDING MODALS (v60)                               -->
+  <!-- ====================================================================== -->
+  
+  <div class="modal-overlay" id="profile-modal">
+    <div class="modal-card">
+      <h3>Customer Details</h3>
+      <p style="font-size: 0.85rem; color: #666; margin-top: 4px;">Enter your details to register and order</p>
+      
+      <div class="form-field-group">
+        <input type="text" id="cust-name-input" placeholder="Your Full Name" maxlength="40">
+        <input type="tel" id="cust-mobile-input" placeholder="10-digit Mobile Number" maxlength="10">
+      </div>
+
+      <div style="display: flex;">
+        <button class="btn-action btn-complete" style="width: 100%;" onclick="saveCustomerProfile()">Save & Continue</button>
+      </div>
+    </div>
+  </div>
+
   <div class="modal-overlay" id="notification-permission-modal">
     <div class="modal-card">
       <div style="font-size: 2.8rem; margin-bottom: 8px;">🔔</div>
@@ -903,9 +909,8 @@
         Get real-time updates when your order is accepted, ready for pickup, or when today's live menu goes live!
       </p>
       
-      <div style="display: flex; gap: 8px;">
-        <button class="btn-action btn-action-dim" onclick="closeNotificationModal()">Not Now</button>
-        <button class="btn-action btn-complete" onclick="requestPushAccess()">🔔 Allow Notifications</button>
+      <div style="display: flex;">
+        <button class="btn-action btn-complete" style="width: 100%;" onclick="requestPushAccess()">🔔 Enable Notifications</button>
       </div>
     </div>
   </div>
@@ -927,23 +932,6 @@
     </div>
   </div>
 
-  <div class="modal-overlay" id="profile-modal">
-    <div class="modal-card">
-      <h3>Customer Details</h3>
-      <p style="font-size: 0.85rem; color: #666; margin-top: 4px;">Enter your details once for order tracking</p>
-      
-      <div class="form-field-group">
-        <input type="text" id="cust-name-input" placeholder="Your Full Name" maxlength="40">
-        <input type="tel" id="cust-mobile-input" placeholder="10-digit Mobile Number" maxlength="10">
-      </div>
-
-      <div style="display: flex; gap: 8px;">
-        <button class="btn-action" style="background: #EAEAEA;" onclick="closeProfileModal()">Cancel</button>
-        <button class="btn-action btn-complete" onclick="saveProfileAndPlaceOrder()">Save & Order</button>
-      </div>
-    </div>
-  </div>
-
-  <script src="/app.js?v=59"></script>
+  <script src="/app.js?v=60"></script>
 </body>
 </html>
