@@ -1,17 +1,38 @@
 {
+  "id": "/foodies-point-beta/",
+  "start_url": "/foodies-point-beta/index.html",
+  "scope": "/foodies-point-beta/",
   "name": "Foodies Point",
-  "short_name": "Foodies Live",
-  "start_url": "index.html?v=2",
+  "short_name": "Foodies Point",
+  "version": "0.0.1",
+  "description": "Seamless food ordering with real-time tracking and live kitchen menu sync.",
   "display": "standalone",
-  "background_color": "#F5F5F8",
+  "orientation": "portrait-primary",
+  "background_color": "#FFFFFF",
   "theme_color": "#FF4B3A",
-  "description": "Order delicious food instantly.",
+  "categories": [
+    "food",
+    "shopping"
+  ],
+  "prefer_related_applications": false,
   "icons": [
+    {
+      "src": "icon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
     {
       "src": "icon.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
+    },
+    {
+      "src": "icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }
