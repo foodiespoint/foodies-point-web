@@ -1,7 +1,7 @@
 // ==========================================================================
-// 1. FIREBASE & RENDER VAPID CONFIGURATION (v56 - PRODUCTION)
+// 1. FIREBASE & RENDER VAPID CONFIGURATION (v57 - PRODUCTION)
 // ==========================================================================
-const CURRENT_APP_VERSION = "v56";
+const CURRENT_APP_VERSION = "v57";
 const VAPID_PUBLIC_KEY = "BCYZCGMueIWWUU7cA2m4-fmHK0gEbmwqfSMHyzXr4AGdyhDi53mct0OoEfnPttK-1D3LV8guB3-RtfFYABa82bo";
 const RENDER_BACKEND_URL = "https://foodies-backend-9vvj.onrender.com";
 
@@ -287,7 +287,7 @@ if ('serviceWorker' in navigator) {
 }
 
 // ==========================================================================
-// 5. STANDALONE DETECTION & INSTALLATION ENGINE
+// 5. STANDALONE DETECTION & INSTALLATION ENGINE (v57 UPDATED)
 // ==========================================================================
 let deferredInstallPrompt = null;
 
@@ -303,8 +303,19 @@ function triggerAppInstall() {
       deferredInstallPrompt = null;
     });
   } else {
+    // If the browser blocks auto-install (like iOS or unready Android), update button visually!
+    const installBtn = document.getElementById('btn-native-install');
+    if (installBtn) {
+      installBtn.textContent = "See Instructions Below 👇";
+      installBtn.style.background = "#EAEAEA";
+      installBtn.style.color = "#333";
+      installBtn.style.boxShadow = "none";
+    }
+
     const guide = document.getElementById('install-manual-guide');
-    if (guide) guide.style.display = 'block';
+    if (guide) {
+      guide.style.display = 'block';
+    }
   }
 }
 
