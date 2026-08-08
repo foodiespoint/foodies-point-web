@@ -6,9 +6,9 @@
   <title>Foodies Point</title>
 
   <!-- ====================================================================== -->
-  <!-- 1. PWA MANIFEST & THEME CONFIGURATION (v58 - RENDER ROOT FIX)          -->
+  <!-- 1. PWA MANIFEST & THEME CONFIGURATION (v59)                            -->
   <!-- ====================================================================== -->
-  <link rel="manifest" href="/manifest.json?v=58">
+  <link rel="manifest" href="/manifest.json?v=59">
   <meta name="theme-color" content="#FF4B3A">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -23,7 +23,7 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 
   <!-- ====================================================================== -->
-  <!-- 3. EMBEDDED MOBILE-FIRST PWA STYLES (v58)                              -->
+  <!-- 3. EMBEDDED MOBILE-FIRST PWA STYLES (v59)                              -->
   <!-- ====================================================================== -->
   <style>
     :root {
@@ -526,6 +526,32 @@
       color: #C62828;
     }
 
+    /* Primary Action - Highlighted Enable Button */
+    .btn-action.btn-complete {
+      background: var(--primary-color);
+      color: var(--white);
+      font-weight: 700;
+      box-shadow: 0 3px 10px rgba(255, 75, 58, 0.3);
+      transition: transform 0.15s ease, opacity 0.15s ease;
+    }
+
+    .btn-action.btn-complete:active {
+      transform: scale(0.97);
+    }
+
+    /* Secondary Action - Dimmed / Reduced Opacity "Not Now" Button */
+    .btn-action-dim {
+      background: #F0F0F0;
+      color: #777777;
+      opacity: 0.6;
+      font-weight: 500;
+      transition: opacity 0.2s ease;
+    }
+
+    .btn-action-dim:hover, .btn-action-dim:active {
+      opacity: 0.9;
+    }
+
     .kitchen-subpage {
       display: none;
       position: fixed;
@@ -781,7 +807,7 @@
 
       <div class="header-right-group">
         <button class="btn-icon" id="header-notify-btn" onclick="openAlertsModal()" aria-label="Notifications">🔔</button>
-        <span id="kitchen-version-badge">v58</span>
+        <span id="kitchen-version-badge">v59</span>
         <button class="btn-kitchen" id="header-exit-btn" onclick="exitKitchenMode(true)" style="display: none;">Exit</button>
       </div>
     </header>
@@ -868,6 +894,7 @@
     </div>
   </aside>
 
+  <!-- Notification Permission Modal (UPDATED BUTTONS) -->
   <div class="modal-overlay" id="notification-permission-modal">
     <div class="modal-card">
       <div style="font-size: 2.8rem; margin-bottom: 8px;">🔔</div>
@@ -877,7 +904,7 @@
       </p>
       
       <div style="display: flex; gap: 8px;">
-        <button class="btn-action" style="background: #EAEAEA;" onclick="closeNotificationModal()">Not Now</button>
+        <button class="btn-action btn-action-dim" onclick="closeNotificationModal()">Not Now</button>
         <button class="btn-action btn-complete" onclick="requestPushAccess()">🔔 Allow Notifications</button>
       </div>
     </div>
@@ -917,6 +944,6 @@
     </div>
   </div>
 
-  <script src="/app.js?v=58"></script>
+  <script src="/app.js?v=59"></script>
 </body>
 </html>
