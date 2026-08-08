@@ -6,15 +6,15 @@
   <title>Foodies Point</title>
 
   <!-- ====================================================================== -->
-  <!-- 1. PWA MANIFEST & THEME CONFIGURATION (v55)                            -->
+  <!-- 1. PWA MANIFEST & THEME CONFIGURATION (v56 - PRODUCTION)               -->
   <!-- ====================================================================== -->
-  <link rel="manifest" href="/foodies-point-beta/manifest.json?v=55">
+  <link rel="manifest" href="/foodies-point-web/manifest.json?v=56">
   <meta name="theme-color" content="#FF4B3A">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Foodies Point">
-  <link rel="apple-touch-icon" href="/foodies-point-beta/icon.png">
-  <link rel="icon" type="image/png" href="/foodies-point-beta/icon.png">
+  <link rel="apple-touch-icon" href="/foodies-point-web/icon.png">
+  <link rel="icon" type="image/png" href="/foodies-point-web/icon.png">
 
   <!-- ====================================================================== -->
   <!-- 2. EXTERNAL SDKS (Firebase Only)                                       -->
@@ -23,7 +23,7 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 
   <!-- ====================================================================== -->
-  <!-- 3. EMBEDDED MOBILE-FIRST PWA STYLES (v55)                              -->
+  <!-- 3. EMBEDDED MOBILE-FIRST PWA STYLES (v56)                              -->
   <!-- ====================================================================== -->
   <style>
     :root {
@@ -765,7 +765,7 @@
   </div>
 
   <!-- ====================================================================== -->
-  <!-- 5. MASTER APP CONTAINER (v55)                                          -->
+  <!-- 5. MASTER APP CONTAINER (v56 - PRODUCTION)                             -->
   <!-- ====================================================================== -->
   <div id="main-app-content">
 
@@ -780,7 +780,7 @@
 
       <div class="header-right-group">
         <button class="btn-icon" id="header-notify-btn" onclick="openAlertsModal()" aria-label="Notifications">🔔</button>
-        <span id="kitchen-version-badge">v55</span>
+        <span id="kitchen-version-badge">v56</span>
         <button class="btn-kitchen" id="header-exit-btn" onclick="exitKitchenMode(true)" style="display: none;">Exit</button>
       </div>
     </header>
@@ -916,6 +916,6 @@
     </div>
   </div>
 
-  <script src="/foodies-point-beta/app.js?v=55"></script>
+  <script src="/foodies-point-web/app.js?v=56"></script>
 </body>
 </html>
