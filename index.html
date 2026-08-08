@@ -6,15 +6,15 @@
   <title>Foodies Point</title>
 
   <!-- ====================================================================== -->
-  <!-- 1. PWA MANIFEST & THEME CONFIGURATION (v57 - PRODUCTION)               -->
+  <!-- 1. PWA MANIFEST & THEME CONFIGURATION (v58 - RENDER ROOT FIX)          -->
   <!-- ====================================================================== -->
-  <link rel="manifest" href="/foodies-point-web/manifest.json?v=57">
+  <link rel="manifest" href="/manifest.json?v=58">
   <meta name="theme-color" content="#FF4B3A">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Foodies Point">
-  <link rel="apple-touch-icon" href="/foodies-point-web/icon.png">
-  <link rel="icon" type="image/png" href="/foodies-point-web/icon.png">
+  <link rel="apple-touch-icon" href="/icon.png">
+  <link rel="icon" type="image/png" href="/icon.png">
 
   <!-- ====================================================================== -->
   <!-- 2. EXTERNAL SDKS (Firebase Only)                                       -->
@@ -23,7 +23,7 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 
   <!-- ====================================================================== -->
-  <!-- 3. EMBEDDED MOBILE-FIRST PWA STYLES (v57)                              -->
+  <!-- 3. EMBEDDED MOBILE-FIRST PWA STYLES (v58)                              -->
   <!-- ====================================================================== -->
   <style>
     :root {
@@ -748,19 +748,17 @@
 <body>
 
   <!-- ====================================================================== -->
-  <!-- 4. IRREMOVABLE INSTALL GATE OVERLAY (v57 UPDATED)                      -->
+  <!-- 4. IRREMOVABLE INSTALL GATE OVERLAY                                    -->
   <!-- ====================================================================== -->
   <div id="install-gate-overlay">
     <div class="install-modal-card">
       <h2>Install Foodies Point</h2>
-      <!-- Removed "on your home screen" -->
       <p id="install-instruction-text">Install the app to view today's live menu and order food.</p>
       
       <button id="btn-native-install" class="btn-publish" onclick="triggerAppInstall()">
         📲 Install App Now
       </button>
 
-      <!-- Removed "Add to Home Screen" text -->
       <div id="install-manual-guide" style="display:none; margin-top:14px; font-size:0.85rem; color:#555; line-height:1.4; background:#F8F9FA; padding:10px 12px; border-radius:8px; border:1px solid #EAEAEA;">
         Tap your browser menu <strong>(⋮ or Share ⎋)</strong> and select <strong>"Install App"</strong>.
       </div>
@@ -783,7 +781,7 @@
 
       <div class="header-right-group">
         <button class="btn-icon" id="header-notify-btn" onclick="openAlertsModal()" aria-label="Notifications">🔔</button>
-        <span id="kitchen-version-badge">v57</span>
+        <span id="kitchen-version-badge">v58</span>
         <button class="btn-kitchen" id="header-exit-btn" onclick="exitKitchenMode(true)" style="display: none;">Exit</button>
       </div>
     </header>
@@ -919,6 +917,6 @@
     </div>
   </div>
 
-  <script src="/foodies-point-web/app.js?v=57"></script>
+  <script src="/app.js?v=58"></script>
 </body>
 </html>
