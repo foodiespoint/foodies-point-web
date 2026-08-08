@@ -1,7 +1,7 @@
 // ==========================================================================
-// 1. FIREBASE & RENDER VAPID CONFIGURATION (v55)
+// 1. FIREBASE & RENDER VAPID CONFIGURATION (v56 - PRODUCTION)
 // ==========================================================================
-const CURRENT_APP_VERSION = "v55";
+const CURRENT_APP_VERSION = "v56";
 const VAPID_PUBLIC_KEY = "BCYZCGMueIWWUU7cA2m4-fmHK0gEbmwqfSMHyzXr4AGdyhDi53mct0OoEfnPttK-1D3LV8guB3-RtfFYABa82bo";
 const RENDER_BACKEND_URL = "https://foodies-backend-9vvj.onrender.com";
 
@@ -60,7 +60,7 @@ function checkDaily6PMReset() {
 }
 
 // ==========================================================================
-// 3. FAIL-PROOF PUSH SUBSCRIPTION & AUTO-REPAIR ENGINE (v55)
+// 3. FAIL-PROOF PUSH SUBSCRIPTION & AUTO-REPAIR ENGINE
 // ==========================================================================
 function urlBase64ToUint8Array(base64String) {
   const padding = '='.repeat((4 - base64String.length % 4) % 4);
@@ -73,7 +73,6 @@ function urlBase64ToUint8Array(base64String) {
   return outputArray;
 }
 
-// AUTO-REPAIR: Silently restores deleted tokens when app is opened
 async function autoSyncPushToken() {
   if ('serviceWorker' in navigator && 'PushManager' in window && Notification.permission === 'granted') {
     try {
@@ -89,11 +88,9 @@ async function autoSyncPushToken() {
         const subJson = sub.toJSON();
         localStorage.setItem('fp_push_sub_cached', JSON.stringify(subJson));
         
-        // Save to global list (for Live Menu Broadcasts)
         const dbKey = btoa(subJson.endpoint).replace(/[.#$/\[\]]/g, "_");
         db.ref(`pushSubscriptions/${dbKey}`).set(subJson);
         
-        // Link to Customer Profile (for Targeted Order Alerts)
         const profileStr = localStorage.getItem('fp_customer_profile');
         if (profileStr) {
            const profile = JSON.parse(profileStr);
@@ -238,7 +235,6 @@ async function sendTargetedRenderPush(subscription, title, message) {
   }
 }
 
-// THE MAGNET FIX: Looks ONLY at the order ticket or the customer's personal profile!
 async function resolveTargetSubscription(order) {
   if (order.pushSubscription && order.pushSubscription.endpoint) {
     return order.pushSubscription;
@@ -252,18 +248,18 @@ async function resolveTargetSubscription(order) {
       console.error("Subscription fallback lookup error:", e);
     }
   }
-  return null; // NO GUESSING! If we can't find their token, it aborts silently.
+  return null;
 }
 
 // ==========================================================================
-// 4. SERVICE WORKER REGISTRATION
+// 4. SERVICE WORKER REGISTRATION (Production Path)
 // ==========================================================================
 let swRegistration = null;
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/foodies-point-beta/sw.js', {
-      scope: '/foodies-point-beta/'
+    navigator.serviceWorker.register('/foodies-point-web/sw.js', {
+      scope: '/foodies-point-web/'
     })
     .then((reg) => {
       swRegistration = reg;
@@ -699,7 +695,7 @@ function updateQuantity(dishId, change) {
 }
 
 // ==========================================================================
-// 11. ORDER SUBMISSION & TARGETED SUBSCRIPTION ENGINE (v55)
+// 11. ORDER SUBMISSION & TARGETED SUBSCRIPTION ENGINE
 // ==========================================================================
 function syncCustomerVersionToFirebase(profile) {
   if (!db || !profile || !profile.mobile) return;
@@ -909,7 +905,7 @@ function listenForCustomerOrderUpdates() {
 }
 
 // ==========================================================================
-// 12. KITCHEN LOGIN & NAVIGATION (v55)
+// 12. KITCHEN LOGIN & NAVIGATION
 // ==========================================================================
 const KITCHEN_PIN = "validatefoodies2026";
 let isKitchenMode = false;
@@ -1016,7 +1012,7 @@ function exitKitchenMode(triggerHistoryBack = true) {
 }
 
 // ==========================================================================
-// 13. DEDICATED KITCHEN SUB-PAGES & ATOMIC LEDGER WIPE ENGINE
+// 13. DEDICATED KITCHEN SUB-PAGES
 // ==========================================================================
 function openCustomerDataPage() {
   toggleKitchenDrawer(false);
@@ -1158,7 +1154,7 @@ window.addEventListener('popstate', () => {
 });
 
 // ==========================================================================
-// 14. LIVE KITCHEN ORDER LISTENER (v55)
+// 14. LIVE KITCHEN ORDER LISTENER
 // ==========================================================================
 function listenForKitchenOrders() {
   if (!db) return;
@@ -1238,7 +1234,7 @@ function listenForKitchenOrders() {
 }
 
 // ==========================================================================
-// 15. TARGETED ORDER ACTIONS WITH BULLETPROOF LOOKUP (v55)
+// 15. TARGETED ORDER ACTIONS
 // ==========================================================================
 async function acceptOrder(firebaseKey) {
   if (!db) return;
@@ -1299,7 +1295,6 @@ function initFoodiesPoint() {
   renderCustomerOrderHistory();
   listenForCustomerOrderUpdates();
   
-  // NEW: Automatically restores tokens to Firebase in the background
   autoSyncPushToken();
 
   setInterval(() => {
