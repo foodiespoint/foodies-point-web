@@ -1,18 +1,18 @@
 // ==========================================================================
-// FOODIES POINT SERVICE WORKER (v57 - PRODUCTION PATHS)
+// FOODIES POINT SERVICE WORKER (v58 - RENDER ROOT PATHS)
 // ==========================================================================
-const CACHE_NAME = 'fp-cache-v57';
+const CACHE_NAME = 'fp-cache-v58';
 
 const ASSETS_TO_CACHE = [
-  '/foodies-point-web/',
-  '/foodies-point-web/index.html?v=57',
-  '/foodies-point-web/app.js?v=57',
-  '/foodies-point-web/manifest.json?v=57',
-  '/foodies-point-web/icon.png'
+  '/',
+  '/index.html?v=58',
+  '/app.js?v=58',
+  '/manifest.json?v=58',
+  '/icon.png'
 ];
 
 self.addEventListener('install', (event) => {
-  console.log('[SW v57] Installing new service worker...');
+  console.log('[SW v58] Installing new service worker...');
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       return cache.addAll(ASSETS_TO_CACHE);
@@ -21,7 +21,7 @@ self.addEventListener('install', (event) => {
 });
 
 self.addEventListener('activate', (event) => {
-  console.log('[SW v57] Activating & wiping old caches...');
+  console.log('[SW v58] Activating & wiping old caches...');
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
@@ -36,7 +36,7 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('push', (event) => {
-  console.log('[SW v57] Native Push Event Received:', event);
+  console.log('[SW v58] Native Push Event Received:', event);
 
   let data = { title: "Foodies Point 🍛", body: "Today's live menu is updated!" };
   if (event.data) {
@@ -49,10 +49,10 @@ self.addEventListener('push', (event) => {
 
   const options = {
     body: data.body,
-    icon: '/foodies-point-web/icon.png',
-    badge: '/foodies-point-web/icon.png',
+    icon: '/icon.png',
+    badge: '/icon.png',
     vibrate: [100, 50, 100],
-    data: { url: '/foodies-point-web/' }
+    data: { url: '/' }
   };
 
   event.waitUntil(
@@ -63,7 +63,7 @@ self.addEventListener('push', (event) => {
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   event.waitUntil(
-    clients.openWindow(event.notification.data.url || '/foodies-point-web/')
+    clients.openWindow(event.notification.data.url || '/')
   );
 });
 
