@@ -6,9 +6,9 @@
   <title>Foodies Point</title>
 
   <!-- ====================================================================== -->
-  <!-- 1. PWA MANIFEST & THEME CONFIGURATION (v1 - OFFICIAL RELEASE)          -->
+  <!-- 1. PWA MANIFEST & THEME CONFIGURATION (v2 - PUSH FIX)                  -->
   <!-- ====================================================================== -->
-  <link rel="manifest" href="/manifest.json?v=1">
+  <link rel="manifest" href="/manifest.json?v=2">
   <meta name="theme-color" content="#FF4B3A">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -23,7 +23,7 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 
   <!-- ====================================================================== -->
-  <!-- 3. EMBEDDED MOBILE-FIRST PWA STYLES (v1)                               -->
+  <!-- 3. EMBEDDED MOBILE-FIRST PWA STYLES (v2)                               -->
   <!-- ====================================================================== -->
   <style>
     :root {
@@ -794,7 +794,7 @@
 
       <div class="header-right-group">
         <button class="btn-icon" id="header-notify-btn" onclick="openAlertsModal()" aria-label="Notifications">🔔</button>
-        <span id="kitchen-version-badge">v1</span>
+        <span id="kitchen-version-badge">v2</span>
         <button class="btn-kitchen" id="header-exit-btn" onclick="exitKitchenMode(true)" style="display: none;">Exit</button>
       </div>
     </header>
@@ -932,6 +932,6 @@
     </div>
   </div>
 
-  <script src="/app.js?v=1"></script>
+  <script src="/app.js?v=2"></script>
 </body>
 </html>
