@@ -1,7 +1,7 @@
 // ==========================================================================
-// 1. FIREBASE & RENDER VAPID CONFIGURATION (v60)
+// 1. FIREBASE & RENDER VAPID CONFIGURATION (v61)
 // ==========================================================================
-const CURRENT_APP_VERSION = "v60";
+const CURRENT_APP_VERSION = "v61";
 const VAPID_PUBLIC_KEY = "BCYZCGMueIWWUU7cA2m4-fmHK0gEbmwqfSMHyzXr4AGdyhDi53mct0OoEfnPttK-1D3LV8guB3-RtfFYABa82bo";
 const RENDER_BACKEND_URL = "https://foodies-backend-9vvj.onrender.com";
 
@@ -60,7 +60,7 @@ function checkDaily6PMReset() {
 }
 
 // ==========================================================================
-// 3. MANDATORY APP ONBOARDING & FAIL-PROOF PUSH ENGINE (v60)
+// 3. MANDATORY APP ONBOARDING & FAIL-PROOF PUSH ENGINE (v61)
 // ==========================================================================
 function urlBase64ToUint8Array(base64String) {
   const padding = '='.repeat((4 - base64String.length % 4) % 4);
@@ -186,6 +186,15 @@ async function getLocalPushSubscription() {
   return cached ? JSON.parse(cached) : null;
 }
 
+// SYNC KITCHEN PUSH SUBSCRIPTION (Allows Kitchen to get incoming order alerts)
+async function syncKitchenPushSubscription() {
+  const sub = await getLocalPushSubscription();
+  if (sub && db) {
+    const dbKey = btoa(sub.endpoint).replace(/[.#$/\[\]]/g, "_");
+    db.ref(`kitchenSubscriptions/${dbKey}`).set(sub);
+  }
+}
+
 async function openAlertsModal() {
   if (!('Notification' in window)) {
     alert("Push notifications are not supported on this browser/device.");
@@ -303,6 +312,28 @@ async function resolveTargetSubscription(order) {
     }
   }
   return null;
+}
+
+// ALERT KITCHEN OF NEW INCOMING ORDER
+async function notifyKitchenNewOrder(orderData) {
+  try {
+    const snap = await db.ref('kitchenSubscriptions').once('value');
+    const subsObj = snap.val();
+    if (!subsObj) return;
+
+    const subscriptions = Object.values(subsObj);
+    fetch(`${RENDER_BACKEND_URL}/api/broadcast`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: "New Order! 🔔",
+        message: `${orderData.customerName} just placed an order for ₹${orderData.total}`,
+        subscriptions
+      })
+    });
+  } catch(e) {
+    console.error("Failed to notify kitchen:", e);
+  }
 }
 
 // ==========================================================================
@@ -754,7 +785,7 @@ function updateQuantity(dishId, change) {
 }
 
 // ==========================================================================
-// 11. ORDER SUBMISSION ENGINE
+// 11. ORDER SUBMISSION ENGINE (UPDATED DATE STRINGS)
 // ==========================================================================
 async function placeOrder() {
   if (isDuringBreakWindow()) {
@@ -815,6 +846,9 @@ function executeFirebaseOrderSubmission(orderItems, totalAmount, customerProfile
 
   newOrderRef.set(orderData)
     .then(() => {
+      // INSTANT NOTIFICATION BLASTER TO THE KITCHEN
+      notifyKitchenNewOrder(orderData);
+      
       alert(`Order placed successfully! Your Order ID is #${orderData.orderId}`);
       
       const myOrder = {
@@ -863,11 +897,16 @@ function renderCustomerOrderHistory() {
       .map(i => `<strong>${i.quantity}x</strong> ${i.name}`)
       .join(', ');
 
-    const dateStr = new Date(myOrder.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    // UPDATED: Standard Localized Date & Time Format
+    const dateStr = new Date(myOrder.timestamp).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 
+    // UPDATED: Lighter Order ID
     card.innerHTML = `
       <div class="customer-order-header">
-        <span><strong>Order #${myOrder.orderId}</strong> (${dateStr})</span>
+        <div style="display: flex; flex-direction: column;">
+          <span style="font-weight: 700; font-size: 0.95rem; color: #2D2D2D;">${dateStr}</span>
+          <span style="font-size: 0.75rem; color: #888; margin-top: 2px;">Order ID: #${myOrder.orderId}</span>
+        </div>
         <span class="status-badge status-${myOrder.status}">${myOrder.status}</span>
       </div>
       <p style="font-size: 0.88rem; color: #444; margin-bottom: 6px; line-height: 1.4;">${itemsSummary}</p>
@@ -970,8 +1009,11 @@ function enterKitchenMode() {
 
   document.getElementById('kitchen-view').style.display = 'flex';
   
-  // Kitchen doesn't need to do onboarding
+  // Kitchen doesn't need to do customer onboarding
   checkAppOnboarding();
+  
+  // SILENTLY REGISTER KITCHEN DEVICE FOR NEW INCOMING ORDER PUSH NOTIFICATIONS
+  syncKitchenPushSubscription();
 
   if (db) {
     db.ref('dailyMenu').on('value', (snapshot) => {
@@ -1143,10 +1185,16 @@ function fetchAndRenderPaymentLedger() {
     orderRows.sort((a,b) => (b.timestamp || 0) - (a.timestamp || 0)).forEach((order) => {
       const row = document.createElement('div');
       row.className = 'customer-data-card';
+      
+      // UPDATED: Standard Localized Date & Time Format
+      const dateStr = new Date(order.timestamp).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+      
+      // UPDATED: Lighter Order ID
       row.innerHTML = `
-        <div>
-          <h4 style="font-size:0.98rem; color:#2D2D2D;">Order #${order.orderId} — ₹${order.total}</h4>
-          <div style="font-size:0.8rem; color:#666;">${order.customerName || 'Guest'} (${order.customerMobile || 'N/A'})</div>
+        <div style="flex: 1;">
+          <div style="font-size:0.9rem; font-weight: 700; color:#2D2D2D;">${dateStr} <span style="font-weight: normal; color: #888; font-size: 0.75rem; margin-left: 4px;">(#${order.orderId})</span></div>
+          <div style="font-size: 0.95rem; color: #FF4B3A; font-weight: 700; margin: 4px 0;">₹${order.total}</div>
+          <div style="font-size:0.8rem; color:#666;">👤 ${order.customerName || 'Guest'} (${order.customerMobile || 'N/A'})</div>
         </div>
         <span style="font-weight:700; font-size:0.85rem; color:#FF4B3A;">${order.status}</span>
       `;
@@ -1166,7 +1214,7 @@ window.addEventListener('popstate', () => {
 });
 
 // ==========================================================================
-// 14. LIVE KITCHEN ORDER LISTENER
+// 14. LIVE KITCHEN ORDER LISTENER (UPDATED DATE & LIGHTER ID)
 // ==========================================================================
 function listenForKitchenOrders() {
   if (!db) return;
@@ -1221,11 +1269,16 @@ function listenForKitchenOrders() {
         `;
       }
 
+      // UPDATED: Date String
+      const dateStr = new Date(order.timestamp).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+      // UPDATED: Lighter Order ID
       card.innerHTML = `
         <div class="order-header">
           <div>
-            <div style="font-size: 1.05rem;">Order #${order.orderId}</div>
-            <div style="font-size: 0.85rem; color: #444; margin-top: 3px; font-weight: 500;">
+            <div style="font-size: 0.95rem; font-weight: 700; color: #2D2D2D;">${dateStr}</div>
+            <div style="font-size: 0.75rem; color: #888; margin-top: 2px;">Order ID: #${order.orderId}</div>
+            <div style="font-size: 0.85rem; color: #444; margin-top: 6px; font-weight: 500;">
               👤 <strong>${order.customerName || 'Guest'}</strong> (${order.customerMobile || 'N/A'})
             </div>
           </div>
