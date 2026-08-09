@@ -5,10 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Foodies Point</title>
 
-  <!-- ====================================================================== -->
-  <!-- 1. PWA MANIFEST & THEME CONFIGURATION (v2 - PUSH FIX)                  -->
-  <!-- ====================================================================== -->
-  <link rel="manifest" href="/manifest.json?v=2">
+  <link rel="manifest" href="/manifest.json?v=3">
   <meta name="theme-color" content="#FF4B3A">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -16,15 +13,9 @@
   <link rel="apple-touch-icon" href="/icon.png">
   <link rel="icon" type="image/png" href="/icon.png">
 
-  <!-- ====================================================================== -->
-  <!-- 2. EXTERNAL SDKS (Firebase Only)                                       -->
-  <!-- ====================================================================== -->
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 
-  <!-- ====================================================================== -->
-  <!-- 3. EMBEDDED MOBILE-FIRST PWA STYLES (v2)                               -->
-  <!-- ====================================================================== -->
   <style>
     :root {
       --primary-color: #FF4B3A;
@@ -142,7 +133,7 @@
       transform: translateX(-50%);
     }
 
-    .btn-back-arrow {
+    .btn-back-arrow, .btn-icon {
       border: 1px solid var(--border-color);
       background: var(--bg-light);
       width: 36px;
@@ -158,34 +149,10 @@
       padding-bottom: 2px;
     }
 
-    .btn-icon {
-      border: 1px solid var(--border-color);
-      background: var(--bg-light);
-      width: 36px;
-      height: 34px;
-      border-radius: 17px;
-      font-size: 1.1rem;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      padding-bottom: 2px;
-    }
-
-    .btn-kitchen {
+    .btn-kitchen, .btn-kitchen-menu {
       border: 1px solid var(--border-color);
       background: var(--bg-light);
       padding: 6px 14px;
-      border-radius: 20px;
-      font-size: 0.82rem;
-      font-weight: 600;
-      cursor: pointer;
-    }
-
-    .btn-kitchen-menu {
-      border: 1px solid var(--border-color);
-      background: var(--bg-light);
-      padding: 6px 12px;
       border-radius: 20px;
       font-size: 0.82rem;
       font-weight: 600;
@@ -516,17 +483,9 @@
       cursor: pointer;
     }
 
-    .btn-accept {
-      background: #E8F5E9;
-      color: #2E7D32;
-    }
+    .btn-accept { background: #E8F5E9; color: #2E7D32; }
+    .btn-deny { background: #FFEBEE; color: #C62828; }
 
-    .btn-deny {
-      background: #FFEBEE;
-      color: #C62828;
-    }
-
-    /* Primary Action - Highlighted Button */
     .btn-action.btn-complete {
       background: var(--primary-color);
       color: var(--white);
@@ -535,9 +494,7 @@
       transition: transform 0.15s ease, opacity 0.15s ease;
     }
 
-    .btn-action.btn-complete:active {
-      transform: scale(0.97);
-    }
+    .btn-action.btn-complete:active { transform: scale(0.97); }
 
     .kitchen-subpage {
       display: none;
@@ -569,11 +526,7 @@
       z-index: 10;
     }
 
-    .subpage-header h2 {
-      color: var(--primary-color);
-      font-size: 1.25rem;
-      font-weight: 800;
-    }
+    .subpage-header h2 { color: var(--primary-color); font-size: 1.25rem; font-weight: 800; }
 
     .customer-data-card {
       background: var(--white);
@@ -615,10 +568,7 @@
       transition: opacity 0.25s ease;
     }
 
-    .kitchen-drawer-backdrop.active {
-      display: block;
-      opacity: 1;
-    }
+    .kitchen-drawer-backdrop.active { display: block; opacity: 1; }
 
     .kitchen-left-drawer {
       position: fixed;
@@ -635,9 +585,7 @@
       padding: 20px;
     }
 
-    .kitchen-left-drawer.open {
-      left: 0;
-    }
+    .kitchen-left-drawer.open { left: 0; }
 
     .drawer-header {
       display: flex;
@@ -648,11 +596,7 @@
       border-bottom: 1px solid var(--border-color);
     }
 
-    .drawer-header h3 {
-      color: var(--primary-color);
-      font-size: 1.15rem;
-      font-weight: 700;
-    }
+    .drawer-header h3 { color: var(--primary-color); font-size: 1.15rem; font-weight: 700; }
 
     .drawer-close-btn {
       background: transparent;
@@ -681,9 +625,7 @@
       transition: background 0.2s ease;
     }
 
-    .drawer-nav-item:active {
-      background: #EAEAEA;
-    }
+    .drawer-nav-item:active { background: #EAEAEA; }
 
     .modal-overlay {
       display: none;
@@ -704,10 +646,7 @@
       text-align: center;
     }
 
-    .passcode-input-wrapper {
-      position: relative;
-      margin: 16px 0;
-    }
+    .passcode-input-wrapper { position: relative; margin: 16px 0; }
 
     .passcode-input-wrapper input {
       width: 100%;
@@ -719,9 +658,7 @@
       outline: none;
     }
 
-    .passcode-input-wrapper input:focus {
-      border-color: var(--primary-color);
-    }
+    .passcode-input-wrapper input:focus { border-color: var(--primary-color); }
 
     .eye-toggle-btn {
       position: absolute;
@@ -744,17 +681,25 @@
       text-align: left;
     }
 
-    .form-field-group input {
+    .form-field-group input, .form-field-group select {
       width: 100%;
       padding: 11px 12px;
       border: 1px solid var(--border-color);
       border-radius: 8px;
       font-size: 0.98rem;
       outline: none;
+      background: var(--white);
     }
 
-    .form-field-group input:focus {
+    .form-field-group input:focus, .form-field-group select:focus {
       border-color: var(--primary-color);
+    }
+
+    .form-label {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #444;
+      margin-bottom: -4px;
     }
   </style>
 </head>
@@ -794,7 +739,7 @@
 
       <div class="header-right-group">
         <button class="btn-icon" id="header-notify-btn" onclick="openAlertsModal()" aria-label="Notifications">🔔</button>
-        <span id="kitchen-version-badge">v2</span>
+        <span id="kitchen-version-badge">v3</span>
         <button class="btn-kitchen" id="header-exit-btn" onclick="exitKitchenMode(true)" style="display: none;">Exit</button>
       </div>
     </header>
@@ -808,7 +753,7 @@
           </div>
         </div>
         <div class="customer-checkout-bar">
-          <button class="btn-place-order" id="btn-place-order" onclick="placeOrder()">Place Order</button>
+          <button class="btn-place-order" id="btn-place-order" onclick="openOrderOptionsModal()">Place Order</button>
         </div>
       </div>
 
@@ -867,13 +812,11 @@
       <h3>Kitchen Menu</h3>
       <button class="drawer-close-btn" onclick="toggleKitchenDrawer(false)" aria-label="Close Drawer">✕</button>
     </div>
-    
     <div class="drawer-content">
       <button type="button" class="drawer-nav-item" onclick="openCustomerDataPage()">
         <span>👥</span>
         <span>Customer Data</span>
       </button>
-
       <button type="button" class="drawer-nav-item" onclick="openPaymentDetailsPage()">
         <span>💳</span>
         <span>Customer Payment Details</span>
@@ -882,19 +825,60 @@
   </aside>
 
   <!-- ====================================================================== -->
-  <!-- 6. UNDISMISSABLE ONBOARDING MODALS                                     -->
+  <!-- 6. MODALS (Including new Order Options and Delivery Charge Modals)       -->
   <!-- ====================================================================== -->
+
+  <!-- Customer: Delivery or Takeaway & Schedule Time -->
+  <div class="modal-overlay" id="order-options-modal">
+    <div class="modal-card">
+      <h3>Order Details</h3>
+      <p style="font-size: 0.85rem; color: #666; margin-top: 4px;">How would you like your order?</p>
+      
+      <div class="form-field-group">
+        <span class="form-label">Order Type:</span>
+        <select id="order-type-select">
+          <option value="Takeaway">🥡 Takeaway (Pick up)</option>
+          <option value="Delivery">🚚 Delivery</option>
+        </select>
+
+        <span class="form-label" style="margin-top: 8px;">Preferred Time:</span>
+        <input type="time" id="order-time-input" required>
+      </div>
+
+      <div style="display: flex; gap: 8px;">
+        <button class="btn-action" style="background: #EAEAEA;" onclick="closeOrderOptionsModal()">Cancel</button>
+        <button class="btn-action btn-complete" onclick="finalizeOrderPlacement()">Confirm & Order</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Kitchen: Input Delivery Charge for Delivery Orders -->
+  <div class="modal-overlay" id="delivery-charge-modal">
+    <div class="modal-card">
+      <h3>Delivery Charge</h3>
+      <p style="font-size: 0.85rem; color: #666; margin-top: 4px;">This is a Delivery order. Enter the delivery fee to add to the total.</p>
+      
+      <div class="form-field-group">
+        <span class="form-label">Delivery Charge (₹):</span>
+        <input type="number" id="kitchen-delivery-fee-input" placeholder="e.g. 30" min="0">
+      </div>
+
+      <div style="display: flex; gap: 8px;">
+        <button class="btn-action" style="background: #EAEAEA;" onclick="closeDeliveryChargeModal()">Cancel</button>
+        <button class="btn-action btn-complete" onclick="confirmDeliveryAcceptance()">Add & Accept Order</button>
+      </div>
+    </div>
+  </div>
   
+  <!-- Onboarding Modals -->
   <div class="modal-overlay" id="profile-modal">
     <div class="modal-card">
       <h3>Customer Details</h3>
       <p style="font-size: 0.85rem; color: #666; margin-top: 4px;">Enter your details to register and order</p>
-      
       <div class="form-field-group">
         <input type="text" id="cust-name-input" placeholder="Your Full Name" maxlength="40">
         <input type="tel" id="cust-mobile-input" placeholder="10-digit Mobile Number" maxlength="10">
       </div>
-
       <div style="display: flex;">
         <button class="btn-action btn-complete" style="width: 100%;" onclick="saveCustomerProfile()">Save & Continue</button>
       </div>
@@ -908,7 +892,6 @@
       <p style="font-size: 0.9rem; color: #555; margin: 8px 0 18px 0; line-height: 1.4;">
         Get real-time updates when your order is accepted, ready for pickup, or when today's live menu goes live!
       </p>
-      
       <div style="display: flex;">
         <button class="btn-action btn-complete" style="width: 100%;" onclick="requestPushAccess()">🔔 Enable Notifications</button>
       </div>
@@ -919,12 +902,10 @@
     <div class="modal-card">
       <h3>Kitchen Console</h3>
       <p style="font-size: 0.85rem; color: #666; margin-top: 4px;">Enter security passcode to manage console</p>
-      
       <div class="passcode-input-wrapper">
         <input type="password" id="kitchen-pin-input" placeholder="Enter Kitchen Passcode" maxlength="30">
         <button type="button" class="eye-toggle-btn" id="toggle-passcode-eye" onclick="togglePasscodeVisibility()" aria-label="Toggle password visibility">👁️</button>
       </div>
-
       <div style="display: flex; gap: 8px;">
         <button class="btn-action" style="background: #EAEAEA;" onclick="closePINModal()">Cancel</button>
         <button class="btn-action btn-complete" onclick="verifyKitchenPIN()">Enter</button>
@@ -932,6 +913,6 @@
     </div>
   </div>
 
-  <script src="/app.js?v=2"></script>
+  <script src="/app.js?v=3"></script>
 </body>
 </html>
