@@ -1,7 +1,7 @@
 // ==========================================================================
-// 1. FIREBASE & RENDER VAPID CONFIGURATION (v61)
+// 1. FIREBASE & RENDER VAPID CONFIGURATION (v1 - OFFICIAL RELEASE)
 // ==========================================================================
-const CURRENT_APP_VERSION = "v61";
+const CURRENT_APP_VERSION = "v1";
 const VAPID_PUBLIC_KEY = "BCYZCGMueIWWUU7cA2m4-fmHK0gEbmwqfSMHyzXr4AGdyhDi53mct0OoEfnPttK-1D3LV8guB3-RtfFYABa82bo";
 const RENDER_BACKEND_URL = "https://foodies-backend-9vvj.onrender.com";
 
@@ -60,7 +60,7 @@ function checkDaily6PMReset() {
 }
 
 // ==========================================================================
-// 3. MANDATORY APP ONBOARDING & FAIL-PROOF PUSH ENGINE (v61)
+// 3. MANDATORY APP ONBOARDING & FAIL-PROOF PUSH ENGINE
 // ==========================================================================
 function urlBase64ToUint8Array(base64String) {
   const padding = '='.repeat((4 - base64String.length % 4) % 4);
@@ -73,7 +73,6 @@ function urlBase64ToUint8Array(base64String) {
   return outputArray;
 }
 
-// Chained Onboarding Logic 
 function checkAppOnboarding() {
   if (isKitchenMode) {
      document.getElementById('profile-modal').style.display = 'none';
@@ -126,7 +125,6 @@ function saveCustomerProfile() {
     }).catch(e => console.error(e));
   }
   
-  // Proceed instantly to the next mandatory step
   checkAppOnboarding();
 }
 
@@ -186,7 +184,6 @@ async function getLocalPushSubscription() {
   return cached ? JSON.parse(cached) : null;
 }
 
-// SYNC KITCHEN PUSH SUBSCRIPTION (Allows Kitchen to get incoming order alerts)
 async function syncKitchenPushSubscription() {
   const sub = await getLocalPushSubscription();
   if (sub && db) {
@@ -314,7 +311,6 @@ async function resolveTargetSubscription(order) {
   return null;
 }
 
-// ALERT KITCHEN OF NEW INCOMING ORDER
 async function notifyKitchenNewOrder(orderData) {
   try {
     const snap = await db.ref('kitchenSubscriptions').once('value');
@@ -337,7 +333,7 @@ async function notifyKitchenNewOrder(orderData) {
 }
 
 // ==========================================================================
-// 4. SERVICE WORKER REGISTRATION (Root Path for Render)
+// 4. SERVICE WORKER REGISTRATION
 // ==========================================================================
 let swRegistration = null;
 
@@ -418,7 +414,6 @@ function enforceInstallGate() {
     if (installGate) installGate.style.setProperty('display', 'none', 'important');
     if (appContent) appContent.style.setProperty('display', 'block', 'important');
     
-    // Launch the mandatory onboarding sequence as soon as the app opens
     setTimeout(() => {
       checkAppOnboarding();
     }, 500);
@@ -426,7 +421,7 @@ function enforceInstallGate() {
 }
 
 // ==========================================================================
-// 6. COMPLETE FOODIES POINT MENU (102 ITEMS - MASTER DATA)
+// 6. COMPLETE FOODIES POINT MENU (UPDATED v1 DATA)
 // ==========================================================================
 const MENU_ITEMS = [
   { id: 'dish-001', category: 'Rolls', name: 'Dahi Bread Roll (1 pc)', price: 15 },
@@ -441,96 +436,113 @@ const MENU_ITEMS = [
   { id: 'dish-010', category: 'Rolls', name: 'Chicken Mayonnaise Roll', price: 60 },
   { id: 'dish-011', category: 'Rolls', name: 'Chicken Egg Roll', price: 70 },
   { id: 'dish-012', category: 'Rolls', name: 'Chicken Egg Mayonnaise Roll', price: 75 },
-  { id: 'dish-013', category: 'Pakodi', name: 'Pyaaz ki Pakodi (250gm)', price: 60 },
-  { id: 'dish-014', category: 'Pakodi', name: 'Paalak ki Pakodi (250gm)', price: 60 },
-  { id: 'dish-015', category: 'Pakodi', name: 'Gobhi ki Pakodi (250gm)', price: 60 },
-  { id: 'dish-016', category: 'Pakodi', name: 'Mirch ki Pakodi', price: 15 },
-  { id: 'dish-017', category: 'Pakodi', name: 'Bread Pakoda', price: 20 },
-  { id: 'dish-018', category: 'Pakodi', name: 'Egg Pakodi', price: 10 },
-  { id: 'dish-019', category: 'Pakodi', name: 'Moong Daal ke Mongode (250gm)', price: 75 },
-  { id: 'dish-020', category: 'Sandwich', name: 'Veg Grilled Mayonnaise Sandwich (2 pc)', price: 55 },
-  { id: 'dish-021', category: 'Sandwich', name: 'Veg Cheese Sandwich (2 pc)', price: 60 },
-  { id: 'dish-022', category: 'Sandwich', name: 'Veg Sandwich', price: 18 },
-  { id: 'dish-023', category: 'Snacks', name: 'Chocolate Croissant', price: 48 },
-  { id: 'dish-024', category: 'Snacks', name: 'Zingy Parcel (Paneer)', price: 60 },
-  { id: 'dish-025', category: 'Snacks', name: 'Pizza Puff', price: 18 },
-  { id: 'dish-026', category: 'Snacks', name: 'Mini Pizza', price: 45 },
-  { id: 'dish-027', category: 'Snacks', name: 'Veg Burger', price: 50 },
-  { id: 'dish-028', category: 'Snacks', name: 'Aloo Patty', price: 17 },
-  { id: 'dish-029', category: 'Snacks', name: 'Paneer Patty', price: 25 },
-  { id: 'dish-030', category: 'Snacks', name: 'Veg Appe (per plate)', price: 65 },
-  { id: 'dish-031', category: 'Snacks', name: 'Phare (250gm)', price: 70 },
-  { id: 'dish-032', category: 'Snacks', name: 'Veg Masala Idli (per plate)', price: 45 },
-  { id: 'dish-033', category: 'Snacks', name: 'Fried Idli (per plate)', price: 50 },
-  { id: 'dish-034', category: 'Snacks', name: 'Poha (per plate)', price: 80 },
-  { id: 'dish-035', category: 'Snacks', name: 'Crispy Stuffed Mushroom (4 pc)', price: 65 },
-  { id: 'dish-036', category: 'Snacks', name: 'Aloo Bonda', price: 12 },
-  { id: 'dish-037', category: 'Snacks', name: 'Vada Pav', price: 25 },
-  { id: 'dish-038', category: 'Snacks', name: 'Cheese Balls (8 pc plate)', price: 80 },
-  { id: 'dish-039', category: 'Snacks', name: 'Masala Vada (8 pc plate)', price: 80 },
-  { id: 'dish-040', category: 'Snacks', name: 'Falafel Mushakkal Veg. Roll', price: 40 },
-  { id: 'dish-041', category: 'Snacks', name: 'Pani Poori (5 pc)', price: 15 },
-  { id: 'dish-042', category: 'Snacks', name: 'Tikki Chaat (per plate)', price: 55 },
-  { id: 'dish-043', category: 'Snacks', name: 'Dahi Vada (4 pc plate)', price: 60 },
-  { id: 'dish-044', category: 'Snacks', name: 'Raj Kachori (per plate)', price: 85 },
-  { id: 'dish-045', category: 'Snacks', name: 'Samosa', price: 12 },
-  { id: 'dish-046', category: 'Snacks', name: 'Paneer Tikka (per plate)', price: 240 },
-  { id: 'dish-047', category: 'Snacks', name: 'Paneer Malai Tikka (per plate)', price: 260 },
-  { id: 'dish-048', category: 'Chinese', name: 'Honey Chilli Potato', price: 90 },
-  { id: 'dish-049', category: 'Chinese', name: 'Chowmein', price: 80 },
-  { id: 'dish-050', category: 'Chinese', name: 'Macaroni', price: 80 },
-  { id: 'dish-051', category: 'Chinese', name: 'Fried Rice', price: 80 },
-  { id: 'dish-052', category: 'Chinese', name: 'Veg Manchurian', price: 80 },
-  { id: 'dish-053', category: 'Chinese', name: 'Paneer Manchurian', price: 160 },
-  { id: 'dish-054', category: 'Chinese', name: 'Chilli Paneer', price: 140 },
-  { id: 'dish-055', category: 'Chinese', name: 'Veg Momos (10 pc)', price: 55 },
-  { id: 'dish-056', category: 'Chinese', name: 'Paneer Momos (10 pc)', price: 75 },
-  { id: 'dish-057', category: 'Chinese', name: 'Chicken Momos (10 pc)', price: 100 },
-  { id: 'dish-058', category: 'Chinese', name: 'White Pasta', price: 100 },
-  { id: 'dish-059', category: 'Kebabs', name: 'Veg. Seekh Kebab', price: 15 },
-  { id: 'dish-060', category: 'Kebabs', name: 'Veg Kebab', price: 17 },
-  { id: 'dish-061', category: 'Kebabs', name: 'Dahi ke Kebab', price: 25 },
-  { id: 'dish-062', category: 'Kebabs', name: 'Hariyali Kebab', price: 25 },
-  { id: 'dish-063', category: 'Cake (Egg-Less)', name: 'Tutti Frutti Cup Cake', price: 18 },
-  { id: 'dish-064', category: 'Cake (Egg-Less)', name: 'Chocolate Cup Cake', price: 20 },
-  { id: 'dish-065', category: 'Cake (Egg-Less)', name: 'Chocolava Cup Cake', price: 38 },
-  { id: 'dish-066', category: 'Shakes', name: 'Mango Shake', price: 30 },
-  { id: 'dish-067', category: 'Shakes', name: 'Lassi', price: 45 },
-  { id: 'dish-068', category: 'Shakes', name: 'Panna', price: 12 },
-  { id: 'dish-069', category: 'Meals & Combos', name: 'Chokha Baati (2 pc plate)', price: 50 },
-  { id: 'dish-070', category: 'Meals & Combos', name: 'Chole Aloo Kulche (per plate)', price: 70 },
-  { id: 'dish-071', category: 'Meals & Combos', name: 'Chole Bhature (per plate)', price: 60 },
-  { id: 'dish-072', category: 'Meals & Combos', name: 'Khasta Aloo Matar (2 pc plate)', price: 55 },
-  { id: 'dish-073', category: 'Meals & Combos', name: 'Sambhar Vada (4 pc plate)', price: 55 },
-  { id: 'dish-074', category: 'Meals & Combos', name: 'Idli Sambhar (4 pc plate)', price: 55 },
-  { id: 'dish-075', category: 'Meals & Combos', name: 'Pav Bhaaji (per plate)', price: 60 },
-  { id: 'dish-076', category: 'Sweets', name: 'Gulab Jamun', price: 20 },
-  { id: 'dish-077', category: 'Sweets', name: 'Kheer', price: 80 },
-  { id: 'dish-078', category: 'Sweets', name: 'Sweet Rice', price: 90 },
-  { id: 'dish-079', category: 'Sweets', name: 'Shrikhand (250 gm)', price: 85 },
-  { id: 'dish-080', category: 'Sabzi', name: 'Shaahi Paneer', price: 300 },
-  { id: 'dish-081', category: 'Sabzi', name: 'Paneer Masala', price: 220 },
-  { id: 'dish-082', category: 'Sabzi', name: 'Paneer Angara', price: 280 },
-  { id: 'dish-083', category: 'Sabzi', name: 'Paneer Korma', price: 260 },
-  { id: 'dish-084', category: 'Sabzi', name: 'Palak Paneer', price: 200 },
-  { id: 'dish-085', category: 'Sabzi', name: 'Matar Paneer', price: 200 },
-  { id: 'dish-086', category: 'Non-Veg', name: 'Chicken Afghani', price: 500 },
-  { id: 'dish-087', category: 'Non-Veg', name: 'Roasted Chicken', price: 340 },
-  { id: 'dish-088', category: 'Non-Veg', name: 'Chilli Chicken', price: 440 },
-  { id: 'dish-089', category: 'Non-Veg', name: 'Egg Curry', price: 75 },
-  { id: 'dish-090', category: 'Non-Veg', name: 'Fish Fry (boneless - 250 gm)', price: 180 },
-  { id: 'dish-091', category: 'Non-Veg', name: 'Fish Dry (boneless - 250 gm)', price: 165 },
-  { id: 'dish-092', category: 'Non-Veg', name: 'Chicken Shawarma', price: 90 },
-  { id: 'dish-093', category: 'Non-Veg', name: 'Mutton Curry', price: 400 },
-  { id: 'dish-094', category: 'Non-Veg', name: 'Mutton Korma', price: 430 },
-  { id: 'dish-095', category: 'Non-Veg', name: 'Keema Kaleji', price: 400 },
-  { id: 'dish-096', category: 'Non-Veg', name: 'Chicken Curry', price: 360 },
-  { id: 'dish-097', category: 'Non-Veg', name: 'Chicken Masala', price: 400 },
-  { id: 'dish-098', category: 'Non-Veg', name: 'Butter Chicken', price: 500 },
-  { id: 'dish-099', category: 'Rice', name: 'Plain Rice', price: 90 },
-  { id: 'dish-100', category: 'Rice', name: 'Jeera Rice', price: 120 },
-  { id: 'dish-101', category: 'Rice', name: 'Matar Pulao', price: 140 },
-  { id: 'dish-102', category: 'Rice', name: 'Veg. Biryani', price: 180 }
+  { id: 'dish-013', category: 'Rolls', name: 'Crispy Veg. Cheese Bread Roll', price: 18 },
+
+  { id: 'dish-014', category: 'Pakodi', name: 'Pyaaz ki Pakodi (250gm)', price: 60 },
+  { id: 'dish-015', category: 'Pakodi', name: 'Paalak ki Pakodi (250gm)', price: 60 },
+  { id: 'dish-016', category: 'Pakodi', name: 'Gobhi ki Pakodi (250gm)', price: 60 },
+  { id: 'dish-017', category: 'Pakodi', name: 'Mirch ki Pakodi', price: 15 },
+  { id: 'dish-018', category: 'Pakodi', name: 'Bread Pakoda', price: 20 },
+  { id: 'dish-019', category: 'Pakodi', name: 'Egg Pakodi', price: 10 },
+  { id: 'dish-020', category: 'Pakodi', name: 'Moong Daal ke Mongode (250gm)', price: 75 },
+
+  { id: 'dish-021', category: 'Sandwich', name: 'Grilled Veg. Mayonaise Sandwich (2 pc)', price: 55 },
+  { id: 'dish-022', category: 'Sandwich', name: 'Grilled Veg. Cheese Sandwich (2 pc)', price: 65 },
+  { id: 'dish-023', category: 'Sandwich', name: 'Veg Sandwich', price: 18 },
+
+  { id: 'dish-024', category: 'Snacks', name: 'Chocolate Croissant', price: 48 },
+  { id: 'dish-025', category: 'Snacks', name: 'Zingy Parcel (Paneer)', price: 60 },
+  { id: 'dish-026', category: 'Snacks', name: 'Pizza Puff', price: 18 },
+  { id: 'dish-027', category: 'Snacks', name: 'Mini Pizza', price: 45 },
+  { id: 'dish-028', category: 'Snacks', name: 'Veg Burger', price: 50 },
+  { id: 'dish-029', category: 'Snacks', name: 'Aloo Patty', price: 17 },
+  { id: 'dish-030', category: 'Snacks', name: 'Paneer Patty', price: 25 },
+  { id: 'dish-031', category: 'Snacks', name: 'Veg Appe (12 pc plate)', price: 70 },
+  { id: 'dish-032', category: 'Snacks', name: 'Phare (250gm)', price: 70 },
+  { id: 'dish-033', category: 'Snacks', name: 'Veg Masala Idli (4 pc plate)', price: 50 },
+  { id: 'dish-034', category: 'Snacks', name: 'Fried Idli (per plate)', price: 50 },
+  { id: 'dish-035', category: 'Snacks', name: 'Poha (per plate)', price: 85 },
+  { id: 'dish-036', category: 'Snacks', name: 'Crispy Stuffed Mushroom (4 pc plate)', price: 65 },
+  { id: 'dish-037', category: 'Snacks', name: 'Aloo Bonda', price: 12 },
+  { id: 'dish-038', category: 'Snacks', name: 'Vada Pav', price: 25 },
+  { id: 'dish-039', category: 'Snacks', name: 'Cheese Balls (8 pc plate)', price: 85 },
+  { id: 'dish-040', category: 'Snacks', name: 'Masala Vada (8 pc plate)', price: 80 },
+  { id: 'dish-041', category: 'Snacks', name: 'Falafel Mushakkal Veg. Roll', price: 40 },
+  { id: 'dish-042', category: 'Snacks', name: 'Pani Poori (5 pc)', price: 15 },
+  { id: 'dish-043', category: 'Snacks', name: 'Tikki Chaat (per plate)', price: 55 },
+  { id: 'dish-044', category: 'Snacks', name: 'Dahi Vada (4 pc plate)', price: 60 },
+  { id: 'dish-045', category: 'Snacks', name: 'Raj Kachori (per plate)', price: 85 },
+  { id: 'dish-046', category: 'Snacks', name: 'Samosa', price: 12 },
+  { id: 'dish-047', category: 'Snacks', name: 'Paneer Tikka (per plate)', price: 240 },
+  { id: 'dish-048', category: 'Snacks', name: 'Paneer Malai Tikka (per plate)', price: 260 },
+
+  { id: 'dish-049', category: 'Chinese', name: 'Honey Chilli Potato', price: 90 },
+  { id: 'dish-050', category: 'Chinese', name: 'Chowmein', price: 80 },
+  { id: 'dish-051', category: 'Chinese', name: 'Macaroni', price: 80 },
+  { id: 'dish-052', category: 'Chinese', name: 'Fried Rice', price: 80 },
+  { id: 'dish-053', category: 'Chinese', name: 'Veg Manchurian', price: 80 },
+  { id: 'dish-054', category: 'Chinese', name: 'Paneer Manchurian', price: 160 },
+  { id: 'dish-055', category: 'Chinese', name: 'Chilli Paneer', price: 140 },
+  { id: 'dish-056', category: 'Chinese', name: 'Veg Momos (10 pc)', price: 55 },
+  { id: 'dish-057', category: 'Chinese', name: 'Paneer Momos (10 pc)', price: 75 },
+  { id: 'dish-058', category: 'Chinese', name: 'Chicken Momos (10 pc)', price: 100 },
+  { id: 'dish-059', category: 'Chinese', name: 'White Pasta', price: 100 },
+
+  { id: 'dish-060', category: 'Kebabs', name: 'Veg. Seekh Kebab', price: 15 },
+  { id: 'dish-061', category: 'Kebabs', name: 'Veg Kebab', price: 17 },
+  { id: 'dish-062', category: 'Kebabs', name: 'Dahi ke Kebab', price: 25 },
+  { id: 'dish-063', category: 'Kebabs', name: 'Hariyali Kebab', price: 25 },
+
+  { id: 'dish-064', category: 'Cake (Egg-Less)', name: 'Tutti Frutti Cup Cake', price: 18 },
+  { id: 'dish-065', category: 'Cake (Egg-Less)', name: 'Chocolate Cup Cake', price: 20 },
+  { id: 'dish-066', category: 'Cake (Egg-Less)', name: 'Chocolava Cup Cake', price: 38 },
+
+  { id: 'dish-067', category: 'Shakes', name: 'Mango Shake', price: 30 },
+  { id: 'dish-068', category: 'Shakes', name: 'Lassi', price: 45 },
+  { id: 'dish-069', category: 'Shakes', name: 'Panna', price: 12 },
+
+  { id: 'dish-070', category: 'Meals & Combos', name: 'Chokha Baati (2 pc plate)', price: 50 },
+  { id: 'dish-071', category: 'Meals & Combos', name: 'Aloo-Kulche Chole (per plate)', price: 70 },
+  { id: 'dish-072', category: 'Meals & Combos', name: 'Chole Bhature (per plate)', price: 60 },
+  { id: 'dish-073', category: 'Meals & Combos', name: 'Khasta Aloo Matar (2 pc plate)', price: 55 },
+  { id: 'dish-074', category: 'Meals & Combos', name: 'Sambhar Vada (4 pc plate)', price: 55 },
+  { id: 'dish-075', category: 'Meals & Combos', name: 'Idli Sambhar (4 pc plate)', price: 55 },
+  { id: 'dish-076', category: 'Meals & Combos', name: 'Pav Bhaaji (per plate)', price: 60 },
+
+  { id: 'dish-077', category: 'Sweets', name: 'Gulab Jamun', price: 20 },
+  { id: 'dish-078', category: 'Sweets', name: 'Kheer', price: 80 },
+  { id: 'dish-079', category: 'Sweets', name: 'Sweet Rice', price: 90 },
+  { id: 'dish-080', category: 'Sweets', name: 'Shrikhand (250 gm)', price: 85 },
+
+  { id: 'dish-081', category: 'Sabzi', name: 'Shaahi Paneer', price: 300 },
+  { id: 'dish-082', category: 'Sabzi', name: 'Paneer Masala', price: 220 },
+  { id: 'dish-083', category: 'Sabzi', name: 'Paneer Angara', price: 280 },
+  { id: 'dish-084', category: 'Sabzi', name: 'Paneer Korma', price: 260 },
+  { id: 'dish-085', category: 'Sabzi', name: 'Palak Paneer', price: 200 },
+  { id: 'dish-086', category: 'Sabzi', name: 'Matar Paneer', price: 200 },
+
+  { id: 'dish-087', category: 'Non-Veg', name: 'Chicken Afghani', price: 500 },
+  { id: 'dish-088', category: 'Non-Veg', name: 'Roasted Chicken', price: 340 },
+  { id: 'dish-089', category: 'Non-Veg', name: 'Chilli Chicken', price: 440 },
+  { id: 'dish-090', category: 'Non-Veg', name: 'Egg Curry', price: 75 },
+  { id: 'dish-091', category: 'Non-Veg', name: 'Fish Fry (boneless - 250 gm)', price: 180 },
+  { id: 'dish-092', category: 'Non-Veg', name: 'Fish Dry (boneless - 250 gm)', price: 165 },
+  { id: 'dish-093', category: 'Non-Veg', name: 'Chicken Shawarma', price: 90 },
+  { id: 'dish-094', category: 'Non-Veg', name: 'Mutton Curry', price: 400 },
+  { id: 'dish-095', category: 'Non-Veg', name: 'Mutton Korma', price: 430 },
+  { id: 'dish-096', category: 'Non-Veg', name: 'Keema Kaleji', price: 400 },
+  { id: 'dish-097', category: 'Non-Veg', name: 'Chicken Curry', price: 360 },
+  { id: 'dish-098', category: 'Non-Veg', name: 'Chicken Masala', price: 400 },
+  { id: 'dish-099', category: 'Non-Veg', name: 'Butter Chicken', price: 500 },
+
+  { id: 'dish-100', category: 'Rice', name: 'Plain Rice', price: 90 },
+  { id: 'dish-101', category: 'Rice', name: 'Jeera Rice', price: 120 },
+  { id: 'dish-102', category: 'Rice', name: 'Matar Pulao', price: 140 },
+  { id: 'dish-103', category: 'Rice', name: 'Veg. Biryani', price: 180 },
+
+  { id: 'dish-104', category: 'Falahaar', name: 'Aloo-Sabudaana Tikki (2 pc)', price: 25 },
+  { id: 'dish-105', category: 'Falahaar', name: 'Sabudaana Khichdi', price: 70 },
+  { id: 'dish-106', category: 'Falahaar', name: 'Falahaari Mirch ki Pakodi', price: 15 }
 ];
 
 const cart = {};
@@ -558,7 +570,7 @@ function toggleKitchenDrawer(forceState) {
 }
 
 // ==========================================================================
-// 8. RENDER KITCHEN MENU
+// 8. RENDER KITCHEN MENU (Keeps Section Headers)
 // ==========================================================================
 function renderKitchenMenu() {
   const container = document.getElementById('kitchen-menu-container');
@@ -691,7 +703,7 @@ function clearDailyMenu() {
 }
 
 // ==========================================================================
-// 10. CUSTOMER LIVE MENU LISTENER
+// 10. CUSTOMER LIVE MENU LISTENER (No Section Headers)
 // ==========================================================================
 function renderCustomerMenuFromSnapshot(activeIds) {
   const container = document.getElementById('customer-menu-container');
@@ -722,22 +734,12 @@ function renderCustomerMenuFromSnapshot(activeIds) {
     return;
   }
 
-  let currentCategory = '';
-
   MENU_ITEMS.forEach((dish) => {
     if (activeIds[dish.id]) {
       cart[dish.id] = cart[dish.id] || 0;
       const isOOS = (activeIds[dish.id] === 'OOS');
 
       if (isOOS && cart[dish.id] > 0) cart[dish.id] = 0;
-
-      if (dish.category !== currentCategory) {
-        currentCategory = dish.category;
-        const categoryHeader = document.createElement('h3');
-        categoryHeader.style.cssText = "margin: 18px 0 6px 0; font-size: 1.05rem; color: #FF4B3A; border-bottom: 2px solid #EAEAEA; padding-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;";
-        categoryHeader.textContent = currentCategory;
-        container.appendChild(categoryHeader);
-      }
 
       const card = document.createElement('div');
       card.className = 'menu-card';
@@ -785,7 +787,7 @@ function updateQuantity(dishId, change) {
 }
 
 // ==========================================================================
-// 11. ORDER SUBMISSION ENGINE (UPDATED DATE STRINGS)
+// 11. ORDER SUBMISSION ENGINE
 // ==========================================================================
 async function placeOrder() {
   if (isDuringBreakWindow()) {
@@ -846,7 +848,6 @@ function executeFirebaseOrderSubmission(orderItems, totalAmount, customerProfile
 
   newOrderRef.set(orderData)
     .then(() => {
-      // INSTANT NOTIFICATION BLASTER TO THE KITCHEN
       notifyKitchenNewOrder(orderData);
       
       alert(`Order placed successfully! Your Order ID is #${orderData.orderId}`);
@@ -897,10 +898,8 @@ function renderCustomerOrderHistory() {
       .map(i => `<strong>${i.quantity}x</strong> ${i.name}`)
       .join(', ');
 
-    // UPDATED: Standard Localized Date & Time Format
     const dateStr = new Date(myOrder.timestamp).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 
-    // UPDATED: Lighter Order ID
     card.innerHTML = `
       <div class="customer-order-header">
         <div style="display: flex; flex-direction: column;">
@@ -1009,10 +1008,7 @@ function enterKitchenMode() {
 
   document.getElementById('kitchen-view').style.display = 'flex';
   
-  // Kitchen doesn't need to do customer onboarding
   checkAppOnboarding();
-  
-  // SILENTLY REGISTER KITCHEN DEVICE FOR NEW INCOMING ORDER PUSH NOTIFICATIONS
   syncKitchenPushSubscription();
 
   if (db) {
@@ -1056,7 +1052,6 @@ function exitKitchenMode(triggerHistoryBack = true) {
   document.getElementById('kitchen-version-badge').style.display = 'none';
   document.getElementById('header-exit-btn').style.display = 'none';
   
-  // Ensure we check onboarding after leaving kitchen mode
   checkAppOnboarding();
 
   if (db) {
@@ -1186,10 +1181,8 @@ function fetchAndRenderPaymentLedger() {
       const row = document.createElement('div');
       row.className = 'customer-data-card';
       
-      // UPDATED: Standard Localized Date & Time Format
       const dateStr = new Date(order.timestamp).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
       
-      // UPDATED: Lighter Order ID
       row.innerHTML = `
         <div style="flex: 1;">
           <div style="font-size:0.9rem; font-weight: 700; color:#2D2D2D;">${dateStr} <span style="font-weight: normal; color: #888; font-size: 0.75rem; margin-left: 4px;">(#${order.orderId})</span></div>
@@ -1214,7 +1207,7 @@ window.addEventListener('popstate', () => {
 });
 
 // ==========================================================================
-// 14. LIVE KITCHEN ORDER LISTENER (UPDATED DATE & LIGHTER ID)
+// 14. LIVE KITCHEN ORDER LISTENER
 // ==========================================================================
 function listenForKitchenOrders() {
   if (!db) return;
@@ -1269,10 +1262,8 @@ function listenForKitchenOrders() {
         `;
       }
 
-      // UPDATED: Date String
       const dateStr = new Date(order.timestamp).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 
-      // UPDATED: Lighter Order ID
       card.innerHTML = `
         <div class="order-header">
           <div>
