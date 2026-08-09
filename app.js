@@ -1,7 +1,7 @@
 // ==========================================================================
-// 1. FIREBASE & RENDER VAPID CONFIGURATION (v1 - OFFICIAL RELEASE)
+// 1. FIREBASE & RENDER VAPID CONFIGURATION (v2 - PUSH FIX)
 // ==========================================================================
-const CURRENT_APP_VERSION = "v1";
+const CURRENT_APP_VERSION = "v2";
 const VAPID_PUBLIC_KEY = "BCYZCGMueIWWUU7cA2m4-fmHK0gEbmwqfSMHyzXr4AGdyhDi53mct0OoEfnPttK-1D3LV8guB3-RtfFYABa82bo";
 const RENDER_BACKEND_URL = "https://foodies-backend-9vvj.onrender.com";
 
@@ -421,7 +421,7 @@ function enforceInstallGate() {
 }
 
 // ==========================================================================
-// 6. COMPLETE FOODIES POINT MENU (UPDATED v1 DATA)
+// 6. COMPLETE FOODIES POINT MENU (UPDATED v2 DATA)
 // ==========================================================================
 const MENU_ITEMS = [
   { id: 'dish-001', category: 'Rolls', name: 'Dahi Bread Roll (1 pc)', price: 15 },
@@ -787,7 +787,7 @@ function updateQuantity(dishId, change) {
 }
 
 // ==========================================================================
-// 11. ORDER SUBMISSION ENGINE
+// 11. ORDER SUBMISSION ENGINE (FRESH PUSH TOKEN BINDING)
 // ==========================================================================
 async function placeOrder() {
   if (isDuringBreakWindow()) {
@@ -823,8 +823,10 @@ async function placeOrder() {
   }
 
   const customerProfile = JSON.parse(profileStr);
-  const localPushSub = await getLocalPushSubscription();
   
+  // Guarantee push token resolution before order submission
+  let localPushSub = await getLocalPushSubscription();
+
   executeFirebaseOrderSubmission(orderItems, totalAmount, customerProfile, localPushSub);
 }
 
