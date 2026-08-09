@@ -1,7 +1,7 @@
 // ==========================================================================
-// 1. FIREBASE & RENDER VAPID CONFIGURATION (v2 - PUSH FIX)
+// 1. FIREBASE & RENDER VAPID CONFIGURATION (v3 - LIVE)
 // ==========================================================================
-const CURRENT_APP_VERSION = "v2";
+const CURRENT_APP_VERSION = "v3";
 const VAPID_PUBLIC_KEY = "BCYZCGMueIWWUU7cA2m4-fmHK0gEbmwqfSMHyzXr4AGdyhDi53mct0OoEfnPttK-1D3LV8guB3-RtfFYABa82bo";
 const RENDER_BACKEND_URL = "https://foodies-backend-9vvj.onrender.com";
 
@@ -49,7 +49,7 @@ function checkDaily6PMReset() {
     if (db) {
       db.ref('dailyMenu').remove()
         .then(() => {
-          console.log(`[${CURRENT_APP_VERSION}] 6:00 PM reached: Kitchen list checks reset & live menu cleared.`);
+          console.log(`[${CURRENT_APP_VERSION}] 6:00 PM reached: Menu cleared.`);
           renderKitchenMenu();
         })
         .catch((err) => console.error("Error clearing menu at 6 PM:", err));
@@ -278,7 +278,7 @@ async function sendRenderPushBroadcast(title, message) {
       });
     }
   } catch (error) {
-    console.error(`[Push ${CURRENT_APP_VERSION}] Error contacting Render push API:`, error);
+    console.error(`[Push] Error contacting Render push API:`, error);
   }
 }
 
@@ -291,7 +291,7 @@ async function sendTargetedRenderPush(subscription, title, message) {
       body: JSON.stringify({ title, message, subscriptions: [subscription] })
     });
   } catch (error) {
-    console.error(`[Push ${CURRENT_APP_VERSION}] Error sending targeted push:`, error);
+    console.error(`[Push] Error sending targeted push:`, error);
   }
 }
 
@@ -323,7 +323,7 @@ async function notifyKitchenNewOrder(orderData) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         title: "New Order! 🔔",
-        message: `${orderData.customerName} just placed an order for ₹${orderData.total}`,
+        message: `${orderData.customerName} ordered ${orderData.orderType} for ${orderData.scheduledTime}`,
         subscriptions
       })
     });
@@ -360,7 +360,7 @@ if ('serviceWorker' in navigator) {
       });
     })
     .catch((err) => {
-      console.error(`[SW ${CURRENT_APP_VERSION}] Registration failed:`, err);
+      console.error(`[SW] Registration failed:`, err);
     });
   });
 }
@@ -421,7 +421,7 @@ function enforceInstallGate() {
 }
 
 // ==========================================================================
-// 6. COMPLETE FOODIES POINT MENU (UPDATED v2 DATA)
+// 6. COMPLETE FOODIES POINT MENU (UPDATED v1 DATA)
 // ==========================================================================
 const MENU_ITEMS = [
   { id: 'dish-001', category: 'Rolls', name: 'Dahi Bread Roll (1 pc)', price: 15 },
@@ -787,16 +787,13 @@ function updateQuantity(dishId, change) {
 }
 
 // ==========================================================================
-// 11. ORDER SUBMISSION ENGINE (FRESH PUSH TOKEN BINDING)
+// 11. ORDER SUBMISSION ENGINE (DELIVERY/TAKEAWAY ADDED)
 // ==========================================================================
-async function placeOrder() {
+let pendingCustomerOrder = null;
+
+function openOrderOptionsModal() {
   if (isDuringBreakWindow()) {
     alert("Orders are closed for today. Tomorrow's menu will be available starting at 9:00 PM tonight!");
-    return;
-  }
-
-  if (!db) {
-    alert("Database connection is not ready. Please refresh the page.");
     return;
   }
 
@@ -822,15 +819,47 @@ async function placeOrder() {
     return;
   }
 
-  const customerProfile = JSON.parse(profileStr);
+  // Save the state and show options modal
+  pendingCustomerOrder = {
+    items: orderItems,
+    total: totalAmount,
+    profile: JSON.parse(profileStr)
+  };
   
-  // Guarantee push token resolution before order submission
-  let localPushSub = await getLocalPushSubscription();
-
-  executeFirebaseOrderSubmission(orderItems, totalAmount, customerProfile, localPushSub);
+  document.getElementById('order-options-modal').style.display = 'flex';
 }
 
-function executeFirebaseOrderSubmission(orderItems, totalAmount, customerProfile, pushSub) {
+function closeOrderOptionsModal() {
+  document.getElementById('order-options-modal').style.display = 'none';
+  pendingCustomerOrder = null;
+}
+
+async function finalizeOrderPlacement() {
+  const orderType = document.getElementById('order-type-select').value;
+  const scheduledTime = document.getElementById('order-time-input').value;
+
+  if (!scheduledTime) {
+    alert("Please select a preferred time for your order.");
+    return;
+  }
+
+  document.getElementById('order-options-modal').style.display = 'none';
+  
+  let localPushSub = await getLocalPushSubscription();
+
+  executeFirebaseOrderSubmission(
+    pendingCustomerOrder.items, 
+    pendingCustomerOrder.total, 
+    pendingCustomerOrder.profile, 
+    localPushSub,
+    orderType,
+    scheduledTime
+  );
+  
+  pendingCustomerOrder = null;
+}
+
+function executeFirebaseOrderSubmission(orderItems, totalAmount, customerProfile, pushSub, orderType, scheduledTime) {
   const newOrderRef = db.ref('orders').push();
   
   const orderData = {
@@ -841,7 +870,10 @@ function executeFirebaseOrderSubmission(orderItems, totalAmount, customerProfile
     customerName: customerProfile.name,
     customerMobile: customerProfile.mobile,
     customerVersion: CURRENT_APP_VERSION,
-    timestamp: firebase.database.ServerValue.TIMESTAMP
+    timestamp: firebase.database.ServerValue.TIMESTAMP,
+    orderType: orderType,          // New!
+    scheduledTime: scheduledTime,  // New!
+    deliveryCharge: 0              // New!
   };
 
   if (pushSub && pushSub.endpoint) {
@@ -860,8 +892,12 @@ function executeFirebaseOrderSubmission(orderItems, totalAmount, customerProfile
         items: orderItems,
         total: totalAmount,
         status: 'PENDING',
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        orderType: orderType,
+        scheduledTime: scheduledTime,
+        deliveryCharge: 0
       };
+      
       const pastOrders = JSON.parse(localStorage.getItem('fp_customer_orders') || '[]');
       pastOrders.unshift(myOrder);
       localStorage.setItem('fp_customer_orders', JSON.stringify(pastOrders));
@@ -872,6 +908,7 @@ function executeFirebaseOrderSubmission(orderItems, totalAmount, customerProfile
         const span = document.getElementById(`qty-${id}`);
         if (span) span.textContent = 0;
       });
+      document.getElementById('order-time-input').value = "";
     })
     .catch((error) => {
       console.error("Error placing order:", error);
@@ -901,6 +938,18 @@ function renderCustomerOrderHistory() {
       .join(', ');
 
     const dateStr = new Date(myOrder.timestamp).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    
+    // Delivery info string
+    const typeEmoji = myOrder.orderType === 'Delivery' ? '🚚' : '🥡';
+    const deliveryStr = `<div style="font-weight: 600; color: #1565C0; margin-top: 6px; font-size: 0.85rem; background: #E3F2FD; display: inline-block; padding: 3px 8px; border-radius: 6px;">
+        ${typeEmoji} ${myOrder.orderType} @ ${myOrder.scheduledTime}
+    </div>`;
+
+    // Delivery charge string
+    let totalDisplay = `₹${myOrder.total}`;
+    if (myOrder.deliveryCharge > 0) {
+      totalDisplay += ` <span style="font-size:0.75rem; font-weight:normal; color:#666;">(includes ₹${myOrder.deliveryCharge} delivery fee)</span>`;
+    }
 
     card.innerHTML = `
       <div class="customer-order-header">
@@ -910,8 +959,9 @@ function renderCustomerOrderHistory() {
         </div>
         <span class="status-badge status-${myOrder.status}">${myOrder.status}</span>
       </div>
-      <p style="font-size: 0.88rem; color: #444; margin-bottom: 6px; line-height: 1.4;">${itemsSummary}</p>
-      <div style="font-weight: 700; color: #FF4B3A; font-size: 0.95rem;">Total: ₹${myOrder.total}</div>
+      <p style="font-size: 0.88rem; color: #444; margin-bottom: 4px; line-height: 1.4;">${itemsSummary}</p>
+      ${deliveryStr}
+      <div style="font-weight: 700; color: #FF4B3A; font-size: 0.95rem; margin-top: 8px;">Total: ${totalDisplay}</div>
     `;
 
     container.appendChild(card);
@@ -936,8 +986,10 @@ function listenForCustomerOrderUpdates() {
     pastOrders.forEach((myOrder) => {
       const liveOrder = activeOrders[myOrder.firebaseKey];
       if (liveOrder) {
-        if (myOrder.status !== liveOrder.status) {
+        if (myOrder.status !== liveOrder.status || myOrder.total !== liveOrder.total) {
           myOrder.status = liveOrder.status;
+          myOrder.total = liveOrder.total;
+          myOrder.deliveryCharge = liveOrder.deliveryCharge || 0;
           hasChanges = true;
         }
       }
@@ -1185,10 +1237,15 @@ function fetchAndRenderPaymentLedger() {
       
       const dateStr = new Date(order.timestamp).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
       
+      let totalDisplay = `₹${order.total}`;
+      if (order.deliveryCharge > 0) {
+        totalDisplay += ` (+ ₹${order.deliveryCharge} fee)`;
+      }
+
       row.innerHTML = `
         <div style="flex: 1;">
           <div style="font-size:0.9rem; font-weight: 700; color:#2D2D2D;">${dateStr} <span style="font-weight: normal; color: #888; font-size: 0.75rem; margin-left: 4px;">(#${order.orderId})</span></div>
-          <div style="font-size: 0.95rem; color: #FF4B3A; font-weight: 700; margin: 4px 0;">₹${order.total}</div>
+          <div style="font-size: 0.95rem; color: #FF4B3A; font-weight: 700; margin: 4px 0;">${totalDisplay}</div>
           <div style="font-size:0.8rem; color:#666;">👤 ${order.customerName || 'Guest'} (${order.customerMobile || 'N/A'})</div>
         </div>
         <span style="font-weight:700; font-size:0.85rem; color:#FF4B3A;">${order.status}</span>
@@ -1252,10 +1309,18 @@ function listenForKitchenOrders() {
       };
       const statusColor = statusColors[order.status] || '#FF4B3A';
 
+      // NEW: Delivery/Takeaway Tag
+      const typeEmoji = order.orderType === 'Delivery' ? '🚚' : '🥡';
+      const orderTypeHtml = `
+        <div style="font-weight: 700; color: #1565C0; margin: 8px 0; background: #E3F2FD; display: inline-block; padding: 4px 10px; border-radius: 6px; font-size: 0.9rem;">
+          ${typeEmoji} ${order.orderType} @ ${order.scheduledTime || 'N/A'}
+        </div>
+      `;
+
       let actionButtonsHtml = '';
       if (order.status === 'PENDING') {
         actionButtonsHtml = `
-          <button class="btn-action btn-accept" onclick="acceptOrder('${order.firebaseKey}')">Accept</button>
+          <button class="btn-action btn-accept" onclick="acceptOrderTrigger('${order.firebaseKey}', '${order.orderType}', ${order.total})">Accept</button>
           <button class="btn-action btn-deny" onclick="rejectOrder('${order.firebaseKey}')">Reject</button>
         `;
       } else {
@@ -1265,6 +1330,11 @@ function listenForKitchenOrders() {
       }
 
       const dateStr = new Date(order.timestamp).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+      
+      let totalDisplay = `₹${order.total}`;
+      if (order.deliveryCharge > 0) {
+        totalDisplay += ` <span style="font-size:0.8rem; font-weight:normal; color:#666;">(Includes ₹${order.deliveryCharge} fee)</span>`;
+      }
 
       card.innerHTML = `
         <div class="order-header">
@@ -1277,9 +1347,10 @@ function listenForKitchenOrders() {
           </div>
           <span style="color: ${statusColor}; font-weight: 700;">${order.status}</span>
         </div>
+        ${orderTypeHtml}
         <div class="order-body" style="margin: 6px 0 12px 0;">
           ${itemsListHtml}
-          <p style="margin-top: 8px; font-weight: bold;">Total: ₹${order.total}</p>
+          <p style="margin-top: 8px; font-weight: bold;">Total: ${totalDisplay}</p>
         </div>
         <div class="order-actions">
           ${actionButtonsHtml}
@@ -1292,20 +1363,57 @@ function listenForKitchenOrders() {
 }
 
 // ==========================================================================
-// 15. TARGETED ORDER ACTIONS
+// 15. TARGETED ORDER ACTIONS (WITH DELIVERY CHARGE LOGIC)
 // ==========================================================================
-async function acceptOrder(firebaseKey) {
+let pendingAcceptance = null;
+
+function acceptOrderTrigger(firebaseKey, orderType, currentTotal) {
+  if (orderType === 'Delivery') {
+    // Open Delivery Charge Modal
+    pendingAcceptance = { key: firebaseKey, originalTotal: currentTotal };
+    document.getElementById('kitchen-delivery-fee-input').value = "";
+    document.getElementById('delivery-charge-modal').style.display = 'flex';
+  } else {
+    // Process Takeaway instantly with 0 charge
+    processOrderAcceptance(firebaseKey, 0);
+  }
+}
+
+function closeDeliveryChargeModal() {
+  document.getElementById('delivery-charge-modal').style.display = 'none';
+  pendingAcceptance = null;
+}
+
+function confirmDeliveryAcceptance() {
+  const feeInput = document.getElementById('kitchen-delivery-fee-input').value;
+  const charge = parseInt(feeInput) || 0;
+  
+  processOrderAcceptance(pendingAcceptance.key, charge);
+  closeDeliveryChargeModal();
+}
+
+async function processOrderAcceptance(firebaseKey, deliveryCharge) {
   if (!db) return;
   try {
-    await db.ref(`orders/${firebaseKey}`).update({ status: 'ACCEPTED' });
-    
     const snap = await db.ref(`orders/${firebaseKey}`).once('value');
     const order = snap.val();
-    if (order) {
-      const targetSub = await resolveTargetSubscription(order);
-      if (targetSub) {
-        sendTargetedRenderPush(targetSub, "Order Accepted ✅", `Hi ${order.customerName}, your order #${order.orderId} has been accepted and is being prepared!`);
+    if (!order) return;
+
+    const newTotal = order.total + deliveryCharge;
+
+    await db.ref(`orders/${firebaseKey}`).update({ 
+      status: 'ACCEPTED',
+      deliveryCharge: deliveryCharge,
+      total: newTotal
+    });
+    
+    const targetSub = await resolveTargetSubscription(order);
+    if (targetSub) {
+      let pushMessage = `Hi ${order.customerName}, your order #${order.orderId} has been accepted and will be ready at ${order.scheduledTime}! Total is ₹${newTotal}.`;
+      if (deliveryCharge > 0) {
+         pushMessage = `Hi ${order.customerName}, your order #${order.orderId} is accepted for ${order.scheduledTime}! Total is ₹${newTotal} (includes ₹${deliveryCharge} delivery fee).`;
       }
+      sendTargetedRenderPush(targetSub, "Order Accepted ✅", pushMessage);
     }
   } catch (error) {
     console.error("Error accepting order:", error);
