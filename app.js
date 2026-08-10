@@ -1,7 +1,7 @@
 // ==========================================================================
-// 1. FIREBASE & RENDER VAPID CONFIGURATION (v3 - LIVE)
+// 1. FIREBASE & RENDER VAPID CONFIGURATION (v4 - LIVE)
 // ==========================================================================
-const CURRENT_APP_VERSION = "v3";
+const CURRENT_APP_VERSION = "v4";
 const VAPID_PUBLIC_KEY = "BCYZCGMueIWWUU7cA2m4-fmHK0gEbmwqfSMHyzXr4AGdyhDi53mct0OoEfnPttK-1D3LV8guB3-RtfFYABa82bo";
 const RENDER_BACKEND_URL = "https://foodies-backend-9vvj.onrender.com";
 
@@ -421,7 +421,7 @@ function enforceInstallGate() {
 }
 
 // ==========================================================================
-// 6. COMPLETE FOODIES POINT MENU (UPDATED v1 DATA)
+// 6. COMPLETE FOODIES POINT MENU (UPDATED v4 DATA)
 // ==========================================================================
 const MENU_ITEMS = [
   { id: 'dish-001', category: 'Rolls', name: 'Dahi Bread Roll (1 pc)', price: 15 },
@@ -475,6 +475,7 @@ const MENU_ITEMS = [
   { id: 'dish-046', category: 'Snacks', name: 'Samosa', price: 12 },
   { id: 'dish-047', category: 'Snacks', name: 'Paneer Tikka (per plate)', price: 240 },
   { id: 'dish-048', category: 'Snacks', name: 'Paneer Malai Tikka (per plate)', price: 260 },
+  { id: 'dish-107', category: 'Snacks', name: 'Crispy Corn (per plate)', price: 120 },
 
   { id: 'dish-049', category: 'Chinese', name: 'Honey Chilli Potato', price: 90 },
   { id: 'dish-050', category: 'Chinese', name: 'Chowmein', price: 80 },
@@ -871,9 +872,9 @@ function executeFirebaseOrderSubmission(orderItems, totalAmount, customerProfile
     customerMobile: customerProfile.mobile,
     customerVersion: CURRENT_APP_VERSION,
     timestamp: firebase.database.ServerValue.TIMESTAMP,
-    orderType: orderType,          // New!
-    scheduledTime: scheduledTime,  // New!
-    deliveryCharge: 0              // New!
+    orderType: orderType,          
+    scheduledTime: scheduledTime,  
+    deliveryCharge: 0              
   };
 
   if (pushSub && pushSub.endpoint) {
