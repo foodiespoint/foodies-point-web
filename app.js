@@ -1,7 +1,7 @@
 // ==========================================================================
-// 1. FIREBASE & RENDER VAPID CONFIGURATION (v5 - LIVE)
+// 1. FIREBASE & RENDER VAPID CONFIGURATION (v6 - LIVE)
 // ==========================================================================
-const CURRENT_APP_VERSION = "v5";
+const CURRENT_APP_VERSION = "v6";
 const VAPID_PUBLIC_KEY = "BCYZCGMueIWWUU7cA2m4-fmHK0gEbmwqfSMHyzXr4AGdyhDi53mct0OoEfnPttK-1D3LV8guB3-RtfFYABa82bo";
 const RENDER_BACKEND_URL = "https://foodies-backend-9vvj.onrender.com";
 
@@ -333,13 +333,14 @@ async function notifyKitchenNewOrder(orderData) {
 }
 
 // ==========================================================================
-// 4. SERVICE WORKER REGISTRATION
+// 4. SERVICE WORKER REGISTRATION (FORCE CACHE BYPASS)
 // ==========================================================================
 let swRegistration = null;
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js', { scope: '/' })
+    // Append version to force browser to re-fetch sw.js
+    navigator.serviceWorker.register(`/sw.js?v=${CURRENT_APP_VERSION}`, { scope: '/' })
     .then((reg) => {
       swRegistration = reg;
       reg.update();
