@@ -1,7 +1,7 @@
 // ==========================================================================
-// 1. FIREBASE & RENDER VAPID CONFIGURATION (v4 - LIVE)
+// 1. FIREBASE & RENDER VAPID CONFIGURATION (v5 - LIVE)
 // ==========================================================================
-const CURRENT_APP_VERSION = "v4";
+const CURRENT_APP_VERSION = "v5";
 const VAPID_PUBLIC_KEY = "BCYZCGMueIWWUU7cA2m4-fmHK0gEbmwqfSMHyzXr4AGdyhDi53mct0OoEfnPttK-1D3LV8guB3-RtfFYABa82bo";
 const RENDER_BACKEND_URL = "https://foodies-backend-9vvj.onrender.com";
 
@@ -421,9 +421,9 @@ function enforceInstallGate() {
 }
 
 // ==========================================================================
-// 6. COMPLETE FOODIES POINT MENU (UPDATED v4 DATA)
+// 6. COMPLETE FOODIES POINT MENU & DYNAMIC MANAGEMENT
 // ==========================================================================
-const MENU_ITEMS = [
+const DEFAULT_MENU_ITEMS = [
   { id: 'dish-001', category: 'Rolls', name: 'Dahi Bread Roll (1 pc)', price: 15 },
   { id: 'dish-002', category: 'Rolls', name: 'Bread Roll (8 pc plate)', price: 80 },
   { id: 'dish-003', category: 'Rolls', name: 'Spring Roll', price: 25 },
@@ -437,7 +437,6 @@ const MENU_ITEMS = [
   { id: 'dish-011', category: 'Rolls', name: 'Chicken Egg Roll', price: 70 },
   { id: 'dish-012', category: 'Rolls', name: 'Chicken Egg Mayonnaise Roll', price: 75 },
   { id: 'dish-013', category: 'Rolls', name: 'Crispy Veg. Cheese Bread Roll', price: 18 },
-
   { id: 'dish-014', category: 'Pakodi', name: 'Pyaaz ki Pakodi (250gm)', price: 60 },
   { id: 'dish-015', category: 'Pakodi', name: 'Paalak ki Pakodi (250gm)', price: 60 },
   { id: 'dish-016', category: 'Pakodi', name: 'Gobhi ki Pakodi (250gm)', price: 60 },
@@ -445,11 +444,9 @@ const MENU_ITEMS = [
   { id: 'dish-018', category: 'Pakodi', name: 'Bread Pakoda', price: 20 },
   { id: 'dish-019', category: 'Pakodi', name: 'Egg Pakodi', price: 10 },
   { id: 'dish-020', category: 'Pakodi', name: 'Moong Daal ke Mongode (250gm)', price: 75 },
-
   { id: 'dish-021', category: 'Sandwich', name: 'Grilled Veg. Mayonaise Sandwich (2 pc)', price: 55 },
   { id: 'dish-022', category: 'Sandwich', name: 'Grilled Veg. Cheese Sandwich (2 pc)', price: 65 },
   { id: 'dish-023', category: 'Sandwich', name: 'Veg Sandwich', price: 18 },
-
   { id: 'dish-024', category: 'Snacks', name: 'Chocolate Croissant', price: 48 },
   { id: 'dish-025', category: 'Snacks', name: 'Zingy Parcel (Paneer)', price: 60 },
   { id: 'dish-026', category: 'Snacks', name: 'Pizza Puff', price: 18 },
@@ -476,7 +473,6 @@ const MENU_ITEMS = [
   { id: 'dish-047', category: 'Snacks', name: 'Paneer Tikka (per plate)', price: 240 },
   { id: 'dish-048', category: 'Snacks', name: 'Paneer Malai Tikka (per plate)', price: 260 },
   { id: 'dish-107', category: 'Snacks', name: 'Crispy Corn (per plate)', price: 120 },
-
   { id: 'dish-049', category: 'Chinese', name: 'Honey Chilli Potato', price: 90 },
   { id: 'dish-050', category: 'Chinese', name: 'Chowmein', price: 80 },
   { id: 'dish-051', category: 'Chinese', name: 'Macaroni', price: 80 },
@@ -488,20 +484,16 @@ const MENU_ITEMS = [
   { id: 'dish-057', category: 'Chinese', name: 'Paneer Momos (10 pc)', price: 75 },
   { id: 'dish-058', category: 'Chinese', name: 'Chicken Momos (10 pc)', price: 100 },
   { id: 'dish-059', category: 'Chinese', name: 'White Pasta', price: 100 },
-
   { id: 'dish-060', category: 'Kebabs', name: 'Veg. Seekh Kebab', price: 15 },
   { id: 'dish-061', category: 'Kebabs', name: 'Veg Kebab', price: 17 },
   { id: 'dish-062', category: 'Kebabs', name: 'Dahi ke Kebab', price: 25 },
   { id: 'dish-063', category: 'Kebabs', name: 'Hariyali Kebab', price: 25 },
-
   { id: 'dish-064', category: 'Cake (Egg-Less)', name: 'Tutti Frutti Cup Cake', price: 18 },
   { id: 'dish-065', category: 'Cake (Egg-Less)', name: 'Chocolate Cup Cake', price: 20 },
   { id: 'dish-066', category: 'Cake (Egg-Less)', name: 'Chocolava Cup Cake', price: 38 },
-
   { id: 'dish-067', category: 'Shakes', name: 'Mango Shake', price: 30 },
   { id: 'dish-068', category: 'Shakes', name: 'Lassi', price: 45 },
   { id: 'dish-069', category: 'Shakes', name: 'Panna', price: 12 },
-
   { id: 'dish-070', category: 'Meals & Combos', name: 'Chokha Baati (2 pc plate)', price: 50 },
   { id: 'dish-071', category: 'Meals & Combos', name: 'Aloo-Kulche Chole (per plate)', price: 70 },
   { id: 'dish-072', category: 'Meals & Combos', name: 'Chole Bhature (per plate)', price: 60 },
@@ -509,19 +501,16 @@ const MENU_ITEMS = [
   { id: 'dish-074', category: 'Meals & Combos', name: 'Sambhar Vada (4 pc plate)', price: 55 },
   { id: 'dish-075', category: 'Meals & Combos', name: 'Idli Sambhar (4 pc plate)', price: 55 },
   { id: 'dish-076', category: 'Meals & Combos', name: 'Pav Bhaaji (per plate)', price: 60 },
-
   { id: 'dish-077', category: 'Sweets', name: 'Gulab Jamun', price: 20 },
   { id: 'dish-078', category: 'Sweets', name: 'Kheer', price: 80 },
   { id: 'dish-079', category: 'Sweets', name: 'Sweet Rice', price: 90 },
   { id: 'dish-080', category: 'Sweets', name: 'Shrikhand (250 gm)', price: 85 },
-
   { id: 'dish-081', category: 'Sabzi', name: 'Shaahi Paneer', price: 300 },
   { id: 'dish-082', category: 'Sabzi', name: 'Paneer Masala', price: 220 },
   { id: 'dish-083', category: 'Sabzi', name: 'Paneer Angara', price: 280 },
   { id: 'dish-084', category: 'Sabzi', name: 'Paneer Korma', price: 260 },
   { id: 'dish-085', category: 'Sabzi', name: 'Palak Paneer', price: 200 },
   { id: 'dish-086', category: 'Sabzi', name: 'Matar Paneer', price: 200 },
-
   { id: 'dish-087', category: 'Non-Veg', name: 'Chicken Afghani', price: 500 },
   { id: 'dish-088', category: 'Non-Veg', name: 'Roasted Chicken', price: 340 },
   { id: 'dish-089', category: 'Non-Veg', name: 'Chilli Chicken', price: 440 },
@@ -535,51 +524,129 @@ const MENU_ITEMS = [
   { id: 'dish-097', category: 'Non-Veg', name: 'Chicken Curry', price: 360 },
   { id: 'dish-098', category: 'Non-Veg', name: 'Chicken Masala', price: 400 },
   { id: 'dish-099', category: 'Non-Veg', name: 'Butter Chicken', price: 500 },
-
   { id: 'dish-100', category: 'Rice', name: 'Plain Rice', price: 90 },
   { id: 'dish-101', category: 'Rice', name: 'Jeera Rice', price: 120 },
   { id: 'dish-102', category: 'Rice', name: 'Matar Pulao', price: 140 },
   { id: 'dish-103', category: 'Rice', name: 'Veg. Biryani', price: 180 },
-
   { id: 'dish-104', category: 'Falahaar', name: 'Aloo-Sabudaana Tikki (2 pc)', price: 25 },
   { id: 'dish-105', category: 'Falahaar', name: 'Sabudaana Khichdi', price: 70 },
   { id: 'dish-106', category: 'Falahaar', name: 'Falahaari Mirch ki Pakodi', price: 15 }
 ];
 
+let activeMenuItems = [...DEFAULT_MENU_ITEMS];
 const cart = {};
 let kitchenCheckedState = {};
 let latestFirebaseMenuSnapshot = null;
 
-// ==========================================================================
-// 7. KITCHEN DRAWER
-// ==========================================================================
-function toggleKitchenDrawer(forceState) {
-  const drawer = document.getElementById('kitchen-left-drawer');
-  const backdrop = document.getElementById('kitchen-drawer-backdrop');
-  if (!drawer || !backdrop) return;
+function loadDynamicMenuCatalog() {
+  if (!db) return;
+  db.ref('menu_catalog').on('value', (snap) => {
+    const catalog = snap.val();
+    activeMenuItems = catalog ? catalog : [...DEFAULT_MENU_ITEMS];
+    if (isKitchenMode) renderKitchenMenu();
+    if (!isKitchenMode && latestFirebaseMenuSnapshot) renderCustomerMenuFromSnapshot(latestFirebaseMenuSnapshot);
+  });
+}
 
-  const isOpen = drawer.classList.contains('open');
+function openAddItemModal() {
+  document.getElementById('add-item-name').value = '';
+  document.getElementById('add-item-category').value = '';
+  document.getElementById('add-item-price').value = '';
+  document.getElementById('add-item-modal').style.display = 'flex';
+}
+
+function closeAddItemModal() {
+  document.getElementById('add-item-modal').style.display = 'none';
+}
+
+function saveNewItem() {
+  const name = document.getElementById('add-item-name').value.trim();
+  const category = document.getElementById('add-item-category').value.trim() || 'Specials';
+  const price = parseInt(document.getElementById('add-item-price').value);
+
+  if (!name || isNaN(price) || price <= 0) {
+    alert("Please enter a valid Name and Price.");
+    return;
+  }
+
+  const newItem = {
+    id: 'dish-' + Date.now(),
+    category: category,
+    name: name,
+    price: price
+  };
+
+  activeMenuItems.push(newItem);
+  if (db) db.ref('menu_catalog').set(activeMenuItems);
+  closeAddItemModal();
+}
+
+function openEditItemModal(id) {
+  const item = activeMenuItems.find(i => i.id === id);
+  if (!item) return;
+  document.getElementById('edit-item-id').value = item.id;
+  document.getElementById('edit-item-name').value = item.name;
+  document.getElementById('edit-item-price').value = item.price;
+  document.getElementById('edit-item-modal').style.display = 'flex';
+}
+
+function closeEditItemModal() {
+  document.getElementById('edit-item-modal').style.display = 'none';
+}
+
+function saveEditedItem() {
+  const id = document.getElementById('edit-item-id').value;
+  const newName = document.getElementById('edit-item-name').value.trim();
+  const newPrice = parseInt(document.getElementById('edit-item-price').value);
+
+  if (!newName || isNaN(newPrice) || newPrice <= 0) {
+    alert("Please enter a valid Name and Price.");
+    return;
+  }
+
+  const itemIndex = activeMenuItems.findIndex(i => i.id === id);
+  if (itemIndex > -1) {
+    activeMenuItems[itemIndex].name = newName;
+    activeMenuItems[itemIndex].price = newPrice;
+    if (db) db.ref('menu_catalog').set(activeMenuItems);
+  }
+  closeEditItemModal();
+}
+
+// ==========================================================================
+// 7. KITCHEN DROPDOWN MENU
+// ==========================================================================
+function toggleKitchenMenuDropdown(forceState) {
+  const dropdown = document.getElementById('kitchen-dropdown');
+  const backdrop = document.getElementById('kitchen-dropdown-backdrop');
+  if (!dropdown || !backdrop) return;
+
+  const isOpen = dropdown.style.display === 'block';
   const shouldOpen = (typeof forceState === 'boolean') ? forceState : !isOpen;
 
   if (shouldOpen) {
-    drawer.classList.add('open');
-    backdrop.classList.add('active');
+    dropdown.style.display = 'block';
+    backdrop.style.display = 'block';
   } else {
-    drawer.classList.remove('open');
-    backdrop.classList.remove('active');
+    dropdown.style.display = 'none';
+    backdrop.style.display = 'none';
   }
 }
 
 // ==========================================================================
-// 8. RENDER KITCHEN MENU (Keeps Section Headers)
+// 8. RENDER KITCHEN MENU (With Search Filter & Edit)
 // ==========================================================================
 function renderKitchenMenu() {
   const container = document.getElementById('kitchen-menu-container');
   if (!container) return;
-
   container.innerHTML = '';
 
-  const checkedDishes = MENU_ITEMS.filter(d => kitchenCheckedState[d.id]);
+  const searchQuery = (document.getElementById('kitchen-menu-search')?.value || '').toLowerCase();
+  const filteredItems = activeMenuItems.filter(item => 
+    item.name.toLowerCase().includes(searchQuery) || item.category.toLowerCase().includes(searchQuery)
+  );
+
+  const checkedDishes = filteredItems.filter(d => kitchenCheckedState[d.id]);
 
   checkedDishes.forEach((dish) => {
     const isOOS = (kitchenCheckedState[dish.id] === 'OOS');
@@ -595,16 +662,19 @@ function renderKitchenMenu() {
           <div class="price">₹${dish.price}</div>
         </div>
       </div>
-      <button type="button" class="btn-oos ${isOOS ? 'is-oos' : ''}" onclick="toggleOutOfStock('${dish.id}')">
-        ${isOOS ? '🔴 Out of Stock' : '🟢 In Stock'}
-      </button>
+      <div style="display:flex; flex-direction:column; gap:6px; align-items:flex-end;">
+        <button type="button" class="btn-oos ${isOOS ? 'is-oos' : ''}" onclick="toggleOutOfStock('${dish.id}')">
+          ${isOOS ? '🔴 Out of Stock' : '🟢 In Stock'}
+        </button>
+        <button type="button" class="btn-edit-item" onclick="openEditItemModal('${dish.id}')">✏️ Edit</button>
+      </div>
     `;
     container.appendChild(card);
   });
 
-  const categories = [...new Set(MENU_ITEMS.map(item => item.category))];
+  const categories = [...new Set(filteredItems.map(item => item.category))];
   categories.forEach((cat) => {
-    const uncheckedCatItems = MENU_ITEMS.filter(item => item.category === cat && !kitchenCheckedState[item.id]);
+    const uncheckedCatItems = filteredItems.filter(item => item.category === cat && !kitchenCheckedState[item.id]);
 
     if (uncheckedCatItems.length > 0) {
       const categoryHeader = document.createElement('h3');
@@ -625,6 +695,7 @@ function renderKitchenMenu() {
               <div class="price">₹${dish.price}</div>
             </div>
           </div>
+          <button type="button" class="btn-edit-item" onclick="openEditItemModal('${dish.id}')">✏️ Edit</button>
         `;
         container.appendChild(card);
       });
@@ -704,7 +775,7 @@ function clearDailyMenu() {
 }
 
 // ==========================================================================
-// 10. CUSTOMER LIVE MENU LISTENER (No Section Headers)
+// 10. CUSTOMER LIVE MENU LISTENER
 // ==========================================================================
 function renderCustomerMenuFromSnapshot(activeIds) {
   const container = document.getElementById('customer-menu-container');
@@ -735,7 +806,7 @@ function renderCustomerMenuFromSnapshot(activeIds) {
     return;
   }
 
-  MENU_ITEMS.forEach((dish) => {
+  activeMenuItems.forEach((dish) => {
     if (activeIds[dish.id]) {
       cart[dish.id] = cart[dish.id] || 0;
       const isOOS = (activeIds[dish.id] === 'OOS');
@@ -788,7 +859,7 @@ function updateQuantity(dishId, change) {
 }
 
 // ==========================================================================
-// 11. ORDER SUBMISSION ENGINE (DELIVERY/TAKEAWAY ADDED)
+// 11. ORDER SUBMISSION ENGINE
 // ==========================================================================
 let pendingCustomerOrder = null;
 
@@ -801,7 +872,7 @@ function openOrderOptionsModal() {
   const orderItems = [];
   let totalAmount = 0;
 
-  MENU_ITEMS.forEach((dish) => {
+  activeMenuItems.forEach((dish) => {
     const qty = cart[dish.id] || 0;
     if (qty > 0) {
       orderItems.push({ id: dish.id, name: dish.name, price: dish.price, quantity: qty });
@@ -820,7 +891,6 @@ function openOrderOptionsModal() {
     return;
   }
 
-  // Save the state and show options modal
   pendingCustomerOrder = {
     items: orderItems,
     total: totalAmount,
@@ -904,7 +974,7 @@ function executeFirebaseOrderSubmission(orderItems, totalAmount, customerProfile
       localStorage.setItem('fp_customer_orders', JSON.stringify(pastOrders));
       renderCustomerOrderHistory();
 
-      MENU_ITEMS.forEach((dish) => { cart[dish.id] = 0; });
+      activeMenuItems.forEach((dish) => { cart[dish.id] = 0; });
       Object.keys(cart).forEach(id => {
         const span = document.getElementById(`qty-${id}`);
         if (span) span.textContent = 0;
@@ -940,13 +1010,11 @@ function renderCustomerOrderHistory() {
 
     const dateStr = new Date(myOrder.timestamp).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
     
-    // Delivery info string
     const typeEmoji = myOrder.orderType === 'Delivery' ? '🚚' : '🥡';
     const deliveryStr = `<div style="font-weight: 600; color: #1565C0; margin-top: 6px; font-size: 0.85rem; background: #E3F2FD; display: inline-block; padding: 3px 8px; border-radius: 6px;">
         ${typeEmoji} ${myOrder.orderType} @ ${myOrder.scheduledTime}
     </div>`;
 
-    // Delivery charge string
     let totalDisplay = `₹${myOrder.total}`;
     if (myOrder.deliveryCharge > 0) {
       totalDisplay += ` <span style="font-size:0.75rem; font-weight:normal; color:#666;">(includes ₹${myOrder.deliveryCharge} delivery fee)</span>`;
@@ -1057,9 +1125,9 @@ function enterKitchenMode() {
   document.getElementById('header-notify-btn').style.display = 'none';
   document.getElementById('header-kitchen-btn').style.display = 'none';
   document.getElementById('header-back-btn').style.display = 'inline-flex';
+  
   document.getElementById('header-drawer-btn').style.display = 'inline-block';
   document.getElementById('kitchen-version-badge').style.display = 'inline-block';
-  document.getElementById('header-exit-btn').style.display = 'inline-block';
 
   document.getElementById('kitchen-view').style.display = 'flex';
   
@@ -1079,9 +1147,14 @@ function enterKitchenMode() {
 }
 
 function handleHeaderBack() {
+  toggleKitchenMenuDropdown(false);
   const custPage = document.getElementById('customer-data-view');
   const payPage = document.getElementById('payment-details-view');
-  if ((custPage && custPage.style.display === 'flex') || (payPage && payPage.style.display === 'flex')) {
+  const ordersPage = document.getElementById('kitchen-orders-view');
+  
+  if ((custPage && custPage.style.display === 'flex') || 
+      (payPage && payPage.style.display === 'flex') || 
+      (ordersPage && ordersPage.style.display === 'flex')) {
     closeKitchenSubPage(true);
   } else {
     exitKitchenMode(true);
@@ -1092,7 +1165,7 @@ function exitKitchenMode(triggerHistoryBack = true) {
   if (!isKitchenMode) return;
   isKitchenMode = false;
 
-  toggleKitchenDrawer(false);
+  toggleKitchenMenuDropdown(false);
   closeKitchenSubPage(false);
   if (triggerHistoryBack && window.location.hash.startsWith('#kitchen')) history.back();
 
@@ -1103,9 +1176,9 @@ function exitKitchenMode(triggerHistoryBack = true) {
   document.getElementById('header-notify-btn').style.display = 'inline-flex';
   document.getElementById('header-kitchen-btn').style.display = 'inline-block';
   document.getElementById('header-back-btn').style.display = 'none';
+  
   document.getElementById('header-drawer-btn').style.display = 'none';
   document.getElementById('kitchen-version-badge').style.display = 'none';
-  document.getElementById('header-exit-btn').style.display = 'none';
   
   checkAppOnboarding();
 
@@ -1118,8 +1191,15 @@ function exitKitchenMode(triggerHistoryBack = true) {
 // ==========================================================================
 // 13. DEDICATED KITCHEN SUB-PAGES
 // ==========================================================================
+function openKitchenOrdersPage() {
+  toggleKitchenMenuDropdown(false);
+  history.pushState({ kitchenSubPage: 'orders' }, '', '#kitchen-orders');
+  document.getElementById('kitchen-view').style.display = 'none';
+  document.getElementById('kitchen-orders-view').style.display = 'flex';
+}
+
 function openCustomerDataPage() {
-  toggleKitchenDrawer(false);
+  toggleKitchenMenuDropdown(false);
   history.pushState({ kitchenSubPage: 'customers' }, '', '#kitchen-customers');
   document.getElementById('kitchen-view').style.display = 'none';
   document.getElementById('customer-data-view').style.display = 'flex';
@@ -1127,7 +1207,7 @@ function openCustomerDataPage() {
 }
 
 function openPaymentDetailsPage() {
-  toggleKitchenDrawer(false);
+  toggleKitchenMenuDropdown(false);
   history.pushState({ kitchenSubPage: 'payments' }, '', '#kitchen-payments');
   document.getElementById('kitchen-view').style.display = 'none';
   document.getElementById('payment-details-view').style.display = 'flex';
@@ -1137,8 +1217,9 @@ function openPaymentDetailsPage() {
 function closeKitchenSubPage(triggerBack = true) {
   document.getElementById('customer-data-view').style.display = 'none';
   document.getElementById('payment-details-view').style.display = 'none';
+  document.getElementById('kitchen-orders-view').style.display = 'none';
   if (isKitchenMode) document.getElementById('kitchen-view').style.display = 'flex';
-  if (triggerBack && (window.location.hash === '#kitchen-customers' || window.location.hash === '#kitchen-payments')) {
+  if (triggerBack && (window.location.hash === '#kitchen-customers' || window.location.hash === '#kitchen-payments' || window.location.hash === '#kitchen-orders')) {
     history.back();
   }
 }
@@ -1260,7 +1341,7 @@ window.addEventListener('popstate', () => {
   if (isKitchenMode) {
     if (window.location.hash === '#kitchen') {
       closeKitchenSubPage(false);
-    } else if (window.location.hash !== '#kitchen-customers' && window.location.hash !== '#kitchen-payments') {
+    } else if (window.location.hash !== '#kitchen-customers' && window.location.hash !== '#kitchen-payments' && window.location.hash !== '#kitchen-orders') {
       exitKitchenMode(false);
     }
   }
@@ -1310,7 +1391,6 @@ function listenForKitchenOrders() {
       };
       const statusColor = statusColors[order.status] || '#FF4B3A';
 
-      // NEW: Delivery/Takeaway Tag
       const typeEmoji = order.orderType === 'Delivery' ? '🚚' : '🥡';
       const orderTypeHtml = `
         <div style="font-weight: 700; color: #1565C0; margin: 8px 0; background: #E3F2FD; display: inline-block; padding: 4px 10px; border-radius: 6px; font-size: 0.9rem;">
@@ -1364,18 +1444,16 @@ function listenForKitchenOrders() {
 }
 
 // ==========================================================================
-// 15. TARGETED ORDER ACTIONS (WITH DELIVERY CHARGE LOGIC)
+// 15. TARGETED ORDER ACTIONS
 // ==========================================================================
 let pendingAcceptance = null;
 
 function acceptOrderTrigger(firebaseKey, orderType, currentTotal) {
   if (orderType === 'Delivery') {
-    // Open Delivery Charge Modal
     pendingAcceptance = { key: firebaseKey, originalTotal: currentTotal };
     document.getElementById('kitchen-delivery-fee-input').value = "";
     document.getElementById('delivery-charge-modal').style.display = 'flex';
   } else {
-    // Process Takeaway instantly with 0 charge
     processOrderAcceptance(firebaseKey, 0);
   }
 }
@@ -1458,6 +1536,8 @@ async function removeTicket(firebaseKey) {
 function initFoodiesPoint() {
   enforceInstallGate();
   checkDaily6PMReset();
+  
+  loadDynamicMenuCatalog();
   listenForCustomerLiveMenu();
   renderCustomerOrderHistory();
   listenForCustomerOrderUpdates();
