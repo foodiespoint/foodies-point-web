@@ -1,27 +1,28 @@
 // ==========================================================================
-// FOODIES POINT SERVICE WORKER (LIVE - v7)
+// FOODIES POINT SERVICE WORKER (LIVE - v8)
 // ==========================================================================
-const CACHE_NAME = 'fp-cache-v7';
+const CACHE_NAME = 'fp-cache-v8';
 
 const ASSETS_TO_CACHE = [
   '/',
-  '/index.html?v=7',
-  '/app.js?v=7',
-  '/manifest.json?v=7',
+  '/index.html?v=8',
+  '/app.js?v=8',
+  '/manifest.json?v=8',
   '/icon.png'
 ];
 
 self.addEventListener('install', (event) => {
-  console.log('[SW v7] Installing new service worker...');
+  console.log('[SW v8] Installing new service worker...');
+  self.skipWaiting(); // FORCE take over immediately
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       return cache.addAll(ASSETS_TO_CACHE);
-    }).then(() => self.skipWaiting())
+    })
   );
 });
 
 self.addEventListener('activate', (event) => {
-  console.log('[SW v7] Activating & wiping old caches...');
+  console.log('[SW v8] Activating & wiping old caches...');
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
@@ -31,12 +32,12 @@ self.addEventListener('activate', (event) => {
           }
         })
       );
-    }).then(() => self.clients.claim())
+    }).then(() => self.clients.claim()) // FORCE claim all open tabs
   );
 });
 
 self.addEventListener('push', (event) => {
-  console.log('[SW v7] Native Push Event Received:', event);
+  console.log('[SW v8] Native Push Event Received:', event);
 
   let data = { title: "Foodies Point 🍛", body: "Today's live menu is updated!" };
   if (event.data) {
@@ -70,6 +71,7 @@ self.addEventListener('notificationclick', (event) => {
 self.addEventListener('fetch', (event) => {
   const requestUrl = new URL(event.request.url);
 
+  // Network-First for navigation and JS/HTML files to prevent caching loops
   if (event.request.mode === 'navigate' || requestUrl.pathname.endsWith('.js') || requestUrl.pathname.endsWith('.html')) {
     event.respondWith(
       fetch(event.request)
@@ -83,6 +85,7 @@ self.addEventListener('fetch', (event) => {
         .catch(() => caches.match(event.request))
     );
   } else {
+    // Cache-First for everything else (images, css)
     event.respondWith(
       caches.match(event.request).then((cachedResponse) => {
         return cachedResponse || fetch(event.request);
