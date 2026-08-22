@@ -1,18 +1,18 @@
 // ==========================================================================
-// FOODIES POINT SERVICE WORKER (LIVE - v6)
+// FOODIES POINT SERVICE WORKER (LIVE - v7)
 // ==========================================================================
-const CACHE_NAME = 'fp-cache-v6';
+const CACHE_NAME = 'fp-cache-v7';
 
 const ASSETS_TO_CACHE = [
   '/',
-  '/index.html?v=6',
-  '/app.js?v=6',
-  '/manifest.json?v=6',
+  '/index.html?v=7',
+  '/app.js?v=7',
+  '/manifest.json?v=7',
   '/icon.png'
 ];
 
 self.addEventListener('install', (event) => {
-  console.log('[SW v6] Installing new service worker...');
+  console.log('[SW v7] Installing new service worker...');
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       return cache.addAll(ASSETS_TO_CACHE);
@@ -21,7 +21,7 @@ self.addEventListener('install', (event) => {
 });
 
 self.addEventListener('activate', (event) => {
-  console.log('[SW v6] Activating & wiping old caches...');
+  console.log('[SW v7] Activating & wiping old caches...');
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
@@ -36,7 +36,7 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('push', (event) => {
-  console.log('[SW v6] Native Push Event Received:', event);
+  console.log('[SW v7] Native Push Event Received:', event);
 
   let data = { title: "Foodies Point 🍛", body: "Today's live menu is updated!" };
   if (event.data) {
