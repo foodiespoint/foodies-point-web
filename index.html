@@ -4,14 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   
-  <!-- CACHE BUSTING META TAGS -->
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
 
   <title>Foodies Point</title>
 
-  <link rel="manifest" href="/manifest.json?v=8">
+  <link rel="manifest" href="/manifest.json?v=9">
   <meta name="theme-color" content="#FF4B3A">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -729,7 +728,7 @@
 
       <div class="header-right-group">
         <button class="btn-icon" id="header-notify-btn" onclick="openAlertsModal()" aria-label="Notifications">🔔</button>
-        <span id="kitchen-version-badge">v8</span>
+        <span id="kitchen-version-badge">v9</span>
         <button class="btn-kitchen-menu" id="header-drawer-btn" onclick="toggleKitchenMenuDropdown()" style="display: none;" aria-label="Open Kitchen Menu">☰ Menu</button>
       </div>
     </header>
@@ -823,8 +822,10 @@
         <span class="form-label">Dish Name:</span>
         <input type="text" id="add-item-name" placeholder="e.g. Masala Dosa">
 
+        <!-- MODIFIED: Dynamic Category Dropdown -->
         <span class="form-label" style="margin-top: 8px;">Category:</span>
-        <input type="text" id="add-item-category" placeholder="e.g. South Indian">
+        <select id="add-item-category-select" onchange="handleCategorySelectChange()"></select>
+        <input type="text" id="add-item-category-new" style="margin-top: 8px; display: none;" placeholder="Enter new category name">
         
         <span class="form-label" style="margin-top: 8px;">Price (₹):</span>
         <input type="number" id="add-item-price" placeholder="e.g. 120" min="1">
@@ -944,7 +945,7 @@
     </div>
   </div>
 
-  <!-- Force fetching v8 of the script -->
-  <script src="/app.js?v=8"></script>
+  <!-- Force fetching v9 of the script -->
+  <script src="/app.js?v=9"></script>
 </body>
 </html>
