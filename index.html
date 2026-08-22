@@ -5,7 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Foodies Point</title>
 
-  <link rel="manifest" href="/manifest.json?v=6">
+  <!-- Query param appended to forcefully bypass cache -->
+  <link rel="manifest" href="/manifest.json?v=7">
   <meta name="theme-color" content="#FF4B3A">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -723,7 +724,7 @@
 
       <div class="header-right-group">
         <button class="btn-icon" id="header-notify-btn" onclick="openAlertsModal()" aria-label="Notifications">🔔</button>
-        <span id="kitchen-version-badge">v6</span>
+        <span id="kitchen-version-badge">v7</span>
         <button class="btn-kitchen-menu" id="header-drawer-btn" onclick="toggleKitchenMenuDropdown()" style="display: none;" aria-label="Open Kitchen Menu">☰ Menu</button>
       </div>
     </header>
@@ -938,6 +939,7 @@
     </div>
   </div>
 
-  <script src="/app.js?v=6"></script>
+  <!-- Force fetching v7 of the script -->
+  <script src="/app.js?v=7"></script>
 </body>
 </html>
