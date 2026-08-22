@@ -1,7 +1,7 @@
 // ==========================================================================
-// 1. FIREBASE & RENDER VAPID CONFIGURATION (v7 - LIVE)
+// 1. FIREBASE & RENDER VAPID CONFIGURATION (v8 - LIVE)
 // ==========================================================================
-const CURRENT_APP_VERSION = "v7";
+const CURRENT_APP_VERSION = "v8";
 const VAPID_PUBLIC_KEY = "BCYZCGMueIWWUU7cA2m4-fmHK0gEbmwqfSMHyzXr4AGdyhDi53mct0OoEfnPttK-1D3LV8guB3-RtfFYABa82bo";
 const RENDER_BACKEND_URL = "https://foodies-backend-9vvj.onrender.com";
 
@@ -339,7 +339,8 @@ let swRegistration = null;
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js', { scope: '/' })
+    // FORCE BYPASS CACHE WITH V8 TIMESTAMP
+    navigator.serviceWorker.register(`/sw.js?v=${CURRENT_APP_VERSION}`, { scope: '/' })
     .then((reg) => {
       swRegistration = reg;
       reg.update();
