@@ -1,7 +1,7 @@
 // ==========================================================================
-// 1. FIREBASE & RENDER VAPID CONFIGURATION (v8 - LIVE)
+// 1. FIREBASE & RENDER VAPID CONFIGURATION (v9 - LIVE)
 // ==========================================================================
-const CURRENT_APP_VERSION = "v8";
+const CURRENT_APP_VERSION = "v9";
 const VAPID_PUBLIC_KEY = "BCYZCGMueIWWUU7cA2m4-fmHK0gEbmwqfSMHyzXr4AGdyhDi53mct0OoEfnPttK-1D3LV8guB3-RtfFYABa82bo";
 const RENDER_BACKEND_URL = "https://foodies-backend-9vvj.onrender.com";
 
@@ -126,6 +126,18 @@ function saveCustomerProfile() {
   }
   
   checkAppOnboarding();
+}
+
+// NEW: Silently updates the customer's app version and last online timestamp in the DB
+function updateCustomerPresence() {
+  const profileStr = localStorage.getItem('fp_customer_profile');
+  if (profileStr && db && !isKitchenMode) {
+    const profile = JSON.parse(profileStr);
+    db.ref(`customers/${profile.mobile}`).update({
+      appVersion: CURRENT_APP_VERSION,
+      lastSeen: firebase.database.ServerValue.TIMESTAMP
+    }).catch(e => console.error("Presence update failed:", e));
+  }
 }
 
 async function autoSyncPushToken() {
@@ -339,7 +351,7 @@ let swRegistration = null;
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    // FORCE BYPASS CACHE WITH V8 TIMESTAMP
+    // Append version to force browser to re-fetch sw.js
     navigator.serviceWorker.register(`/sw.js?v=${CURRENT_APP_VERSION}`, { scope: '/' })
     .then((reg) => {
       swRegistration = reg;
@@ -551,9 +563,41 @@ function loadDynamicMenuCatalog() {
 
 function openAddItemModal() {
   document.getElementById('add-item-name').value = '';
-  document.getElementById('add-item-category').value = '';
   document.getElementById('add-item-price').value = '';
+  
+  const select = document.getElementById('add-item-category-select');
+  const newCatInput = document.getElementById('add-item-category-new');
+  
+  select.innerHTML = '';
+  newCatInput.style.display = 'none';
+  newCatInput.value = '';
+
+  // Extract unique categories from current active menu
+  const categories = [...new Set(activeMenuItems.map(item => item.category))];
+  
+  categories.forEach(cat => {
+    const opt = document.createElement('option');
+    opt.value = cat;
+    opt.textContent = cat;
+    select.appendChild(opt);
+  });
+  
+  const addOpt = document.createElement('option');
+  addOpt.value = 'ADD_NEW';
+  addOpt.textContent = '➕ Add New Category...';
+  select.appendChild(addOpt);
+
   document.getElementById('add-item-modal').style.display = 'flex';
+}
+
+function handleCategorySelectChange() {
+  const select = document.getElementById('add-item-category-select');
+  const newCategoryInput = document.getElementById('add-item-category-new');
+  if (select.value === 'ADD_NEW') {
+    newCategoryInput.style.display = 'block';
+  } else {
+    newCategoryInput.style.display = 'none';
+  }
 }
 
 function closeAddItemModal() {
@@ -562,8 +606,13 @@ function closeAddItemModal() {
 
 function saveNewItem() {
   const name = document.getElementById('add-item-name').value.trim();
-  const category = document.getElementById('add-item-category').value.trim() || 'Specials';
   const price = parseInt(document.getElementById('add-item-price').value);
+  
+  let category = document.getElementById('add-item-category-select').value;
+  if (category === 'ADD_NEW') {
+    category = document.getElementById('add-item-category-new').value.trim();
+  }
+  if (!category) category = 'Specials';
 
   if (!name || isNaN(price) || price <= 0) {
     alert("Please enter a valid Name and Price.");
@@ -1250,7 +1299,11 @@ function fetchAndRenderCustomerDirectory() {
       return;
     }
     container.innerHTML = '';
-    Object.values(customers).forEach((cust) => {
+    
+    // Sort array by lastSeen timestamp (most recent first)
+    const customerArray = Object.values(customers).sort((a, b) => (b.lastSeen || 0) - (a.lastSeen || 0));
+    
+    customerArray.forEach((cust) => {
       const card = document.createElement('div');
       card.className = 'customer-data-card';
       const dateStr = cust.lastSeen ? new Date(cust.lastSeen).toLocaleDateString() : 'Recently';
@@ -1537,6 +1590,9 @@ async function removeTicket(firebaseKey) {
 function initFoodiesPoint() {
   enforceInstallGate();
   checkDaily6PMReset();
+  
+  // NEW: Update presence tracking quietly in background
+  updateCustomerPresence();
   
   loadDynamicMenuCatalog();
   listenForCustomerLiveMenu();
