@@ -3,10 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  
+  <!-- CACHE BUSTING META TAGS -->
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+
   <title>Foodies Point</title>
 
-  <!-- Query param appended to forcefully bypass cache -->
-  <link rel="manifest" href="/manifest.json?v=7">
+  <link rel="manifest" href="/manifest.json?v=8">
   <meta name="theme-color" content="#FF4B3A">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -724,7 +729,7 @@
 
       <div class="header-right-group">
         <button class="btn-icon" id="header-notify-btn" onclick="openAlertsModal()" aria-label="Notifications">🔔</button>
-        <span id="kitchen-version-badge">v7</span>
+        <span id="kitchen-version-badge">v8</span>
         <button class="btn-kitchen-menu" id="header-drawer-btn" onclick="toggleKitchenMenuDropdown()" style="display: none;" aria-label="Open Kitchen Menu">☰ Menu</button>
       </div>
     </header>
@@ -939,7 +944,7 @@
     </div>
   </div>
 
-  <!-- Force fetching v7 of the script -->
-  <script src="/app.js?v=7"></script>
+  <!-- Force fetching v8 of the script -->
+  <script src="/app.js?v=8"></script>
 </body>
 </html>
