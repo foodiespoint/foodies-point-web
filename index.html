@@ -10,8 +10,8 @@
 
   <title>Foodies Point</title>
 
-  <link rel="manifest" href="/manifest.json?v=9">
-  <meta name="theme-color" content="#FF4B3A">
+  <link rel="manifest" href="/manifest.json?v=10">
+  <meta name="theme-color" content="#D9534F">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Foodies Point">
@@ -23,7 +23,7 @@
 
   <style>
     :root {
-      --primary-color: #FF4B3A;
+      --primary-color: #D9534F;
       --text-dark: #2D2D2D;
       --bg-light: #F8F9FA;
       --white: #FFFFFF;
@@ -234,7 +234,7 @@
       font-size: 0.95rem;
       font-weight: 700;
       cursor: pointer;
-      box-shadow: 0 4px 12px rgba(255, 75, 58, 0.3);
+      box-shadow: 0 4px 12px rgba(217, 83, 79, 0.3);
       transition: all 0.25s ease;
     }
 
@@ -399,7 +399,7 @@
       margin-bottom: 12px;
     }
 
-    .btn-publish, .btn-clear-menu {
+    .btn-publish, .btn-clear-menu, .btn-add-item {
       flex: 1;
       border: none;
       padding: 11px 8px;
@@ -414,7 +414,13 @@
     .btn-publish {
       background: var(--primary-color);
       color: var(--white);
-      box-shadow: 0 3px 10px rgba(255, 75, 58, 0.25);
+      box-shadow: 0 3px 10px rgba(217, 83, 79, 0.25);
+    }
+    
+    .btn-add-item {
+      background: #4A90E2; 
+      color: var(--white);
+      box-shadow: 0 3px 10px rgba(74, 144, 226, 0.25);
     }
 
     .btn-clear-menu {
@@ -510,7 +516,7 @@
       background: var(--primary-color);
       color: var(--white);
       font-weight: 700;
-      box-shadow: 0 3px 10px rgba(255, 75, 58, 0.3);
+      box-shadow: 0 3px 10px rgba(217, 83, 79, 0.3);
       transition: transform 0.15s ease, opacity 0.15s ease;
     }
 
@@ -728,7 +734,7 @@
 
       <div class="header-right-group">
         <button class="btn-icon" id="header-notify-btn" onclick="openAlertsModal()" aria-label="Notifications">🔔</button>
-        <span id="kitchen-version-badge">v9</span>
+        <span id="kitchen-version-badge">v10</span>
         <button class="btn-kitchen-menu" id="header-drawer-btn" onclick="toggleKitchenMenuDropdown()" style="display: none;" aria-label="Open Kitchen Menu">☰ Menu</button>
       </div>
     </header>
@@ -761,9 +767,9 @@
     <section id="kitchen-view">
       <h2 class="section-title" style="margin: 4px 0 10px 0;">Kitchen Console - Menu</h2>
       <div class="kitchen-menu-actions">
-        <button class="btn-publish" onclick="publishDailyMenu()">Publish Menu</button>
-        <button class="btn-publish" style="background: #2E7D32;" onclick="openAddItemModal()">➕ Add Item</button>
         <button class="btn-clear-menu" onclick="clearDailyMenu()">🗑️ Clear</button>
+        <button class="btn-add-item" onclick="openAddItemModal()">+ Add Item</button>
+        <button class="btn-publish" onclick="publishDailyMenu()">Publish Menu</button>
       </div>
       <div class="search-bar-container">
         <input type="text" id="kitchen-menu-search" placeholder="Search menu..." onkeyup="renderKitchenMenu()">
@@ -822,7 +828,6 @@
         <span class="form-label">Dish Name:</span>
         <input type="text" id="add-item-name" placeholder="e.g. Masala Dosa">
 
-        <!-- MODIFIED: Dynamic Category Dropdown -->
         <span class="form-label" style="margin-top: 8px;">Category:</span>
         <select id="add-item-category-select" onchange="handleCategorySelectChange()"></select>
         <input type="text" id="add-item-category-new" style="margin-top: 8px; display: none;" placeholder="Enter new category name">
@@ -945,7 +950,6 @@
     </div>
   </div>
 
-  <!-- Force fetching v9 of the script -->
-  <script src="/app.js?v=9"></script>
+  <script src="/app.js?v=10"></script>
 </body>
 </html>
