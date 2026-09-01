@@ -1,19 +1,19 @@
 // ==========================================================================
-// FOODIES POINT SERVICE WORKER (LIVE - v9)
+// FOODIES POINT SERVICE WORKER (LIVE - v10)
 // ==========================================================================
-const CACHE_NAME = 'fp-cache-v9';
+const CACHE_NAME = 'fp-cache-v10';
 
 const ASSETS_TO_CACHE = [
   '/',
-  '/index.html?v=9',
-  '/app.js?v=9',
-  '/manifest.json?v=9',
+  '/index.html?v=10',
+  '/app.js?v=10',
+  '/manifest.json?v=10',
   '/icon.png'
 ];
 
 self.addEventListener('install', (event) => {
-  console.log('[SW v9] Installing new service worker...');
-  self.skipWaiting(); // FORCE take over immediately
+  console.log('[SW v10] Installing new service worker...');
+  self.skipWaiting(); 
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       return cache.addAll(ASSETS_TO_CACHE);
@@ -22,7 +22,7 @@ self.addEventListener('install', (event) => {
 });
 
 self.addEventListener('activate', (event) => {
-  console.log('[SW v9] Activating & wiping old caches...');
+  console.log('[SW v10] Activating & wiping old caches...');
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
@@ -32,12 +32,12 @@ self.addEventListener('activate', (event) => {
           }
         })
       );
-    }).then(() => self.clients.claim()) // FORCE claim all open tabs
+    }).then(() => self.clients.claim()) 
   );
 });
 
 self.addEventListener('push', (event) => {
-  console.log('[SW v9] Native Push Event Received:', event);
+  console.log('[SW v10] Native Push Event Received:', event);
 
   let data = { title: "Foodies Point 🍛", body: "Today's live menu is updated!" };
   if (event.data) {
@@ -48,12 +48,15 @@ self.addEventListener('push', (event) => {
     }
   }
 
+  const iconUrl = self.registration.scope + 'icon.png';
+
   const options = {
     body: data.body,
-    icon: '/icon.png',
-    badge: '/icon.png',
-    vibrate: [100, 50, 100],
-    data: { url: '/' }
+    icon: iconUrl,
+    badge: iconUrl,
+    vibrate: [300, 100, 300, 100, 300], 
+    requireInteraction: true, 
+    data: { url: self.registration.scope }
   };
 
   event.waitUntil(
@@ -64,14 +67,13 @@ self.addEventListener('push', (event) => {
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   event.waitUntil(
-    clients.openWindow(event.notification.data.url || '/')
+    clients.openWindow(event.notification.data.url || self.registration.scope)
   );
 });
 
 self.addEventListener('fetch', (event) => {
   const requestUrl = new URL(event.request.url);
 
-  // Network-First for navigation and JS/HTML files to prevent caching loops
   if (event.request.mode === 'navigate' || requestUrl.pathname.endsWith('.js') || requestUrl.pathname.endsWith('.html')) {
     event.respondWith(
       fetch(event.request)
@@ -85,7 +87,6 @@ self.addEventListener('fetch', (event) => {
         .catch(() => caches.match(event.request))
     );
   } else {
-    // Cache-First for everything else (images, css)
     event.respondWith(
       caches.match(event.request).then((cachedResponse) => {
         return cachedResponse || fetch(event.request);
