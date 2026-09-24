@@ -8,12 +8,12 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
 
-  <!-- MONETAG VERIFICATION / AD TAG -->
+  <!-- MONETAG VERIFICATION TAG -->
   <meta name="monetag" content="bce314acb7b20de03d5f7dbe68b18f65">
 
   <title>Foodies Point</title>
 
-  <link rel="manifest" href="/manifest.json?v=11">
+  <link rel="manifest" href="/manifest.json?v=12">
   <meta name="theme-color" content="#D9534F">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -202,6 +202,7 @@
       font-weight: 700;
     }
 
+    /* Restored Absolute Anchors: Enforces the clean 50/50 flex split */
     #customer-view {
       display: flex;
       position: absolute;
@@ -722,6 +723,9 @@
 </head>
 <body>
 
+  <!-- MONETAG IN-PAGE PUSH SCRIPT (LIVE ZONE) -->
+  <script>(function(s){s.dataset.zone='11883973',s.src='https://nap5k.com/tag.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')))</script>
+
   <!-- IRREMOVABLE INSTALL GATE OVERLAY -->
   <div id="install-gate-overlay">
     <div class="install-modal-card">
@@ -752,7 +756,7 @@
 
         <div class="header-right-group">
           <button class="btn-icon" id="header-notify-btn" onclick="openAlertsModal()" aria-label="Notifications">🔔</button>
-          <span id="kitchen-version-badge">v11</span>
+          <span id="kitchen-version-badge">v12</span>
           <button class="btn-kitchen-menu" id="header-drawer-btn" onclick="toggleKitchenMenuDropdown()" style="display: none;" aria-label="Open Kitchen Menu">☰ Menu</button>
         </div>
       </header>
@@ -962,7 +966,7 @@
     </div>
   </div>
 
-  <!-- Force fetch Live v11 -->
-  <script src="/app.js?v=11"></script>
+  <!-- Force fetch Live v12 -->
+  <script src="/app.js?v=12"></script>
 </body>
 </html>
