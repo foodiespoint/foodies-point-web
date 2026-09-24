@@ -1,7 +1,7 @@
 // ==========================================================================
-// 1. FIREBASE & RENDER VAPID CONFIGURATION (v11 - LIVE PRODUCTION)
+// 1. FIREBASE & RENDER VAPID CONFIGURATION (v12 - LIVE PRODUCTION)
 // ==========================================================================
-const CURRENT_APP_VERSION = "v11";
+const CURRENT_APP_VERSION = "v12";
 const VAPID_PUBLIC_KEY = "BCYZCGMueIWWUU7cA2m4-fmHK0gEbmwqfSMHyzXr4AGdyhDi53mct0OoEfnPttK-1D3LV8guB3-RtfFYABa82bo";
 const RENDER_BACKEND_URL = "https://foodies-backend-9vvj.onrender.com";
 
@@ -1582,7 +1582,6 @@ function evaluateCumulativeAdHeight() {
       const st = window.getComputedStyle(child);
       const isFixed = (st.position === 'fixed' || st.position === 'absolute');
       
-      // Removed zIndex requirement: ad networks often use "auto"
       if (isFixed && st.display !== 'none' && parseFloat(st.opacity || '1') > 0.01) {
         const rect = child.getBoundingClientRect();
         // Check if element is clamped to the top of the viewport
