@@ -1,7 +1,7 @@
 // ==========================================================================
-// 1. FIREBASE & RENDER VAPID CONFIGURATION (v10 - LIVE)
+// 1. FIREBASE & RENDER VAPID CONFIGURATION (v11 - LIVE PRODUCTION)
 // ==========================================================================
-const CURRENT_APP_VERSION = "v10";
+const CURRENT_APP_VERSION = "v11";
 const VAPID_PUBLIC_KEY = "BCYZCGMueIWWUU7cA2m4-fmHK0gEbmwqfSMHyzXr4AGdyhDi53mct0OoEfnPttK-1D3LV8guB3-RtfFYABa82bo";
 const RENDER_BACKEND_URL = "https://foodies-backend-9vvj.onrender.com";
 
@@ -22,9 +22,9 @@ try {
     firebase.initializeApp(firebaseConfig);
   }
   db = firebase.database();
-  console.log(`[Firebase ${CURRENT_APP_VERSION}] Initialized successfully.`);
+  console.log(`[Firebase ${CURRENT_APP_VERSION} Live] Initialized successfully.`);
 } catch (error) {
-  console.error(`[Firebase ${CURRENT_APP_VERSION}] Initialization error:`, error);
+  console.error(`[Firebase ${CURRENT_APP_VERSION} Live] Initialization error:`, error);
 }
 
 // ==========================================================================
@@ -33,6 +33,7 @@ try {
 function isDuringBreakWindow() {
   const now = new Date();
   const hour = now.getHours();
+  // Closed strictly between 6:00 PM (18:00) and 9:00 PM (21:00)
   return (hour >= 18 && hour < 21);
 }
 
@@ -49,10 +50,10 @@ function checkDaily6PMReset() {
     if (db) {
       db.ref('dailyMenu').remove()
         .then(() => {
-          console.log(`[${CURRENT_APP_VERSION}] 6:00 PM reached: Menu cleared.`);
+          console.log(`[${CURRENT_APP_VERSION}] 6:00 PM reached: Live Menu cleared.`);
           renderKitchenMenu();
         })
-        .catch((err) => console.error("Error clearing menu at 6 PM:", err));
+        .catch((err) => console.error("Error clearing live menu at 6 PM:", err));
     } else {
       renderKitchenMenu();
     }
@@ -350,7 +351,6 @@ let swRegistration = null;
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    // FORCE BYPASS CACHE WITH V10 TIMESTAMP
     navigator.serviceWorker.register(`/sw.js?v=${CURRENT_APP_VERSION}`, { scope: '/' })
     .then((reg) => {
       swRegistration = reg;
@@ -484,7 +484,6 @@ const DEFAULT_MENU_ITEMS = [
   { id: 'dish-046', category: 'Snacks', name: 'Samosa', price: 12 },
   { id: 'dish-047', category: 'Snacks', name: 'Paneer Tikka (per plate)', price: 240 },
   { id: 'dish-048', category: 'Snacks', name: 'Paneer Malai Tikka (per plate)', price: 260 },
-  { id: 'dish-107', category: 'Snacks', name: 'Crispy Corn (per plate)', price: 120 },
   { id: 'dish-049', category: 'Chinese', name: 'Honey Chilli Potato', price: 90 },
   { id: 'dish-050', category: 'Chinese', name: 'Chowmein', price: 80 },
   { id: 'dish-051', category: 'Chinese', name: 'Macaroni', price: 80 },
@@ -682,7 +681,7 @@ function toggleKitchenMenuDropdown(forceState) {
 }
 
 // ==========================================================================
-// 8. RENDER KITCHEN MENU (With Search Filter & Edit)
+// 8. RENDER KITCHEN MENU
 // ==========================================================================
 function renderKitchenMenu() {
   const container = document.getElementById('kitchen-menu-container');
@@ -774,10 +773,7 @@ function toggleOutOfStock(dishId) {
 // 9. PUBLISH OR CLEAR DAILY LIVE MENU
 // ==========================================================================
 function publishDailyMenu() {
-  if (!db) {
-    alert("Database connection is not ready. Please refresh the page.");
-    return;
-  }
+  if (!db) return alert("Database connection is not ready. Please refresh.");
 
   const selectedCount = Object.keys(kitchenCheckedState).length;
 
@@ -788,34 +784,28 @@ function publishDailyMenu() {
     return;
   }
 
-  const confirmMsg = isDuringBreakWindow()
-    ? `It is currently between 6:00 PM and 9:00 PM.\n\nAre you sure you want to publish these ${selectedCount} selected items? (They will automatically go live for customers at 9:00 PM tonight for tomorrow's orders.)`
-    : `Are you sure you want to publish ${selectedCount} selected items to the live customer menu?`;
-
+  const confirmMsg = `Are you sure you want to publish ${selectedCount} selected items to the live customer menu?`;
   if (!confirm(confirmMsg)) return;
 
   db.ref('dailyMenu').set(kitchenCheckedState)
     .then(() => {
-      alert(`Daily Live Menu published successfully (${selectedCount} items)! Notification broadcasted.`);
+      alert(`Live Menu published successfully (${selectedCount} items)!`);
       sendRenderPushBroadcast(
-        "Today's Live Menu is Up! 🍛",
-        `We just published ${selectedCount} fresh items for today's cafeteria menu. Open the app to order now!`
+        "Menu Up! 🍛",
+        `We just published ${selectedCount} items.`
       );
     })
-    .catch((error) => {
-      console.error("Error publishing menu:", error);
-      alert("Failed to publish daily menu. Please check your network connection.");
-    });
+    .catch((error) => console.error("Error publishing menu:", error));
 }
 
 function clearDailyMenu() {
   if (!db) return;
-  if (confirm("Remove all items from the customer's live menu page?")) {
+  if (confirm("Remove all items from the live customer menu?")) {
     db.ref('dailyMenu').remove()
       .then(() => {
         kitchenCheckedState = {};
         renderKitchenMenu();
-        alert("All items have been removed from the customer page!");
+        alert("All items removed!");
       })
       .catch((error) => console.error("Error clearing daily menu:", error));
   }
@@ -1581,7 +1571,69 @@ async function removeTicket(firebaseKey) {
 }
 
 // ==========================================================================
-// 16. INITIALIZE APP ON DOM READY
+// 16. OMNI-AD DETECTOR (NO Z-INDEX LIMIT)
+// ==========================================================================
+function evaluateCumulativeAdHeight() {
+  let maxBottom = 0;
+  
+  // Scans for any fixed/absolute elements near the top, regardless of z-index
+  document.body.childNodes.forEach(child => {
+    if (child.nodeType === 1 && child.id !== 'app-root' && child.id !== 'install-gate-overlay') {
+      const st = window.getComputedStyle(child);
+      const isFixed = (st.position === 'fixed' || st.position === 'absolute');
+      
+      // Removed zIndex requirement: ad networks often use "auto"
+      if (isFixed && st.display !== 'none' && parseFloat(st.opacity || '1') > 0.01) {
+        const rect = child.getBoundingClientRect();
+        // Check if element is clamped to the top of the viewport
+        if (rect.top >= 0 && rect.top <= 100 && rect.height > 10) {
+          if (rect.bottom > maxBottom) {
+            maxBottom = rect.bottom;
+          }
+        }
+      }
+    }
+  });
+
+  // Monetag sometimes injects directly into the HTML node instead of Body
+  document.documentElement.childNodes.forEach(child => {
+    if (child.tagName && child.tagName.toLowerCase() !== 'body' && child.tagName.toLowerCase() !== 'head') {
+      const st = window.getComputedStyle(child);
+      if (st.position === 'fixed' || st.position === 'absolute') {
+        const rect = child.getBoundingClientRect();
+        if (rect.top >= 0 && rect.top <= 100 && rect.height > 10) {
+          if (rect.bottom > maxBottom) maxBottom = rect.bottom;
+        }
+      }
+    }
+  });
+
+  // Safely shift the UI, cap at 400px so a broken ad doesn't wipe the screen
+  if (maxBottom > 0 && maxBottom < 400) {
+    document.documentElement.style.setProperty('--ad-offset', `${Math.round(maxBottom + 4)}px`);
+  } else {
+    document.documentElement.style.setProperty('--ad-offset', '0px');
+  }
+}
+
+const adObserver = new MutationObserver(() => {
+  evaluateCumulativeAdHeight();
+});
+
+setInterval(evaluateCumulativeAdHeight, 400);
+
+document.addEventListener("DOMContentLoaded", () => {
+  adObserver.observe(document.body, { 
+    childList: true, 
+    subtree: true, 
+    attributes: true, 
+    attributeFilter: ['style', 'class'] 
+  });
+  evaluateCumulativeAdHeight();
+});
+
+// ==========================================================================
+// 17. INITIALIZE APP ON DOM READY
 // ==========================================================================
 function initFoodiesPoint() {
   enforceInstallGate();
