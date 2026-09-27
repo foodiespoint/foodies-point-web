@@ -13,13 +13,13 @@
 
   <title>Foodies Point</title>
 
-  <link rel="manifest" href="/manifest.json?v=12">
+  <link rel="manifest" href="manifest.json?v=13">
   <meta name="theme-color" content="#D9534F">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Foodies Point">
-  <link rel="apple-touch-icon" href="/icon.png">
-  <link rel="icon" type="image/png" href="/icon.png">
+  <link rel="apple-touch-icon" href="icon.png">
+  <link rel="icon" type="image/png" href="icon.png">
 
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
@@ -606,10 +606,11 @@
       box-shadow: 0 2px 8px rgba(0,0,0,0.05);
     }
     
+    /* DROPDOWN & BACKDROP EXTRACTED OUTSIDE APP-ROOT SO CLICKS PASS THROUGH */
     .kitchen-dropdown {
       display: none;
-      position: absolute;
-      top: 60px;
+      position: fixed;
+      top: calc(60px + var(--ad-offset));
       right: 16px;
       background: var(--white);
       border: 1px solid var(--border-color);
@@ -618,6 +619,7 @@
       z-index: 2600;
       min-width: 190px;
       overflow: hidden;
+      transition: top 0.35s cubic-bezier(0.25, 1, 0.5, 1);
     }
     
     .kitchen-dropdown .dropdown-item {
@@ -653,6 +655,8 @@
       z-index: 3000;
       justify-content: center;
       align-items: center;
+      padding-top: var(--ad-offset);
+      transition: padding-top 0.35s cubic-bezier(0.25, 1, 0.5, 1);
     }
 
     .modal-card {
@@ -723,8 +727,8 @@
 </head>
 <body>
 
-  <!-- MONETAG IN-PAGE PUSH SCRIPT (LIVE ZONE) 
-  <script>(function(s){s.dataset.zone='11883973',s.src='https://nap5k.com/tag.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')))</script> -->
+  <!-- MONETAG IN-PAGE PUSH SCRIPT (LIVE ZONE) -->
+  <script>(function(s){s.dataset.zone='11883973',s.src='https://nap5k.com/tag.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')))</script>
 
   <!-- IRREMOVABLE INSTALL GATE OVERLAY -->
   <div id="install-gate-overlay">
@@ -756,7 +760,7 @@
 
         <div class="header-right-group">
           <button class="btn-icon" id="header-notify-btn" onclick="openAlertsModal()" aria-label="Notifications">🔔</button>
-          <span id="kitchen-version-badge">v12</span>
+          <span id="kitchen-version-badge">v13</span>
           <button class="btn-kitchen-menu" id="header-drawer-btn" onclick="toggleKitchenMenuDropdown()" style="display: none;" aria-label="Open Kitchen Menu">☰ Menu</button>
         </div>
       </header>
@@ -827,16 +831,16 @@
         </div>
       </section>
 
-      <div id="kitchen-dropdown" class="kitchen-dropdown">
-        <div class="dropdown-item" onclick="openKitchenOrdersPage()">📦 Live Incoming Orders</div>
-        <div class="dropdown-item" onclick="openCustomerDataPage()">👥 Customer Data</div>
-        <div class="dropdown-item" onclick="openPaymentDetailsPage()">💳 Payment Records</div>
-      </div>
-
     </div> <!-- End main-app-content -->
   </div> <!-- End app-root -->
 
+  <!-- DROPDOWN & BACKDROP EXTRACTED OUTSIDE APP-ROOT SO CLICKS PASS THROUGH -->
   <div class="kitchen-dropdown-backdrop" id="kitchen-dropdown-backdrop" onclick="toggleKitchenMenuDropdown(false)"></div>
+  <div id="kitchen-dropdown" class="kitchen-dropdown">
+    <div class="dropdown-item" onclick="openKitchenOrdersPage()">📦 Live Incoming Orders</div>
+    <div class="dropdown-item" onclick="openCustomerDataPage()">👥 Customer Data</div>
+    <div class="dropdown-item" onclick="openPaymentDetailsPage()">💳 Payment Records</div>
+  </div>
 
   <!-- MODALS -->
   <div class="modal-overlay" id="add-item-modal">
@@ -966,7 +970,7 @@
     </div>
   </div>
 
-  <!-- Force fetch Live v12 -->
-  <script src="/app.js?v=12"></script>
+  <!-- Force fetch Live v13 without leading slash -->
+  <script src="app.js?v=13"></script>
 </body>
 </html>
