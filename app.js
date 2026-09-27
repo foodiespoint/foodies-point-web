@@ -1,7 +1,7 @@
 // ==========================================================================
-// 1. FIREBASE & RENDER VAPID CONFIGURATION (v12 - LIVE PRODUCTION)
+// 1. FIREBASE & RENDER VAPID CONFIGURATION (v13 - LIVE PRODUCTION)
 // ==========================================================================
-const CURRENT_APP_VERSION = "v12";
+const CURRENT_APP_VERSION = "v13";
 const VAPID_PUBLIC_KEY = "BCYZCGMueIWWUU7cA2m4-fmHK0gEbmwqfSMHyzXr4AGdyhDi53mct0OoEfnPttK-1D3LV8guB3-RtfFYABa82bo";
 const RENDER_BACKEND_URL = "https://foodies-backend-9vvj.onrender.com";
 
@@ -345,13 +345,14 @@ async function notifyKitchenNewOrder(orderData) {
 }
 
 // ==========================================================================
-// 4. SERVICE WORKER REGISTRATION 
+// 4. SERVICE WORKER REGISTRATION (PATH CONFLICT FIXED)
 // ==========================================================================
 let swRegistration = null;
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register(`/sw.js?v=${CURRENT_APP_VERSION}`, { scope: '/' })
+    // Relative path fixes cross-repo ghost worker issue
+    navigator.serviceWorker.register(`sw.js?v=${CURRENT_APP_VERSION}`)
     .then((reg) => {
       swRegistration = reg;
       reg.update();
@@ -1576,15 +1577,13 @@ async function removeTicket(firebaseKey) {
 function evaluateCumulativeAdHeight() {
   let maxBottom = 0;
   
-  // Scans for any fixed/absolute elements near the top, regardless of z-index
   document.body.childNodes.forEach(child => {
-    if (child.nodeType === 1 && child.id !== 'app-root' && child.id !== 'install-gate-overlay') {
+    if (child.nodeType === 1 && child.id !== 'app-root' && child.id !== 'install-gate-overlay' && !child.classList.contains('kitchen-dropdown-backdrop') && !child.classList.contains('kitchen-dropdown')) {
       const st = window.getComputedStyle(child);
       const isFixed = (st.position === 'fixed' || st.position === 'absolute');
       
       if (isFixed && st.display !== 'none' && parseFloat(st.opacity || '1') > 0.01) {
         const rect = child.getBoundingClientRect();
-        // Check if element is clamped to the top of the viewport
         if (rect.top >= 0 && rect.top <= 100 && rect.height > 10) {
           if (rect.bottom > maxBottom) {
             maxBottom = rect.bottom;
@@ -1594,7 +1593,6 @@ function evaluateCumulativeAdHeight() {
     }
   });
 
-  // Monetag sometimes injects directly into the HTML node instead of Body
   document.documentElement.childNodes.forEach(child => {
     if (child.tagName && child.tagName.toLowerCase() !== 'body' && child.tagName.toLowerCase() !== 'head') {
       const st = window.getComputedStyle(child);
@@ -1607,7 +1605,6 @@ function evaluateCumulativeAdHeight() {
     }
   });
 
-  // Safely shift the UI, cap at 400px so a broken ad doesn't wipe the screen
   if (maxBottom > 0 && maxBottom < 400) {
     document.documentElement.style.setProperty('--ad-offset', `${Math.round(maxBottom + 4)}px`);
   } else {
