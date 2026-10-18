@@ -1,11 +1,12 @@
 // ==========================================================================
-// 1. FIREBASE & RENDER VAPID CONFIGURATION (v13 - LIVE PRODUCTION)
+// 1. FIREBASE & RENDER VAPID CONFIGURATION (v14 - LIVE PRODUCTION)
 // ==========================================================================
-const CURRENT_APP_VERSION = "v13";
+const CURRENT_APP_VERSION = "v14";
 const VAPID_PUBLIC_KEY = "BCYZCGMueIWWUU7cA2m4-fmHK0gEbmwqfSMHyzXr4AGdyhDi53mct0OoEfnPttK-1D3LV8guB3-RtfFYABa82bo";
 const RENDER_BACKEND_URL = "https://foodies-backend-9vvj.onrender.com";
 
 let db = null;
+let currentAppView = 'dashboard'; 
 
 try {
   const firebaseConfig = {
@@ -28,12 +29,188 @@ try {
 }
 
 // ==========================================================================
-// 2. TIME-BOUND OPERATING WINDOW & 6:00 PM AUTOMATIC RESET ENGINE
+// 2. SPLASH AUTH & RUTHLESS VIGNETTE AD PURGE ENGINE
+// ==========================================================================
+function executeAppLogin() {
+  const loginBtn = document.getElementById('splash-login-btn');
+  const loaderBox = document.getElementById('splash-loader-box');
+  const headerText = document.getElementById('splash-header-text');
+
+  if (loginBtn) loginBtn.style.display = 'none';
+  if (headerText) headerText.style.display = 'none';
+  if (loaderBox) loaderBox.style.display = 'flex';
+
+  let adDetected = false;
+  let appRevealed = false;
+
+  const safeIds = [
+    'app-root', 'install-gate-overlay', 'app-splash-screen',
+    'app-dropdown', 'app-dropdown-backdrop', 'add-item-modal', 'edit-item-modal', 
+    'order-options-modal', 'delivery-charge-modal', 'profile-modal', 
+    'notification-permission-modal', 'pin-modal'
+  ];
+
+  const enterApp = () => {
+    if (appRevealed) return;
+    appRevealed = true;
+
+    // RUTHLESS PURGE: Physically remove the ad nodes from the DOM so they cannot persist
+    const purgeAds = () => {
+      Array.from(document.body.children).forEach(child => {
+        if (!safeIds.includes(child.id) && child.tagName !== 'SCRIPT' && child.tagName !== 'STYLE') {
+          child.remove();
+        }
+      });
+      Array.from(document.documentElement.children).forEach(child => {
+        if (child.tagName !== 'HEAD' && child.tagName !== 'BODY') {
+          child.remove();
+        }
+      });
+    };
+
+    purgeAds();
+    
+    // Run the purge 10 times a second for 2 seconds to catch any delayed ad re-injections
+    let purgeCount = 0;
+    const purgeInterval = setInterval(() => {
+      purgeAds();
+      purgeCount++;
+      if (purgeCount > 20) clearInterval(purgeInterval);
+    }, 100);
+
+    // Fade out splash screen and reveal app dashboard safely
+    const splash = document.getElementById('app-splash-screen');
+    if (splash) {
+      splash.classList.add('fade-out');
+      setTimeout(() => {
+        splash.style.display = 'none';
+        checkAppOnboarding();
+        showDashboard(); 
+      }, 400);
+    }
+  };
+
+  // High-speed tracker: Wait for the ad to actually visually appear anywhere in the DOM
+  const trackerInterval = setInterval(() => {
+    if (adDetected) return;
+    
+    const checkNodes = (parent) => {
+      Array.from(parent.children).forEach(child => {
+        if (!safeIds.includes(child.id) && child.tagName === 'DIV') {
+          const st = window.getComputedStyle(child);
+          // Vignettes trigger massive full-screen fixed divs with high z-index
+          if ((st.position === 'fixed' || st.position === 'absolute') && parseInt(st.zIndex || 0) > 9000) {
+            adDetected = true;
+          }
+        }
+      });
+    };
+
+    checkNodes(document.body);
+    checkNodes(document.documentElement);
+
+    if (adDetected) {
+      clearInterval(trackerInterval);
+      // Ad is on screen! Hold it for exactly 4.5 seconds to register impression, then annihilate it.
+      setTimeout(enterApp, 4500);
+    }
+  }, 250);
+
+  // INJECT EXACT LIVE VIGNETTE SNIPPET VERBATIM
+  const inlineVignette = document.createElement('script');
+  inlineVignette.id = 'monetag-vignette-live';
+  inlineVignette.innerHTML = `(function(s){s.dataset.zone='12066248',s.src='https://n6wxm.com/vignette.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')))`;
+  document.body.appendChild(inlineVignette);
+
+  // Failsafe: If network is slow or ad is blocked entirely, force enter app after 8 seconds
+  setTimeout(() => {
+    if (!adDetected) {
+      clearInterval(trackerInterval);
+      enterApp();
+    }
+  }, 8000);
+}
+
+// ==========================================================================
+// 2B. CUSTOMER DASHBOARD ROUTING ENGINE
+// ==========================================================================
+function showDashboard(pushToHistory = true) {
+  currentAppView = 'dashboard';
+  
+  document.getElementById('customer-view').style.display = 'none';
+  document.getElementById('kitchen-view').style.display = 'none';
+  document.getElementById('home-dashboard-view').style.display = 'flex';
+  
+  document.getElementById('header-back-btn').style.display = 'none';
+  document.getElementById('main-app-title-text').textContent = 'Foodies Point';
+
+  if (pushToHistory) history.pushState({ page: 'dashboard' }, '', '#dashboard');
+}
+
+function openLiveMenu(pushToHistory = true) {
+  currentAppView = 'live-menu';
+
+  document.getElementById('home-dashboard-view').style.display = 'none';
+  document.getElementById('kitchen-view').style.display = 'none';
+  document.getElementById('customer-view').style.display = 'flex';
+  
+  document.getElementById('header-back-btn').style.display = 'inline-flex';
+  document.getElementById('main-app-title-text').textContent = 'Daily Menu';
+
+  if (pushToHistory) history.pushState({ page: 'live-menu' }, '', '#live-menu');
+}
+
+function openFestiveSpecial() {
+  alert("🎉 Festive Special Menu is coming soon! Check back during the holidays.");
+}
+
+// ==========================================================================
+// 3. SECRET SLIDE-TO-UNLOCK TITLE ENGINE (RIGHT-SLIDE WITH VISUAL CAP)
+// ==========================================================================
+function initSecretTitleSlider() {
+  const titleElement = document.getElementById('main-app-title');
+  let startX = 0;
+  let currentX = 0;
+
+  titleElement.addEventListener('touchstart', (e) => {
+    if (isKitchenMode) return; // Disable slider if already inside kitchen
+    startX = e.touches[0].clientX;
+    titleElement.style.transition = 'none';
+  }, { passive: true });
+
+  titleElement.addEventListener('touchmove', (e) => {
+    if (isKitchenMode) return;
+    const deltaX = e.touches[0].clientX - startX;
+    
+    // Only allow sliding to the right (positive X)
+    if (deltaX > 0) {
+      // Cap the visual slide distance at 85px to prevent sliding off screen
+      currentX = Math.min(deltaX, 85);
+      titleElement.style.transform = `translateX(calc(-50% + ${currentX}px))`;
+    }
+  }, { passive: true });
+
+  titleElement.addEventListener('touchend', () => {
+    if (isKitchenMode) return;
+    
+    // If swiped more than 75px to the right, trigger the secret modal
+    if (currentX >= 75) {
+      openKitchenPINModal();
+    }
+    
+    // Snap back immediately smoothly
+    titleElement.style.transition = 'transform 0.35s cubic-bezier(0.25, 1, 0.5, 1)';
+    titleElement.style.transform = `translateX(-50%)`;
+    currentX = 0;
+  });
+}
+
+// ==========================================================================
+// 4. TIME-BOUND OPERATING WINDOW & 6:00 PM AUTOMATIC RESET ENGINE
 // ==========================================================================
 function isDuringBreakWindow() {
   const now = new Date();
   const hour = now.getHours();
-  // Closed strictly between 6:00 PM (18:00) and 9:00 PM (21:00)
   return (hour >= 18 && hour < 21);
 }
 
@@ -61,7 +238,7 @@ function checkDaily6PMReset() {
 }
 
 // ==========================================================================
-// 3. MANDATORY APP ONBOARDING & FAIL-PROOF PUSH ENGINE
+// 5. MANDATORY APP ONBOARDING & FAIL-PROOF PUSH ENGINE
 // ==========================================================================
 function urlBase64ToUint8Array(base64String) {
   const padding = '='.repeat((4 - base64String.length % 4) % 4);
@@ -75,6 +252,11 @@ function urlBase64ToUint8Array(base64String) {
 }
 
 function checkAppOnboarding() {
+  const splash = document.getElementById('app-splash-screen');
+  if (splash && splash.style.display !== 'none' && !splash.classList.contains('fade-out')) {
+    return; 
+  }
+
   if (isKitchenMode) {
      document.getElementById('profile-modal').style.display = 'none';
      document.getElementById('notification-permission-modal').style.display = 'none';
@@ -345,14 +527,13 @@ async function notifyKitchenNewOrder(orderData) {
 }
 
 // ==========================================================================
-// 4. SERVICE WORKER REGISTRATION (PATH CONFLICT FIXED)
+// 6. SERVICE WORKER REGISTRATION 
 // ==========================================================================
 let swRegistration = null;
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    // Relative path fixes cross-repo ghost worker issue
-    navigator.serviceWorker.register(`sw.js?v=${CURRENT_APP_VERSION}`)
+    navigator.serviceWorker.register(`/sw.js?v=${CURRENT_APP_VERSION}`, { scope: '/' })
     .then((reg) => {
       swRegistration = reg;
       reg.update();
@@ -379,7 +560,7 @@ if ('serviceWorker' in navigator) {
 }
 
 // ==========================================================================
-// 5. STANDALONE DETECTION & INSTALLATION ENGINE
+// 7. STANDALONE DETECTION & APP GATE ENGINE
 // ==========================================================================
 let deferredInstallPrompt = null;
 
@@ -422,19 +603,19 @@ function isStandalonePWA() {
 function enforceInstallGate() {
   const installGate = document.getElementById('install-gate-overlay');
   const appContent = document.getElementById('main-app-content');
+  const splashScreen = document.getElementById('app-splash-screen');
 
   if (isStandalonePWA()) {
     if (installGate) installGate.style.setProperty('display', 'none', 'important');
     if (appContent) appContent.style.setProperty('display', 'block', 'important');
-    
-    setTimeout(() => {
-      checkAppOnboarding();
-    }, 500);
+    if (splashScreen) splashScreen.style.display = 'block';
+  } else {
+    if (splashScreen) splashScreen.style.display = 'none';
   }
 }
 
 // ==========================================================================
-// 6. COMPLETE FOODIES POINT MENU & DYNAMIC MANAGEMENT
+// 8. COMPLETE FOODIES POINT MENU & DYNAMIC MANAGEMENT
 // ==========================================================================
 const DEFAULT_MENU_ITEMS = [
   { id: 'dish-001', category: 'Rolls', name: 'Dahi Bread Roll (1 pc)', price: 15 },
@@ -662,11 +843,11 @@ function saveEditedItem() {
 }
 
 // ==========================================================================
-// 7. KITCHEN DROPDOWN MENU
+// 9. UNIFIED APP DROPDOWN MENU
 // ==========================================================================
-function toggleKitchenMenuDropdown(forceState) {
-  const dropdown = document.getElementById('kitchen-dropdown');
-  const backdrop = document.getElementById('kitchen-dropdown-backdrop');
+function toggleAppDropdown(forceState) {
+  const dropdown = document.getElementById('app-dropdown');
+  const backdrop = document.getElementById('app-dropdown-backdrop');
   if (!dropdown || !backdrop) return;
 
   const isOpen = dropdown.style.display === 'block';
@@ -682,7 +863,7 @@ function toggleKitchenMenuDropdown(forceState) {
 }
 
 // ==========================================================================
-// 8. RENDER KITCHEN MENU
+// 10. RENDER KITCHEN MENU
 // ==========================================================================
 function renderKitchenMenu() {
   const container = document.getElementById('kitchen-menu-container');
@@ -742,7 +923,7 @@ function renderKitchenMenu() {
               <div class="price">₹${dish.price}</div>
             </div>
           </div>
-          <button type="button" class="btn-edit-item" onclick="openEditItemModal('${dish.id}')">✏️ Edit</button>
+          <button type="button" class="btn-edit-item" onclick="openEditItemModal('${dish.id}')">✏ Edit</button>
         `;
         container.appendChild(card);
       });
@@ -771,7 +952,7 @@ function toggleOutOfStock(dishId) {
 }
 
 // ==========================================================================
-// 9. PUBLISH OR CLEAR DAILY LIVE MENU
+// 11. PUBLISH OR CLEAR DAILY LIVE MENU
 // ==========================================================================
 function publishDailyMenu() {
   if (!db) return alert("Database connection is not ready. Please refresh.");
@@ -790,9 +971,9 @@ function publishDailyMenu() {
 
   db.ref('dailyMenu').set(kitchenCheckedState)
     .then(() => {
-      alert(`Live Menu published successfully (${selectedCount} items)!`);
+      alert(`Menu published successfully (${selectedCount} items)!`);
       sendRenderPushBroadcast(
-        "Menu Up! 🍛",
+        "Live Menu Up! 🍛",
         `We just published ${selectedCount} items.`
       );
     })
@@ -813,7 +994,7 @@ function clearDailyMenu() {
 }
 
 // ==========================================================================
-// 10. CUSTOMER LIVE MENU LISTENER
+// 12. CUSTOMER LIVE MENU LISTENER
 // ==========================================================================
 function renderCustomerMenuFromSnapshot(activeIds) {
   const container = document.getElementById('customer-menu-container');
@@ -897,7 +1078,7 @@ function updateQuantity(dishId, change) {
 }
 
 // ==========================================================================
-// 11. ORDER SUBMISSION ENGINE
+// 13. ORDER SUBMISSION ENGINE
 // ==========================================================================
 let pendingCustomerOrder = null;
 
@@ -1049,7 +1230,7 @@ function renderCustomerOrderHistory() {
     const dateStr = new Date(myOrder.timestamp).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
     
     const typeEmoji = myOrder.orderType === 'Delivery' ? '🚚' : '🥡';
-    const deliveryStr = `<div style="font-weight: 600; color: #1565C0; margin-top: 6px; font-size: 0.85rem; background: #E3F2FD; display: inline-block; padding: 3px 8px; border-radius: 6px;">
+    const deliveryStr = `<div style="font-weight: 600; color: #1565C0; margin: 8px 0; background: #E3F2FD; display: inline-block; padding: 3px 8px; border-radius: 6px;">
         ${typeEmoji} ${myOrder.orderType} @ ${myOrder.scheduledTime}
     </div>`;
 
@@ -1110,7 +1291,7 @@ function listenForCustomerOrderUpdates() {
 }
 
 // ==========================================================================
-// 12. KITCHEN LOGIN & NAVIGATION
+// 14. KITCHEN LOGIN & NAVIGATION
 // ==========================================================================
 const KITCHEN_PIN = "validatefoodies2026";
 let isKitchenMode = false;
@@ -1138,7 +1319,7 @@ function togglePasscodeVisibility() {
     if (eyeBtn) eyeBtn.textContent = '🔒';
   } else {
     input.type = 'password';
-    if (eyeBtn) eyeBtn.textContent = '👁️';
+    if (eyeBtn) eyeBtn.textContent = '👁';
   }
 }
 
@@ -1157,15 +1338,15 @@ function enterKitchenMode() {
   if (!isKitchenMode) history.pushState({ kitchenMode: true }, '', '#kitchen');
   isKitchenMode = true;
 
-  document.getElementById('main-app-title').style.display = 'none';
+  document.getElementById('home-dashboard-view').style.display = 'none';
   document.getElementById('customer-view').style.display = 'none';
 
-  document.getElementById('header-notify-btn').style.display = 'none';
-  document.getElementById('header-kitchen-btn').style.display = 'none';
   document.getElementById('header-back-btn').style.display = 'inline-flex';
   
-  document.getElementById('header-drawer-btn').style.display = 'inline-block';
+  // Show hamburger icon and version badge ONLY in Kitchen Mode
+  document.getElementById('main-app-title-text').textContent = 'Foodies Point';
   document.getElementById('kitchen-version-badge').style.display = 'inline-block';
+  document.getElementById('header-main-menu-btn').style.display = 'inline-flex';
 
   document.getElementById('kitchen-view').style.display = 'flex';
   
@@ -1185,7 +1366,7 @@ function enterKitchenMode() {
 }
 
 function handleHeaderBack() {
-  toggleKitchenMenuDropdown(false);
+  toggleAppDropdown(false);
   const custPage = document.getElementById('customer-data-view');
   const payPage = document.getElementById('payment-details-view');
   const ordersPage = document.getElementById('kitchen-orders-view');
@@ -1194,6 +1375,8 @@ function handleHeaderBack() {
       (payPage && payPage.style.display === 'flex') || 
       (ordersPage && ordersPage.style.display === 'flex')) {
     closeKitchenSubPage(true);
+  } else if (!isKitchenMode && currentAppView === 'live-menu') {
+    showDashboard(true);
   } else {
     exitKitchenMode(true);
   }
@@ -1203,22 +1386,18 @@ function exitKitchenMode(triggerHistoryBack = true) {
   if (!isKitchenMode) return;
   isKitchenMode = false;
 
-  toggleKitchenMenuDropdown(false);
+  toggleAppDropdown(false);
   closeKitchenSubPage(false);
   if (triggerHistoryBack && window.location.hash.startsWith('#kitchen')) history.back();
 
-  document.getElementById('main-app-title').style.display = 'block';
   document.getElementById('kitchen-view').style.display = 'none';
-  document.getElementById('customer-view').style.display = 'flex';
-
-  document.getElementById('header-notify-btn').style.display = 'inline-flex';
-  document.getElementById('header-kitchen-btn').style.display = 'inline-block';
-  document.getElementById('header-back-btn').style.display = 'none';
   
-  document.getElementById('header-drawer-btn').style.display = 'none';
+  // Hide version badge and menu button when leaving Kitchen Mode
   document.getElementById('kitchen-version-badge').style.display = 'none';
+  document.getElementById('header-main-menu-btn').style.display = 'none';
   
   checkAppOnboarding();
+  showDashboard(false);
 
   if (db) {
     db.ref('orders').off();
@@ -1227,17 +1406,17 @@ function exitKitchenMode(triggerHistoryBack = true) {
 }
 
 // ==========================================================================
-// 13. DEDICATED KITCHEN SUB-PAGES
+// 15. DEDICATED KITCHEN SUB-PAGES
 // ==========================================================================
 function openKitchenOrdersPage() {
-  toggleKitchenMenuDropdown(false);
+  toggleAppDropdown(false);
   history.pushState({ kitchenSubPage: 'orders' }, '', '#kitchen-orders');
   document.getElementById('kitchen-view').style.display = 'none';
   document.getElementById('kitchen-orders-view').style.display = 'flex';
 }
 
 function openCustomerDataPage() {
-  toggleKitchenMenuDropdown(false);
+  toggleAppDropdown(false);
   history.pushState({ kitchenSubPage: 'customers' }, '', '#kitchen-customers');
   document.getElementById('kitchen-view').style.display = 'none';
   document.getElementById('customer-data-view').style.display = 'flex';
@@ -1245,7 +1424,7 @@ function openCustomerDataPage() {
 }
 
 function openPaymentDetailsPage() {
-  toggleKitchenMenuDropdown(false);
+  toggleAppDropdown(false);
   history.pushState({ kitchenSubPage: 'payments' }, '', '#kitchen-payments');
   document.getElementById('kitchen-view').style.display = 'none';
   document.getElementById('payment-details-view').style.display = 'flex';
@@ -1350,7 +1529,7 @@ function fetchAndRenderPaymentLedger() {
       </div>
       <div style="display: flex; justify-content: space-between; align-items: center; margin: 16px 0 10px 0;">
         <h3 style="font-size:1rem; color:#2D2D2D; margin: 0;">Recent Billing Entries</h3>
-        <button type="button" class="btn-clear-menu" onclick="clearPaymentLedger()" style="padding: 6px 12px; font-size: 0.8rem; width: auto; flex: none;">🗑️ Clear Entries</button>
+        <button type="button" class="btn-clear-menu" onclick="clearPaymentLedger()" style="padding: 6px 12px; font-size: 0.8rem; width: auto; flex: none;">🗑 Clear Entries</button>
       </div>
     `;
 
@@ -1378,18 +1557,22 @@ function fetchAndRenderPaymentLedger() {
   });
 }
 
-window.addEventListener('popstate', () => {
+window.addEventListener('popstate', (e) => {
   if (isKitchenMode) {
     if (window.location.hash === '#kitchen') {
       closeKitchenSubPage(false);
     } else if (window.location.hash !== '#kitchen-customers' && window.location.hash !== '#kitchen-payments' && window.location.hash !== '#kitchen-orders') {
       exitKitchenMode(false);
     }
+  } else {
+    if (e.state && e.state.page === 'dashboard') {
+      showDashboard(false);
+    }
   }
 });
 
 // ==========================================================================
-// 14. LIVE KITCHEN ORDER LISTENER
+// 16. LIVE KITCHEN ORDER LISTENER
 // ==========================================================================
 function listenForKitchenOrders() {
   if (!db) return;
@@ -1485,7 +1668,7 @@ function listenForKitchenOrders() {
 }
 
 // ==========================================================================
-// 15. TARGETED ORDER ACTIONS
+// 17. TARGETED ORDER ACTIONS
 // ==========================================================================
 let pendingAcceptance = null;
 
@@ -1572,67 +1755,11 @@ async function removeTicket(firebaseKey) {
 }
 
 // ==========================================================================
-// 16. OMNI-AD DETECTOR (NO Z-INDEX LIMIT)
-// ==========================================================================
-function evaluateCumulativeAdHeight() {
-  let maxBottom = 0;
-  
-  document.body.childNodes.forEach(child => {
-    if (child.nodeType === 1 && child.id !== 'app-root' && child.id !== 'install-gate-overlay' && !child.classList.contains('kitchen-dropdown-backdrop') && !child.classList.contains('kitchen-dropdown')) {
-      const st = window.getComputedStyle(child);
-      const isFixed = (st.position === 'fixed' || st.position === 'absolute');
-      
-      if (isFixed && st.display !== 'none' && parseFloat(st.opacity || '1') > 0.01) {
-        const rect = child.getBoundingClientRect();
-        if (rect.top >= 0 && rect.top <= 100 && rect.height > 10) {
-          if (rect.bottom > maxBottom) {
-            maxBottom = rect.bottom;
-          }
-        }
-      }
-    }
-  });
-
-  document.documentElement.childNodes.forEach(child => {
-    if (child.tagName && child.tagName.toLowerCase() !== 'body' && child.tagName.toLowerCase() !== 'head') {
-      const st = window.getComputedStyle(child);
-      if (st.position === 'fixed' || st.position === 'absolute') {
-        const rect = child.getBoundingClientRect();
-        if (rect.top >= 0 && rect.top <= 100 && rect.height > 10) {
-          if (rect.bottom > maxBottom) maxBottom = rect.bottom;
-        }
-      }
-    }
-  });
-
-  if (maxBottom > 0 && maxBottom < 400) {
-    document.documentElement.style.setProperty('--ad-offset', `${Math.round(maxBottom + 4)}px`);
-  } else {
-    document.documentElement.style.setProperty('--ad-offset', '0px');
-  }
-}
-
-const adObserver = new MutationObserver(() => {
-  evaluateCumulativeAdHeight();
-});
-
-setInterval(evaluateCumulativeAdHeight, 400);
-
-document.addEventListener("DOMContentLoaded", () => {
-  adObserver.observe(document.body, { 
-    childList: true, 
-    subtree: true, 
-    attributes: true, 
-    attributeFilter: ['style', 'class'] 
-  });
-  evaluateCumulativeAdHeight();
-});
-
-// ==========================================================================
-// 17. INITIALIZE APP ON DOM READY
+// 18. INITIALIZE APP ON DOM READY
 // ==========================================================================
 function initFoodiesPoint() {
   enforceInstallGate();
+  initSecretTitleSlider();
   checkDaily6PMReset();
   
   updateCustomerPresence();
