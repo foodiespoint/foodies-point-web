@@ -41,12 +41,11 @@ function executeAppLogin() {
   if (headerText) headerText.style.display = 'none';
   if (loaderBox) loaderBox.style.display = 'flex';
 
-  // Make splash background transparent & immediately show the app underneath
+  // Ensure splash screen remains crisp, solid white with no transparency
   if (splash) {
-    splash.style.setProperty('background', 'transparent', 'important');
-    splash.style.setProperty('pointer-events', 'none', 'important');
+    splash.style.setProperty('background', '#FFFFFF', 'important');
+    splash.style.setProperty('opacity', '1', 'important');
   }
-  showDashboard();
 
   let adDetected = false;
   let appRevealed = false;
@@ -58,14 +57,21 @@ function executeAppLogin() {
     'notification-permission-modal', 'pin-modal'
   ];
 
-  // Neutralize any dark veil or blur filter injected by the ad
+  // Strip dark tint and blur filters from ad backdrops so white screen stays clean
   const stripAdOverlays = () => {
     Array.from(document.body.children).forEach(child => {
       if (!safeIds.includes(child.id) && child.tagName === 'DIV') {
-        child.style.setProperty('background', 'transparent', 'important');
-        child.style.setProperty('background-color', 'transparent', 'important');
-        child.style.setProperty('backdrop-filter', 'none', 'important');
-        child.style.setProperty('-webkit-backdrop-filter', 'none', 'important');
+        const st = window.getComputedStyle(child);
+        if (st.position === 'fixed' || st.position === 'absolute') {
+          child.style.setProperty('backdrop-filter', 'none', 'important');
+          child.style.setProperty('-webkit-backdrop-filter', 'none', 'important');
+          
+          // Clear any dark veil applied by Monetag over the screen
+          if (st.backgroundColor && st.backgroundColor !== 'rgba(0, 0, 0, 0)' && st.backgroundColor !== 'transparent') {
+            child.style.setProperty('background', 'transparent', 'important');
+            child.style.setProperty('background-color', 'transparent', 'important');
+          }
+        }
       }
     });
   };
@@ -97,16 +103,18 @@ function executeAppLogin() {
       if (purgeCount > 20) clearInterval(purgeInterval);
     }, 100);
 
+    // Fade out splash screen and reveal app dashboard
     if (splash) {
       splash.classList.add('fade-out');
       setTimeout(() => {
         splash.style.display = 'none';
         checkAppOnboarding();
-      }, 300);
+        showDashboard();
+      }, 400);
     }
   };
 
-  // High-speed tracker: Watch for ad appearance & strip dark films continuously
+  // High-speed tracker: Watch for ad appearance, keep background clear of dark overlays
   const trackerInterval = setInterval(() => {
     stripAdOverlays();
 
@@ -131,7 +139,7 @@ function executeAppLogin() {
       // Hold ad for exactly 3.5 seconds
       setTimeout(enterApp, 3500);
     }
-  }, 150);
+  }, 100);
 
   // INJECT EXACT LIVE VIGNETTE SNIPPET VERBATIM
   const inlineVignette = document.createElement('script');
@@ -190,7 +198,7 @@ function initSecretTitleSlider() {
   let currentX = 0;
 
   titleElement.addEventListener('touchstart', (e) => {
-    if (isKitchenMode) return; 
+    if (isKitchenMode) return;
     startX = e.touches[0].clientX;
     titleElement.style.transition = 'none';
   }, { passive: true });
@@ -199,7 +207,6 @@ function initSecretTitleSlider() {
     if (isKitchenMode) return;
     const deltaX = e.touches[0].clientX - startX;
     
-    // Slide Right Limit
     if (deltaX > 0) {
       currentX = Math.min(deltaX, 85);
       titleElement.style.transform = `translateX(calc(-50% + ${currentX}px))`;
@@ -541,25 +548,26 @@ async function notifyKitchenNewOrder(orderData) {
 }
 
 // ==========================================================================
-// 6. SERVICE WORKER AUTO-UPDATE REGISTRATION 
+// 6. SERVICE WORKER REGISTRATION 
 // ==========================================================================
 let swRegistration = null;
-let refreshing = false;
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register(`/sw.js?v=${CURRENT_APP_VERSION}`, { scope: '/' })
     .then((reg) => {
       swRegistration = reg;
-      reg.update(); // Force check with server on load
+      reg.update();
 
-      // Listen for a new SW taking over
+      if (reg.waiting) {
+        reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+      }
+
       reg.addEventListener('updatefound', () => {
         const newWorker = reg.installing;
         if (newWorker) {
           newWorker.addEventListener('statechange', () => {
             if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-              // Command new SW to take over immediately
               newWorker.postMessage({ type: 'SKIP_WAITING' });
             }
           });
@@ -568,14 +576,6 @@ if ('serviceWorker' in navigator) {
     })
     .catch((err) => {
       console.error(`[SW] Registration failed:`, err);
-    });
-
-    // The critical fix: Force a visual reload when the new code activates in the background
-    navigator.serviceWorker.addEventListener('controllerchange', () => {
-      if (!refreshing) {
-        refreshing = true;
-        window.location.reload();
-      }
     });
   });
 }
