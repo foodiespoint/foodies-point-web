@@ -1,7 +1,7 @@
 // ==========================================================================
-// 1. FIREBASE & RENDER VAPID CONFIGURATION (v17 - LIVE PRODUCTION)
+// 1. FIREBASE & RENDER VAPID CONFIGURATION (v18 - LIVE PRODUCTION)
 // ==========================================================================
-const CURRENT_APP_VERSION = "v17";
+const CURRENT_APP_VERSION = "v18";
 const VAPID_PUBLIC_KEY = "BCYZCGMueIWWUU7cA2m4-fmHK0gEbmwqfSMHyzXr4AGdyhDi53mct0OoEfnPttK-1D3LV8guB3-RtfFYABa82bo";
 const RENDER_BACKEND_URL = "https://foodies-backend-9vvj.onrender.com";
 
@@ -28,20 +28,29 @@ try {
   console.error(`[Firebase ${CURRENT_APP_VERSION} Live] Initialization error:`, error);
 }
 
+const DOM_SAFE_IDS = [
+  'app-root', 'install-gate-overlay', 'app-splash-screen', 'menu-transition-splash',
+  'app-dropdown', 'app-dropdown-backdrop', 'add-item-modal', 'edit-item-modal', 
+  'order-options-modal', 'delivery-charge-modal', 'profile-modal', 
+  'notification-permission-modal', 'pin-modal'
+];
+
 // ==========================================================================
 // 2. SPLASH AUTH & RUTHLESS VIGNETTE AD PURGE ENGINE
 // ==========================================================================
 function executeAppLogin() {
   const loginBtn = document.getElementById('splash-login-btn');
   const loaderBox = document.getElementById('splash-loader-box');
-  const headerText = document.getElementById('splash-header-text');
+  const headerBox = document.getElementById('splash-header-box');
   const splash = document.getElementById('app-splash-screen');
 
   if (loginBtn) loginBtn.style.display = 'none';
-  if (headerText) headerText.style.display = 'none';
-  if (loaderBox) loaderBox.style.display = 'flex';
+  if (headerBox) headerBox.style.display = 'none';
+  if (loaderBox) {
+    loaderBox.style.display = 'flex';
+    loaderBox.classList.remove('ad-snapped'); // Ensure it starts perfectly centered
+  }
 
-  // Ensure splash screen remains crisp, solid white with no transparency
   if (splash) {
     splash.style.setProperty('background', '#FFFFFF', 'important');
     splash.style.setProperty('opacity', '1', 'important');
@@ -50,23 +59,13 @@ function executeAppLogin() {
   let adDetected = false;
   let appRevealed = false;
 
-  const safeIds = [
-    'app-root', 'install-gate-overlay', 'app-splash-screen',
-    'app-dropdown', 'app-dropdown-backdrop', 'add-item-modal', 'edit-item-modal', 
-    'order-options-modal', 'delivery-charge-modal', 'profile-modal', 
-    'notification-permission-modal', 'pin-modal'
-  ];
-
-  // Strip dark tint and blur filters from ad backdrops so white screen stays clean
   const stripAdOverlays = () => {
     Array.from(document.body.children).forEach(child => {
-      if (!safeIds.includes(child.id) && child.tagName === 'DIV') {
+      if (!DOM_SAFE_IDS.includes(child.id) && child.tagName === 'DIV') {
         const st = window.getComputedStyle(child);
         if (st.position === 'fixed' || st.position === 'absolute') {
           child.style.setProperty('backdrop-filter', 'none', 'important');
           child.style.setProperty('-webkit-backdrop-filter', 'none', 'important');
-          
-          // Clear any dark veil applied by Monetag over the screen
           if (st.backgroundColor && st.backgroundColor !== 'rgba(0, 0, 0, 0)' && st.backgroundColor !== 'transparent') {
             child.style.setProperty('background', 'transparent', 'important');
             child.style.setProperty('background-color', 'transparent', 'important');
@@ -76,34 +75,31 @@ function executeAppLogin() {
     });
   };
 
+  const purgeAllAds = () => {
+    Array.from(document.body.children).forEach(child => {
+      if (!DOM_SAFE_IDS.includes(child.id) && child.tagName !== 'SCRIPT' && child.tagName !== 'STYLE') {
+        child.remove();
+      }
+    });
+    Array.from(document.documentElement.children).forEach(child => {
+      if (child.tagName !== 'HEAD' && child.tagName !== 'BODY') {
+        child.remove();
+      }
+    });
+  };
+
   const enterApp = () => {
     if (appRevealed) return;
     appRevealed = true;
 
-    // Physically purge ad nodes from the DOM
-    const purgeAds = () => {
-      Array.from(document.body.children).forEach(child => {
-        if (!safeIds.includes(child.id) && child.tagName !== 'SCRIPT' && child.tagName !== 'STYLE') {
-          child.remove();
-        }
-      });
-      Array.from(document.documentElement.children).forEach(child => {
-        if (child.tagName !== 'HEAD' && child.tagName !== 'BODY') {
-          child.remove();
-        }
-      });
-    };
-
-    purgeAds();
-    
+    purgeAllAds();
     let purgeCount = 0;
     const purgeInterval = setInterval(() => {
-      purgeAds();
+      purgeAllAds();
       purgeCount++;
       if (purgeCount > 20) clearInterval(purgeInterval);
     }, 100);
 
-    // Fade out splash screen and reveal app dashboard
     if (splash) {
       splash.classList.add('fade-out');
       setTimeout(() => {
@@ -114,7 +110,6 @@ function executeAppLogin() {
     }
   };
 
-  // High-speed tracker: Watch for ad appearance, keep background clear of dark overlays
   const trackerInterval = setInterval(() => {
     stripAdOverlays();
 
@@ -122,7 +117,7 @@ function executeAppLogin() {
     
     const checkNodes = (parent) => {
       Array.from(parent.children).forEach(child => {
-        if (!safeIds.includes(child.id) && child.tagName === 'DIV') {
+        if (!DOM_SAFE_IDS.includes(child.id) && child.tagName === 'DIV') {
           const st = window.getComputedStyle(child);
           if ((st.position === 'fixed' || st.position === 'absolute') && parseInt(st.zIndex || 0) > 9000) {
             adDetected = true;
@@ -135,19 +130,19 @@ function executeAppLogin() {
     checkNodes(document.documentElement);
 
     if (adDetected) {
+      // Snap loader up immediately when ad is found
+      if (loaderBox) loaderBox.classList.add('ad-snapped');
+      
       clearInterval(trackerInterval);
-      // Hold ad for exactly 3.5 seconds
       setTimeout(enterApp, 3500);
     }
   }, 100);
 
-  // INJECT EXACT LIVE VIGNETTE SNIPPET VERBATIM
   const inlineVignette = document.createElement('script');
-  inlineVignette.id = 'monetag-vignette-live';
+  inlineVignette.id = 'monetag-vignette-live-login';
   inlineVignette.innerHTML = `(function(s){s.dataset.zone='12066248',s.src='https://n6wxm.com/vignette.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')))`;
   document.body.appendChild(inlineVignette);
 
-  // Network / AdBlock failsafe (8s)
   setTimeout(() => {
     if (!adDetected) {
       clearInterval(trackerInterval);
@@ -157,7 +152,125 @@ function executeAppLogin() {
 }
 
 // ==========================================================================
-// 2B. CUSTOMER DASHBOARD ROUTING ENGINE
+// 2B. INTERNAL MENU TRANSITION AD ENGINE
+// ==========================================================================
+function triggerMenuAdTransition() {
+  const transSplash = document.getElementById('menu-transition-splash');
+  const menuLoader = document.getElementById('menu-splash-loader-box');
+
+  if (transSplash) {
+    transSplash.style.display = 'block';
+    transSplash.style.opacity = '1';
+    transSplash.classList.remove('fade-out');
+  }
+  
+  if (menuLoader) {
+    menuLoader.classList.remove('ad-snapped'); // Ensure loader starts perfectly centered
+  }
+
+  let adDetected = false;
+  let transitionDone = false;
+
+  const completeTransition = () => {
+    if (transitionDone) return;
+    transitionDone = true;
+
+    const purgeAllAds = () => {
+      Array.from(document.body.children).forEach(child => {
+        if (!DOM_SAFE_IDS.includes(child.id) && child.tagName !== 'SCRIPT' && child.tagName !== 'STYLE') {
+          child.remove();
+        }
+      });
+      Array.from(document.documentElement.children).forEach(child => {
+        if (child.tagName !== 'HEAD' && child.tagName !== 'BODY') {
+          child.remove();
+        }
+      });
+    };
+
+    purgeAllAds();
+    let purgeCount = 0;
+    const purgeInterval = setInterval(() => {
+      purgeAllAds();
+      purgeCount++;
+      if (purgeCount > 20) clearInterval(purgeInterval);
+    }, 100);
+
+    if (transSplash) {
+      transSplash.classList.add('fade-out');
+      setTimeout(() => {
+        transSplash.style.display = 'none';
+        openLiveMenu();
+      }, 400);
+    }
+  };
+
+  const stripAdOverlays = () => {
+    Array.from(document.body.children).forEach(child => {
+      if (!DOM_SAFE_IDS.includes(child.id) && child.tagName === 'DIV') {
+        const st = window.getComputedStyle(child);
+        if (st.position === 'fixed' || st.position === 'absolute') {
+          child.style.setProperty('backdrop-filter', 'none', 'important');
+          child.style.setProperty('-webkit-backdrop-filter', 'none', 'important');
+          
+          if (st.backgroundColor && st.backgroundColor !== 'rgba(0, 0, 0, 0)' && st.backgroundColor !== 'transparent') {
+            child.style.setProperty('background', 'transparent', 'important');
+            child.style.setProperty('background-color', 'transparent', 'important');
+          }
+        }
+      }
+    });
+  };
+
+  const trackerInterval = setInterval(() => {
+    if (transitionDone) return clearInterval(trackerInterval);
+
+    stripAdOverlays();
+
+    if (!adDetected) {
+      const checkNodes = (parent) => {
+        Array.from(parent.children).forEach(child => {
+          if (!DOM_SAFE_IDS.includes(child.id) && child.tagName === 'DIV') {
+            const st = window.getComputedStyle(child);
+            if ((st.position === 'fixed' || st.position === 'absolute') && parseInt(st.zIndex || 0) > 9000) {
+              adDetected = true;
+            }
+          }
+        });
+      };
+
+      checkNodes(document.body);
+      checkNodes(document.documentElement);
+
+      if (adDetected) {
+        // Ad detected: snap loader from center to top 25% immediately
+        if (menuLoader) {
+          menuLoader.classList.add('ad-snapped');
+        }
+
+        clearInterval(trackerInterval);
+        setTimeout(completeTransition, 3500);
+      }
+    }
+  }, 100);
+
+  // Inject DIRECTLY into DOM so the user click correctly validates the ad
+  const inlineVignette = document.createElement('script');
+  inlineVignette.id = 'monetag-vignette-live-menu-' + Date.now();
+  inlineVignette.innerHTML = `(function(s){s.dataset.zone='12092148',s.src='https://n6wxm.com/vignette.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')))`;
+  document.body.appendChild(inlineVignette);
+
+  // Faster Failsafe: if Monetag is blocked or refuses to serve an ad, transition after 5 seconds
+  setTimeout(() => {
+    if (!adDetected) {
+      clearInterval(trackerInterval);
+      completeTransition();
+    }
+  }, 5000);
+}
+
+// ==========================================================================
+// 2C. CUSTOMER DASHBOARD ROUTING ENGINE
 // ==========================================================================
 function showDashboard(pushToHistory = true) {
   currentAppView = 'dashboard';
@@ -190,7 +303,7 @@ function openFestiveSpecial() {
 }
 
 // ==========================================================================
-// 3. SECRET SLIDE-TO-UNLOCK TITLE ENGINE (RIGHT-SLIDE WITH VISUAL CAP)
+// 3. SECRET SLIDE-TO-UNLOCK TITLE ENGINE
 // ==========================================================================
 function initSecretTitleSlider() {
   const titleElement = document.getElementById('main-app-title');
@@ -251,7 +364,7 @@ function checkDaily6PMReset() {
           console.log(`[${CURRENT_APP_VERSION}] 6:00 PM reached: Live Menu cleared.`);
           renderKitchenMenu();
         })
-        .catch((err) => console.error("Error clearing live menu at 6 PM:", err));
+        .catch((err) => console.error("Error clearing daily menu at 6 PM:", err));
     } else {
       renderKitchenMenu();
     }
@@ -274,9 +387,9 @@ function urlBase64ToUint8Array(base64String) {
 
 function checkAppOnboarding() {
   const splash = document.getElementById('app-splash-screen');
-  if (splash && splash.style.display !== 'none' && !splash.classList.contains('fade-out')) {
-    return; 
-  }
+  const transSplash = document.getElementById('menu-transition-splash');
+  if (splash && splash.style.display !== 'none' && !splash.classList.contains('fade-out')) return; 
+  if (transSplash && transSplash.style.display !== 'none' && !transSplash.classList.contains('fade-out')) return; 
 
   if (isKitchenMode) {
      document.getElementById('profile-modal').style.display = 'none';
@@ -1364,7 +1477,6 @@ function enterKitchenMode() {
 
   document.getElementById('header-back-btn').style.display = 'inline-flex';
   
-  // Show hamburger icon and version badge ONLY in Kitchen Mode
   document.getElementById('main-app-title-text').textContent = 'Foodies Point';
   document.getElementById('kitchen-version-badge').style.display = 'inline-block';
   document.getElementById('header-main-menu-btn').style.display = 'inline-flex';
@@ -1413,7 +1525,6 @@ function exitKitchenMode(triggerHistoryBack = true) {
 
   document.getElementById('kitchen-view').style.display = 'none';
   
-  // Hide version badge and menu button when leaving Kitchen Mode
   document.getElementById('kitchen-version-badge').style.display = 'none';
   document.getElementById('header-main-menu-btn').style.display = 'none';
   
