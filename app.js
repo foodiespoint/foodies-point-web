@@ -1,7 +1,7 @@
 // ==========================================================================
-// 1. FIREBASE & RENDER VAPID CONFIGURATION (v18 - LIVE PRODUCTION)
+// 1. FIREBASE & RENDER VAPID CONFIGURATION (v19 - LIVE PRODUCTION)
 // ==========================================================================
-const CURRENT_APP_VERSION = "v18";
+const CURRENT_APP_VERSION = "v19";
 const VAPID_PUBLIC_KEY = "BCYZCGMueIWWUU7cA2m4-fmHK0gEbmwqfSMHyzXr4AGdyhDi53mct0OoEfnPttK-1D3LV8guB3-RtfFYABa82bo";
 const RENDER_BACKEND_URL = "https://foodies-backend-9vvj.onrender.com";
 
@@ -29,11 +29,134 @@ try {
 }
 
 const DOM_SAFE_IDS = [
-  'app-root', 'install-gate-overlay', 'app-splash-screen', 'menu-transition-splash',
+  'app-root', 'install-gate-overlay', 'app-splash-screen',
   'app-dropdown', 'app-dropdown-backdrop', 'add-item-modal', 'edit-item-modal', 
   'order-options-modal', 'delivery-charge-modal', 'profile-modal', 
   'notification-permission-modal', 'pin-modal'
 ];
+
+// ==========================================================================
+// 1B. MULTI-MENU CONFIGURATION & NEW-ITEM BADGE TRACKER
+// ==========================================================================
+const MENU_CONFIGS = {
+  daily: {
+    key: 'daily',
+    icon: '🍲',
+    label: 'Daily Live Menu',
+    headerTitle: 'Daily Menu',
+    sectionTitle: "Today's Live Menu",
+    dbPath: 'dailyMenu',
+    catalogPath: 'menu_catalog',
+    cardId: 'dash-card-daily',
+    badgeId: 'dash-badge-daily'
+  },
+  festive: {
+    key: 'festive',
+    icon: '🎉',
+    label: 'Festive Special',
+    headerTitle: 'Festive Special',
+    sectionTitle: 'Festive Special Menu',
+    dbPath: 'menus/festive',
+    catalogPath: 'section_catalogs/festive',
+    cardId: 'dash-card-festive',
+    badgeId: 'dash-badge-festive'
+  },
+  party: {
+    key: 'party',
+    icon: '🎊',
+    label: 'Bulk / Party Orders',
+    headerTitle: 'Bulk / Party Orders',
+    sectionTitle: 'Bulk & Party Menu',
+    dbPath: 'menus/party',
+    catalogPath: 'section_catalogs/party',
+    cardId: 'dash-card-party',
+    badgeId: 'dash-badge-party'
+  },
+  preserved: {
+    key: 'preserved',
+    icon: '🫙',
+    label: 'Preserved Food and Condiments',
+    headerTitle: 'Preserved & Condiments',
+    sectionTitle: 'Preserved Food & Condiments',
+    dbPath: 'menus/preserved',
+    catalogPath: 'section_catalogs/preserved',
+    cardId: 'dash-card-preserved',
+    badgeId: 'dash-badge-preserved'
+  },
+  bakery: {
+    key: 'bakery',
+    icon: '🥐',
+    label: 'Bakery Products',
+    headerTitle: 'Bakery Products',
+    sectionTitle: 'Fresh Bakery Menu',
+    dbPath: 'menus/bakery',
+    catalogPath: 'section_catalogs/bakery',
+    cardId: 'dash-card-bakery',
+    badgeId: 'dash-badge-bakery'
+  }
+};
+
+let activeCustomerMenuKey = 'daily';
+let activeKitchenMenuKey = 'daily';
+const menuSnapshotsByKey = {
+  daily: null,
+  festive: null,
+  party: null,
+  preserved: null,
+  bakery: null
+};
+
+const sectionCatalogsByKey = {
+  festive: [],
+  party: [],
+  preserved: [],
+  bakery: []
+};
+
+function getCatalogForMenu(menuKey) {
+  if (menuKey === 'daily') return activeMenuItems;
+  return sectionCatalogsByKey[menuKey] || [];
+}
+
+function getSeenMenuItemIds(menuKey) {
+  try {
+    return JSON.parse(localStorage.getItem(`fp_seen_items_${menuKey}`) || '[]');
+  } catch (e) {
+    return [];
+  }
+}
+
+function markMenuItemsAsSeen(menuKey) {
+  const snapshot = menuSnapshotsByKey[menuKey];
+  const currentIds = snapshot ? Object.keys(snapshot) : [];
+  localStorage.setItem(`fp_seen_items_${menuKey}`, JSON.stringify(currentIds));
+  updateDashboardMenuHighlight(menuKey);
+}
+
+function updateDashboardMenuHighlight(menuKey) {
+  const cfg = MENU_CONFIGS[menuKey];
+  if (!cfg) return;
+
+  const card = document.getElementById(cfg.cardId);
+  if (!card) return;
+
+  const snapshot = menuSnapshotsByKey[menuKey];
+  const currentIds = snapshot ? Object.keys(snapshot) : [];
+
+  if (currentIds.length === 0) {
+    card.classList.remove('has-new-items');
+    return;
+  }
+
+  const seenIds = getSeenMenuItemIds(menuKey);
+  const newItemIds = currentIds.filter(id => !seenIds.includes(id));
+
+  if (newItemIds.length > 0) {
+    card.classList.add('has-new-items');
+  } else {
+    card.classList.remove('has-new-items');
+  }
+}
 
 // ==========================================================================
 // 2. SPLASH AUTH & RUTHLESS VIGNETTE AD PURGE ENGINE
@@ -46,10 +169,7 @@ function executeAppLogin() {
 
   if (loginBtn) loginBtn.style.display = 'none';
   if (headerBox) headerBox.style.display = 'none';
-  if (loaderBox) {
-    loaderBox.style.display = 'flex';
-    loaderBox.classList.remove('ad-snapped'); // Ensure it starts perfectly centered
-  }
+  if (loaderBox) loaderBox.style.display = 'flex';
 
   if (splash) {
     splash.style.setProperty('background', '#FFFFFF', 'important');
@@ -130,9 +250,6 @@ function executeAppLogin() {
     checkNodes(document.documentElement);
 
     if (adDetected) {
-      // Snap loader up immediately when ad is found
-      if (loaderBox) loaderBox.classList.add('ad-snapped');
-      
       clearInterval(trackerInterval);
       setTimeout(enterApp, 3500);
     }
@@ -152,154 +269,61 @@ function executeAppLogin() {
 }
 
 // ==========================================================================
-// 2B. INTERNAL MENU TRANSITION AD ENGINE
-// ==========================================================================
-function triggerMenuAdTransition() {
-  const transSplash = document.getElementById('menu-transition-splash');
-  const menuLoader = document.getElementById('menu-splash-loader-box');
-
-  if (transSplash) {
-    transSplash.style.display = 'block';
-    transSplash.style.opacity = '1';
-    transSplash.classList.remove('fade-out');
-  }
-  
-  if (menuLoader) {
-    menuLoader.classList.remove('ad-snapped'); // Ensure loader starts perfectly centered
-  }
-
-  let adDetected = false;
-  let transitionDone = false;
-
-  const completeTransition = () => {
-    if (transitionDone) return;
-    transitionDone = true;
-
-    const purgeAllAds = () => {
-      Array.from(document.body.children).forEach(child => {
-        if (!DOM_SAFE_IDS.includes(child.id) && child.tagName !== 'SCRIPT' && child.tagName !== 'STYLE') {
-          child.remove();
-        }
-      });
-      Array.from(document.documentElement.children).forEach(child => {
-        if (child.tagName !== 'HEAD' && child.tagName !== 'BODY') {
-          child.remove();
-        }
-      });
-    };
-
-    purgeAllAds();
-    let purgeCount = 0;
-    const purgeInterval = setInterval(() => {
-      purgeAllAds();
-      purgeCount++;
-      if (purgeCount > 20) clearInterval(purgeInterval);
-    }, 100);
-
-    if (transSplash) {
-      transSplash.classList.add('fade-out');
-      setTimeout(() => {
-        transSplash.style.display = 'none';
-        openLiveMenu();
-      }, 400);
-    }
-  };
-
-  const stripAdOverlays = () => {
-    Array.from(document.body.children).forEach(child => {
-      if (!DOM_SAFE_IDS.includes(child.id) && child.tagName === 'DIV') {
-        const st = window.getComputedStyle(child);
-        if (st.position === 'fixed' || st.position === 'absolute') {
-          child.style.setProperty('backdrop-filter', 'none', 'important');
-          child.style.setProperty('-webkit-backdrop-filter', 'none', 'important');
-          
-          if (st.backgroundColor && st.backgroundColor !== 'rgba(0, 0, 0, 0)' && st.backgroundColor !== 'transparent') {
-            child.style.setProperty('background', 'transparent', 'important');
-            child.style.setProperty('background-color', 'transparent', 'important');
-          }
-        }
-      }
-    });
-  };
-
-  const trackerInterval = setInterval(() => {
-    if (transitionDone) return clearInterval(trackerInterval);
-
-    stripAdOverlays();
-
-    if (!adDetected) {
-      const checkNodes = (parent) => {
-        Array.from(parent.children).forEach(child => {
-          if (!DOM_SAFE_IDS.includes(child.id) && child.tagName === 'DIV') {
-            const st = window.getComputedStyle(child);
-            if ((st.position === 'fixed' || st.position === 'absolute') && parseInt(st.zIndex || 0) > 9000) {
-              adDetected = true;
-            }
-          }
-        });
-      };
-
-      checkNodes(document.body);
-      checkNodes(document.documentElement);
-
-      if (adDetected) {
-        // Ad detected: snap loader from center to top 25% immediately
-        if (menuLoader) {
-          menuLoader.classList.add('ad-snapped');
-        }
-
-        clearInterval(trackerInterval);
-        setTimeout(completeTransition, 3500);
-      }
-    }
-  }, 100);
-
-  // Inject DIRECTLY into DOM so the user click correctly validates the ad
-  const inlineVignette = document.createElement('script');
-  inlineVignette.id = 'monetag-vignette-live-menu-' + Date.now();
-  inlineVignette.innerHTML = `(function(s){s.dataset.zone='12092148',s.src='https://n6wxm.com/vignette.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')))`;
-  document.body.appendChild(inlineVignette);
-
-  // Faster Failsafe: if Monetag is blocked or refuses to serve an ad, transition after 5 seconds
-  setTimeout(() => {
-    if (!adDetected) {
-      clearInterval(trackerInterval);
-      completeTransition();
-    }
-  }, 5000);
-}
-
-// ==========================================================================
-// 2C. CUSTOMER DASHBOARD ROUTING ENGINE
+// 2B. CUSTOMER DASHBOARD ROUTING ENGINE
 // ==========================================================================
 function showDashboard(pushToHistory = true) {
   currentAppView = 'dashboard';
   
   document.getElementById('customer-view').style.display = 'none';
+  document.getElementById('kitchen-dashboard-view').style.display = 'none';
   document.getElementById('kitchen-view').style.display = 'none';
   document.getElementById('home-dashboard-view').style.display = 'flex';
   
   document.getElementById('header-back-btn').style.display = 'none';
   document.getElementById('main-app-title-text').textContent = 'Foodies Point';
 
+  Object.keys(MENU_CONFIGS).forEach(k => updateDashboardMenuHighlight(k));
+
   if (pushToHistory) history.pushState({ page: 'dashboard' }, '', '#dashboard');
 }
 
-function openLiveMenu(pushToHistory = true) {
+function openMenuCategory(menuKey = 'daily', pushToHistory = true) {
+  const cfg = MENU_CONFIGS[menuKey] || MENU_CONFIGS.daily;
+  activeCustomerMenuKey = cfg.key;
   currentAppView = 'live-menu';
 
+  markMenuItemsAsSeen(cfg.key);
+
   document.getElementById('home-dashboard-view').style.display = 'none';
+  document.getElementById('kitchen-dashboard-view').style.display = 'none';
   document.getElementById('kitchen-view').style.display = 'none';
   document.getElementById('customer-view').style.display = 'flex';
   
   document.getElementById('header-back-btn').style.display = 'inline-flex';
-  document.getElementById('main-app-title-text').textContent = 'Daily Menu';
+  document.getElementById('main-app-title-text').textContent = cfg.headerTitle;
 
-  if (pushToHistory) history.pushState({ page: 'live-menu' }, '', '#live-menu');
+  const sectionTitleEl = document.getElementById('customer-menu-section-title');
+  if (sectionTitleEl) sectionTitleEl.textContent = cfg.sectionTitle;
+
+  renderCustomerMenuFromSnapshot(menuSnapshotsByKey[cfg.key]);
+
+  if (pushToHistory) history.pushState({ page: 'live-menu', menuKey: cfg.key }, '', `#menu-${cfg.key}`);
+}
+
+function openLiveMenu(pushToHistory = true) {
+  openMenuCategory('daily', pushToHistory);
 }
 
 function openFestiveSpecial() {
-  alert("🎉 Festive Special Menu is coming soon! Check back during the holidays.");
+  openMenuCategory('festive', true);
+}
+
+function openPreservedFoods() {
+  openMenuCategory('preserved', true);
+}
+
+function openBakeryProducts() {
+  openMenuCategory('bakery', true);
 }
 
 // ==========================================================================
@@ -340,7 +364,7 @@ function initSecretTitleSlider() {
 }
 
 // ==========================================================================
-// 4. TIME-BOUND OPERATING WINDOW & 6:00 PM AUTOMATIC RESET ENGINE
+// 4. TIME-BOUND OPERATING WINDOW & 6:00 PM AUTOMATIC RESET (DAILY MENU ONLY)
 // ==========================================================================
 function isDuringBreakWindow() {
   const now = new Date();
@@ -354,18 +378,25 @@ function checkDaily6PMReset() {
   const todayStr = now.toDateString();
   const lastResetDate = localStorage.getItem('fp_last_reset_date');
 
+  // Strictly applies ONLY to Daily Live Menu; all other sections remain unaffected
   if (hour >= 18 && hour < 21 && lastResetDate !== todayStr) {
     localStorage.setItem('fp_last_reset_date', todayStr);
-    kitchenCheckedState = {};
+    menuSnapshotsByKey.daily = null;
+
+    if (activeKitchenMenuKey === 'daily') {
+      kitchenCheckedState = {};
+    }
 
     if (db) {
-      db.ref('dailyMenu').remove()
+      db.ref(MENU_CONFIGS.daily.dbPath).remove()
         .then(() => {
-          console.log(`[${CURRENT_APP_VERSION}] 6:00 PM reached: Live Menu cleared.`);
-          renderKitchenMenu();
+          console.log(`[${CURRENT_APP_VERSION}] 6:00 PM reached: Daily Live Menu cleared.`);
+          if (isKitchenMode && activeKitchenMenuKey === 'daily') {
+            renderKitchenMenu();
+          }
         })
         .catch((err) => console.error("Error clearing daily menu at 6 PM:", err));
-    } else {
+    } else if (isKitchenMode && activeKitchenMenuKey === 'daily') {
       renderKitchenMenu();
     }
   }
@@ -387,9 +418,7 @@ function urlBase64ToUint8Array(base64String) {
 
 function checkAppOnboarding() {
   const splash = document.getElementById('app-splash-screen');
-  const transSplash = document.getElementById('menu-transition-splash');
   if (splash && splash.style.display !== 'none' && !splash.classList.contains('fade-out')) return; 
-  if (transSplash && transSplash.style.display !== 'none' && !transSplash.classList.contains('fade-out')) return; 
 
   if (isKitchenMode) {
      document.getElementById('profile-modal').style.display = 'none';
@@ -646,11 +675,12 @@ async function notifyKitchenNewOrder(orderData) {
     if (!subsObj) return;
 
     const subscriptions = Object.values(subsObj);
+    const sectionLabel = orderData.menuLabel || 'Daily Live Menu';
     fetch(`${RENDER_BACKEND_URL}/api/broadcast`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        title: "New Order! 🔔",
+        title: `New ${sectionLabel} Order! 🔔`,
         message: `${orderData.customerName} ordered ${orderData.orderType} for ${orderData.scheduledTime}`,
         subscriptions
       })
@@ -863,15 +893,28 @@ const DEFAULT_MENU_ITEMS = [
 let activeMenuItems = [...DEFAULT_MENU_ITEMS];
 const cart = {};
 let kitchenCheckedState = {};
-let latestFirebaseMenuSnapshot = null;
 
 function loadDynamicMenuCatalog() {
   if (!db) return;
   db.ref('menu_catalog').on('value', (snap) => {
     const catalog = snap.val();
     activeMenuItems = catalog ? catalog : [...DEFAULT_MENU_ITEMS];
-    if (isKitchenMode) renderKitchenMenu();
-    if (!isKitchenMode && latestFirebaseMenuSnapshot) renderCustomerMenuFromSnapshot(latestFirebaseMenuSnapshot);
+    if (isKitchenMode && activeKitchenMenuKey === 'daily') renderKitchenMenu();
+    if (!isKitchenMode && currentAppView === 'live-menu' && activeCustomerMenuKey === 'daily') {
+      renderCustomerMenuFromSnapshot(menuSnapshotsByKey.daily);
+    }
+  });
+
+  ['festive', 'party', 'preserved', 'bakery'].forEach((menuKey) => {
+    const cfg = MENU_CONFIGS[menuKey];
+    db.ref(cfg.catalogPath).on('value', (snap) => {
+      const catalog = snap.val();
+      sectionCatalogsByKey[menuKey] = Array.isArray(catalog) ? catalog : [];
+      if (isKitchenMode && activeKitchenMenuKey === menuKey) renderKitchenMenu();
+      if (!isKitchenMode && currentAppView === 'live-menu' && activeCustomerMenuKey === menuKey) {
+        renderCustomerMenuFromSnapshot(menuSnapshotsByKey[menuKey]);
+      }
+    });
   });
 }
 
@@ -881,24 +924,36 @@ function openAddItemModal() {
   
   const select = document.getElementById('add-item-category-select');
   const newCatInput = document.getElementById('add-item-category-new');
+  const catLabel = document.getElementById('add-item-category-label');
   
   select.innerHTML = '';
-  newCatInput.style.display = 'none';
   newCatInput.value = '';
 
-  const categories = [...new Set(activeMenuItems.map(item => item.category))];
-  
-  categories.forEach(cat => {
-    const opt = document.createElement('option');
-    opt.value = cat;
-    opt.textContent = cat;
-    select.appendChild(opt);
-  });
-  
-  const addOpt = document.createElement('option');
-  addOpt.value = 'ADD_NEW';
-  addOpt.textContent = '➕ Add New Category...';
-  select.appendChild(addOpt);
+  if (activeKitchenMenuKey === 'daily') {
+    if (catLabel) catLabel.textContent = 'Category:';
+    select.style.display = 'block';
+    newCatInput.style.display = 'none';
+    newCatInput.placeholder = 'Enter new category name';
+
+    const categories = [...new Set(activeMenuItems.map(item => item.category).filter(Boolean))];
+    
+    categories.forEach(cat => {
+      const opt = document.createElement('option');
+      opt.value = cat;
+      opt.textContent = cat;
+      select.appendChild(opt);
+    });
+    
+    const addOpt = document.createElement('option');
+    addOpt.value = 'ADD_NEW';
+    addOpt.textContent = '➕ Add New Category...';
+    select.appendChild(addOpt);
+  } else {
+    if (catLabel) catLabel.textContent = 'Add New Category (Optional):';
+    select.style.display = 'none';
+    newCatInput.style.display = 'block';
+    newCatInput.placeholder = 'Leave empty if not needed';
+  }
 
   document.getElementById('add-item-modal').style.display = 'flex';
 }
@@ -921,11 +976,16 @@ function saveNewItem() {
   const name = document.getElementById('add-item-name').value.trim();
   const price = parseInt(document.getElementById('add-item-price').value);
   
-  let category = document.getElementById('add-item-category-select').value;
-  if (category === 'ADD_NEW') {
+  let category = '';
+  if (activeKitchenMenuKey === 'daily') {
+    category = document.getElementById('add-item-category-select').value;
+    if (category === 'ADD_NEW') {
+      category = document.getElementById('add-item-category-new').value.trim();
+    }
+    if (!category) category = 'Specials';
+  } else {
     category = document.getElementById('add-item-category-new').value.trim();
   }
-  if (!category) category = 'Specials';
 
   if (!name || isNaN(price) || price <= 0) {
     alert("Please enter a valid Name and Price.");
@@ -939,13 +999,23 @@ function saveNewItem() {
     price: price
   };
 
-  activeMenuItems.push(newItem);
-  if (db) db.ref('menu_catalog').set(activeMenuItems);
+  if (activeKitchenMenuKey === 'daily') {
+    activeMenuItems.push(newItem);
+    if (db) db.ref('menu_catalog').set(activeMenuItems);
+  } else {
+    const cfg = MENU_CONFIGS[activeKitchenMenuKey];
+    const list = sectionCatalogsByKey[activeKitchenMenuKey] || [];
+    list.push(newItem);
+    sectionCatalogsByKey[activeKitchenMenuKey] = list;
+    if (db && cfg) db.ref(cfg.catalogPath).set(list);
+  }
+  renderKitchenMenu();
   closeAddItemModal();
 }
 
 function openEditItemModal(id) {
-  const item = activeMenuItems.find(i => i.id === id);
+  const catalog = getCatalogForMenu(activeKitchenMenuKey);
+  const item = catalog.find(i => i.id === id);
   if (!item) return;
   document.getElementById('edit-item-id').value = item.id;
   document.getElementById('edit-item-name').value = item.name;
@@ -967,12 +1037,24 @@ function saveEditedItem() {
     return;
   }
 
-  const itemIndex = activeMenuItems.findIndex(i => i.id === id);
-  if (itemIndex > -1) {
-    activeMenuItems[itemIndex].name = newName;
-    activeMenuItems[itemIndex].price = newPrice;
-    if (db) db.ref('menu_catalog').set(activeMenuItems);
+  if (activeKitchenMenuKey === 'daily') {
+    const itemIndex = activeMenuItems.findIndex(i => i.id === id);
+    if (itemIndex > -1) {
+      activeMenuItems[itemIndex].name = newName;
+      activeMenuItems[itemIndex].price = newPrice;
+      if (db) db.ref('menu_catalog').set(activeMenuItems);
+    }
+  } else {
+    const cfg = MENU_CONFIGS[activeKitchenMenuKey];
+    const list = sectionCatalogsByKey[activeKitchenMenuKey] || [];
+    const itemIndex = list.findIndex(i => i.id === id);
+    if (itemIndex > -1) {
+      list[itemIndex].name = newName;
+      list[itemIndex].price = newPrice;
+      if (db && cfg) db.ref(cfg.catalogPath).set(list);
+    }
   }
+  renderKitchenMenu();
   closeEditItemModal();
 }
 
@@ -997,16 +1079,53 @@ function toggleAppDropdown(forceState) {
 }
 
 // ==========================================================================
-// 10. RENDER KITCHEN MENU
+// 10. RENDER KITCHEN MENU & SEARCH CLEAR
 // ==========================================================================
+function resetKitchenSearchState() {
+  const searchInput = document.getElementById('kitchen-menu-search');
+  const clearBtn = document.getElementById('clear-kitchen-search');
+  if (searchInput) searchInput.value = '';
+  if (clearBtn) clearBtn.style.display = 'none';
+}
+
+function clearKitchenSearch() {
+  resetKitchenSearchState();
+  const searchInput = document.getElementById('kitchen-menu-search');
+  if (searchInput) searchInput.focus();
+  renderKitchenMenu();
+}
+
 function renderKitchenMenu() {
   const container = document.getElementById('kitchen-menu-container');
+  const searchBarContainer = document.getElementById('kitchen-search-bar-container');
   if (!container) return;
   container.innerHTML = '';
 
-  const searchQuery = (document.getElementById('kitchen-menu-search')?.value || '').toLowerCase();
-  const filteredItems = activeMenuItems.filter(item => 
-    item.name.toLowerCase().includes(searchQuery) || item.category.toLowerCase().includes(searchQuery)
+  const currentCatalog = getCatalogForMenu(activeKitchenMenuKey);
+
+  if (searchBarContainer) {
+    if (activeKitchenMenuKey !== 'daily' && currentCatalog.length === 0) {
+      searchBarContainer.style.display = 'none';
+    } else {
+      searchBarContainer.style.display = 'block';
+    }
+  }
+
+  if (activeKitchenMenuKey !== 'daily' && currentCatalog.length === 0) {
+    return;
+  }
+
+  const searchInput = document.getElementById('kitchen-menu-search');
+  const clearBtn = document.getElementById('clear-kitchen-search');
+  const rawQuery = searchInput?.value || '';
+
+  if (clearBtn) {
+    clearBtn.style.display = rawQuery.length > 0 ? 'flex' : 'none';
+  }
+
+  const searchQuery = rawQuery.toLowerCase();
+  const filteredItems = currentCatalog.filter(item => 
+    item.name.toLowerCase().includes(searchQuery) || (item.category || '').toLowerCase().includes(searchQuery)
   );
 
   const checkedDishes = filteredItems.filter(d => kitchenCheckedState[d.id]);
@@ -1016,12 +1135,15 @@ function renderKitchenMenu() {
     const card = document.createElement('div');
     card.className = 'menu-card';
     card.setAttribute('data-item-id', dish.id);
+    const catLabelHtml = dish.category
+      ? ` <span style="font-size:0.78rem; color:#777; font-weight:normal;">(${dish.category})</span>`
+      : '';
 
     card.innerHTML = `
       <div class="dish-select-area">
         <input type="checkbox" class="dish-checkbox" id="chk-top-${dish.id}" checked onchange="toggleKitchenItem('${dish.id}', false)">
         <div class="dish-info">
-          <h4>${dish.name} <span style="font-size:0.78rem; color:#777; font-weight:normal;">(${dish.category})</span></h4>
+          <h4>${dish.name}${catLabelHtml}</h4>
           <div class="price">₹${dish.price}</div>
         </div>
       </div>
@@ -1034,7 +1156,26 @@ function renderKitchenMenu() {
     container.appendChild(card);
   });
 
-  const categories = [...new Set(filteredItems.map(item => item.category))];
+  const uncategorizedUnchecked = filteredItems.filter(item => !item.category && !kitchenCheckedState[item.id]);
+  uncategorizedUnchecked.forEach((dish) => {
+    const card = document.createElement('div');
+    card.className = 'menu-card';
+    card.setAttribute('data-item-id', dish.id);
+
+    card.innerHTML = `
+      <div class="dish-select-area">
+        <input type="checkbox" class="dish-checkbox" id="chk-${dish.id}" onchange="toggleKitchenItem('${dish.id}', true)">
+        <div class="dish-info">
+          <h4>${dish.name}</h4>
+          <div class="price">₹${dish.price}</div>
+        </div>
+      </div>
+      <button type="button" class="btn-edit-item" onclick="openEditItemModal('${dish.id}')">✏ Edit</button>
+    `;
+    container.appendChild(card);
+  });
+
+  const categories = [...new Set(filteredItems.map(item => item.category).filter(Boolean))];
   categories.forEach((cat) => {
     const uncheckedCatItems = filteredItems.filter(item => item.category === cat && !kitchenCheckedState[item.id]);
 
@@ -1075,40 +1216,42 @@ function toggleKitchenItem(dishId, isChecked) {
 }
 
 function toggleOutOfStock(dishId) {
+  const cfg = MENU_CONFIGS[activeKitchenMenuKey] || MENU_CONFIGS.daily;
   const current = kitchenCheckedState[dishId];
   const newState = (current === 'OOS') ? true : 'OOS';
   kitchenCheckedState[dishId] = newState;
 
   if (db) {
-    db.ref(`dailyMenu/${dishId}`).set(newState);
+    db.ref(`${cfg.dbPath}/${dishId}`).set(newState);
   }
   renderKitchenMenu();
 }
 
 // ==========================================================================
-// 11. PUBLISH OR CLEAR DAILY LIVE MENU
+// 11. PUBLISH OR CLEAR MENU
 // ==========================================================================
 function publishDailyMenu() {
   if (!db) return alert("Database connection is not ready. Please refresh.");
 
+  const cfg = MENU_CONFIGS[activeKitchenMenuKey] || MENU_CONFIGS.daily;
   const selectedCount = Object.keys(kitchenCheckedState).length;
 
   if (selectedCount === 0) {
-    if (confirm("No items selected. Do you want to clear all items from the customer's live menu page?")) {
+    if (confirm(`No items selected. Do you want to clear all items from ${cfg.label}?`)) {
       clearDailyMenu();
     }
     return;
   }
 
-  const confirmMsg = `Are you sure you want to publish ${selectedCount} selected items to the live customer menu?`;
+  const confirmMsg = `Are you sure you want to publish ${selectedCount} selected items to ${cfg.label}?`;
   if (!confirm(confirmMsg)) return;
 
-  db.ref('dailyMenu').set(kitchenCheckedState)
+  db.ref(cfg.dbPath).set(kitchenCheckedState)
     .then(() => {
-      alert(`Menu published successfully (${selectedCount} items)!`);
+      alert(`${cfg.label} published successfully (${selectedCount} items)!`);
       sendRenderPushBroadcast(
-        "Live Menu Up! 🍛",
-        `We just published ${selectedCount} items.`
+        `${cfg.label} Up! 🍛`,
+        `We just published ${selectedCount} items to ${cfg.label}.`
       );
     })
     .catch((error) => console.error("Error publishing menu:", error));
@@ -1116,19 +1259,20 @@ function publishDailyMenu() {
 
 function clearDailyMenu() {
   if (!db) return;
-  if (confirm("Remove all items from the live customer menu?")) {
-    db.ref('dailyMenu').remove()
+  const cfg = MENU_CONFIGS[activeKitchenMenuKey] || MENU_CONFIGS.daily;
+  if (confirm(`Remove all items from ${cfg.label}?`)) {
+    db.ref(cfg.dbPath).remove()
       .then(() => {
         kitchenCheckedState = {};
         renderKitchenMenu();
         alert("All items removed!");
       })
-      .catch((error) => console.error("Error clearing daily menu:", error));
+      .catch((error) => console.error("Error clearing menu:", error));
   }
 }
 
 // ==========================================================================
-// 12. CUSTOMER LIVE MENU LISTENER
+// 12. CUSTOMER LIVE MENU LISTENER (ALL 5 MENUS)
 // ==========================================================================
 function renderCustomerMenuFromSnapshot(activeIds) {
   const container = document.getElementById('customer-menu-container');
@@ -1137,7 +1281,8 @@ function renderCustomerMenuFromSnapshot(activeIds) {
 
   container.innerHTML = '';
 
-  if (isDuringBreakWindow()) {
+  // 6 PM - 9 PM closing window applies ONLY to Daily Live Menu; all other sections remain open
+  if (activeCustomerMenuKey === 'daily' && isDuringBreakWindow()) {
     container.innerHTML = `
       <div style="text-align:center; padding: 40px 20px; color:#555;">
         <div style="font-size: 2.5rem; margin-bottom: 12px;">🌙</div>
@@ -1155,11 +1300,14 @@ function renderCustomerMenuFromSnapshot(activeIds) {
   if (placeOrderBtn) placeOrderBtn.disabled = false;
 
   if (!activeIds || Object.keys(activeIds).length === 0) {
-    container.innerHTML = `<p style="text-align:center; padding: 40px 20px; color:#666;">The kitchen is preparing today's live menu. Please check back shortly!</p>`;
+    const cfg = MENU_CONFIGS[activeCustomerMenuKey] || MENU_CONFIGS.daily;
+    container.innerHTML = `<p style="text-align:center; padding: 40px 20px; color:#666;">The kitchen is preparing ${cfg.label}. Please check back shortly!</p>`;
     return;
   }
 
-  activeMenuItems.forEach((dish) => {
+  const customerCatalog = getCatalogForMenu(activeCustomerMenuKey);
+
+  customerCatalog.forEach((dish) => {
     if (activeIds[dish.id]) {
       cart[dish.id] = cart[dish.id] || 0;
       const isOOS = (activeIds[dish.id] === 'OOS');
@@ -1192,9 +1340,23 @@ function renderCustomerMenuFromSnapshot(activeIds) {
 
 function listenForCustomerLiveMenu() {
   if (!db) return;
-  db.ref('dailyMenu').on('value', (snapshot) => {
-    latestFirebaseMenuSnapshot = snapshot.val();
-    renderCustomerMenuFromSnapshot(latestFirebaseMenuSnapshot);
+  Object.keys(MENU_CONFIGS).forEach((menuKey) => {
+    const cfg = MENU_CONFIGS[menuKey];
+    db.ref(cfg.dbPath).on('value', (snapshot) => {
+      menuSnapshotsByKey[menuKey] = snapshot.val();
+
+      if (isKitchenMode && activeKitchenMenuKey === menuKey) {
+        kitchenCheckedState = menuSnapshotsByKey[menuKey] || {};
+        renderKitchenMenu();
+      }
+
+      if (!isKitchenMode && currentAppView === 'live-menu' && activeCustomerMenuKey === menuKey) {
+        markMenuItemsAsSeen(menuKey);
+        renderCustomerMenuFromSnapshot(menuSnapshotsByKey[menuKey]);
+      } else {
+        updateDashboardMenuHighlight(menuKey);
+      }
+    });
   });
 }
 
@@ -1217,15 +1379,16 @@ function updateQuantity(dishId, change) {
 let pendingCustomerOrder = null;
 
 function openOrderOptionsModal() {
-  if (isDuringBreakWindow()) {
+  if (activeCustomerMenuKey === 'daily' && isDuringBreakWindow()) {
     alert("Orders are closed for today. Tomorrow's menu will be available starting at 9:00 PM tonight!");
     return;
   }
 
+  const currentCatalog = getCatalogForMenu(activeCustomerMenuKey);
   const orderItems = [];
   let totalAmount = 0;
 
-  activeMenuItems.forEach((dish) => {
+  currentCatalog.forEach((dish) => {
     const qty = cart[dish.id] || 0;
     if (qty > 0) {
       orderItems.push({ id: dish.id, name: dish.name, price: dish.price, quantity: qty });
@@ -1244,10 +1407,14 @@ function openOrderOptionsModal() {
     return;
   }
 
+  const cfg = MENU_CONFIGS[activeCustomerMenuKey] || MENU_CONFIGS.daily;
+
   pendingCustomerOrder = {
     items: orderItems,
     total: totalAmount,
-    profile: JSON.parse(profileStr)
+    profile: JSON.parse(profileStr),
+    menuKey: cfg.key,
+    menuLabel: cfg.label
   };
   
   document.getElementById('order-options-modal').style.display = 'flex';
@@ -1277,14 +1444,18 @@ async function finalizeOrderPlacement() {
     pendingCustomerOrder.profile, 
     localPushSub,
     orderType,
-    scheduledTime
+    scheduledTime,
+    pendingCustomerOrder.menuKey,
+    pendingCustomerOrder.menuLabel
   );
   
   pendingCustomerOrder = null;
 }
 
-function executeFirebaseOrderSubmission(orderItems, totalAmount, customerProfile, pushSub, orderType, scheduledTime) {
+function executeFirebaseOrderSubmission(orderItems, totalAmount, customerProfile, pushSub, orderType, scheduledTime, menuKey, menuLabel) {
   const newOrderRef = db.ref('orders').push();
+  const resolvedMenuKey = menuKey || 'daily';
+  const resolvedMenuLabel = menuLabel || (MENU_CONFIGS[resolvedMenuKey] ? MENU_CONFIGS[resolvedMenuKey].label : 'Daily Live Menu');
   
   const orderData = {
     orderId: newOrderRef.key.slice(-4).toUpperCase(),
@@ -1297,7 +1468,9 @@ function executeFirebaseOrderSubmission(orderItems, totalAmount, customerProfile
     timestamp: firebase.database.ServerValue.TIMESTAMP,
     orderType: orderType,          
     scheduledTime: scheduledTime,  
-    deliveryCharge: 0              
+    deliveryCharge: 0,
+    menuKey: resolvedMenuKey,
+    menuLabel: resolvedMenuLabel
   };
 
   if (pushSub && pushSub.endpoint) {
@@ -1319,7 +1492,9 @@ function executeFirebaseOrderSubmission(orderItems, totalAmount, customerProfile
         timestamp: Date.now(),
         orderType: orderType,
         scheduledTime: scheduledTime,
-        deliveryCharge: 0
+        deliveryCharge: 0,
+        menuKey: resolvedMenuKey,
+        menuLabel: resolvedMenuLabel
       };
       
       const pastOrders = JSON.parse(localStorage.getItem('fp_customer_orders') || '[]');
@@ -1327,7 +1502,8 @@ function executeFirebaseOrderSubmission(orderItems, totalAmount, customerProfile
       localStorage.setItem('fp_customer_orders', JSON.stringify(pastOrders));
       renderCustomerOrderHistory();
 
-      activeMenuItems.forEach((dish) => { cart[dish.id] = 0; });
+      const currentCatalog = getCatalogForMenu(resolvedMenuKey);
+      currentCatalog.forEach((dish) => { cart[dish.id] = 0; });
       Object.keys(cart).forEach(id => {
         const span = document.getElementById(`qty-${id}`);
         if (span) span.textContent = 0;
@@ -1425,7 +1601,7 @@ function listenForCustomerOrderUpdates() {
 }
 
 // ==========================================================================
-// 14. KITCHEN LOGIN & NAVIGATION
+// 14. KITCHEN LOGIN & NAVIGATION (HUB + SECTION EDITORS)
 // ==========================================================================
 const KITCHEN_PIN = "validatefoodies2026";
 let isKitchenMode = false;
@@ -1468,9 +1644,50 @@ function verifyKitchenPIN() {
   }
 }
 
+function showKitchenDashboardHub(pushToHistory = false) {
+  resetKitchenSearchState();
+  document.getElementById('kitchen-view').style.display = 'none';
+  document.getElementById('customer-data-view').style.display = 'none';
+  document.getElementById('payment-details-view').style.display = 'none';
+  document.getElementById('kitchen-orders-view').style.display = 'none';
+  document.getElementById('kitchen-dashboard-view').style.display = 'flex';
+  document.getElementById('main-app-title-text').textContent = 'Foodies Point';
+
+  if (pushToHistory) {
+    history.pushState({ kitchenMode: true }, '', '#kitchen');
+  }
+}
+
+function openKitchenMenuSection(menuKey = 'daily', pushToHistory = true) {
+  const cfg = MENU_CONFIGS[menuKey] || MENU_CONFIGS.daily;
+  activeKitchenMenuKey = cfg.key;
+  resetKitchenSearchState();
+
+  kitchenCheckedState = { ...(menuSnapshotsByKey[cfg.key] || {}) };
+
+  const titleEl = document.getElementById('kitchen-section-title');
+  if (titleEl) {
+    titleEl.textContent = `Kitchen Console - ${cfg.label}`;
+  }
+
+  document.getElementById('kitchen-dashboard-view').style.display = 'none';
+  document.getElementById('customer-data-view').style.display = 'none';
+  document.getElementById('payment-details-view').style.display = 'none';
+  document.getElementById('kitchen-orders-view').style.display = 'none';
+  document.getElementById('kitchen-view').style.display = 'flex';
+
+  renderKitchenMenu();
+
+  if (pushToHistory) {
+    history.pushState({ kitchenSubPage: 'menu-editor', menuKey: cfg.key }, '', `#kitchen-menu-${cfg.key}`);
+  }
+}
+
 function enterKitchenMode() {
   if (!isKitchenMode) history.pushState({ kitchenMode: true }, '', '#kitchen');
   isKitchenMode = true;
+
+  resetKitchenSearchState();
 
   document.getElementById('home-dashboard-view').style.display = 'none';
   document.getElementById('customer-view').style.display = 'none';
@@ -1481,20 +1698,10 @@ function enterKitchenMode() {
   document.getElementById('kitchen-version-badge').style.display = 'inline-block';
   document.getElementById('header-main-menu-btn').style.display = 'inline-flex';
 
-  document.getElementById('kitchen-view').style.display = 'flex';
+  showKitchenDashboardHub(false);
   
   checkAppOnboarding();
   syncKitchenPushSubscription();
-
-  if (db) {
-    db.ref('dailyMenu').on('value', (snapshot) => {
-      kitchenCheckedState = snapshot.val() || {};
-      renderKitchenMenu();
-    });
-  } else {
-    renderKitchenMenu();
-  }
-
   listenForKitchenOrders();
 }
 
@@ -1503,11 +1710,14 @@ function handleHeaderBack() {
   const custPage = document.getElementById('customer-data-view');
   const payPage = document.getElementById('payment-details-view');
   const ordersPage = document.getElementById('kitchen-orders-view');
+  const kitchenMenuView = document.getElementById('kitchen-view');
   
   if ((custPage && custPage.style.display === 'flex') || 
       (payPage && payPage.style.display === 'flex') || 
       (ordersPage && ordersPage.style.display === 'flex')) {
     closeKitchenSubPage(true);
+  } else if (isKitchenMode && kitchenMenuView && kitchenMenuView.style.display === 'flex') {
+    closeKitchenMenuEditor(true);
   } else if (!isKitchenMode && currentAppView === 'live-menu') {
     showDashboard(true);
   } else {
@@ -1515,15 +1725,27 @@ function handleHeaderBack() {
   }
 }
 
+function closeKitchenMenuEditor(triggerBack = true) {
+  resetKitchenSearchState();
+  if (isKitchenMode) {
+    showKitchenDashboardHub(false);
+  }
+  if (triggerBack && window.location.hash.startsWith('#kitchen-menu-')) {
+    history.back();
+  }
+}
+
 function exitKitchenMode(triggerHistoryBack = true) {
   if (!isKitchenMode) return;
   isKitchenMode = false;
 
+  resetKitchenSearchState();
   toggleAppDropdown(false);
   closeKitchenSubPage(false);
   if (triggerHistoryBack && window.location.hash.startsWith('#kitchen')) history.back();
 
   document.getElementById('kitchen-view').style.display = 'none';
+  document.getElementById('kitchen-dashboard-view').style.display = 'none';
   
   document.getElementById('kitchen-version-badge').style.display = 'none';
   document.getElementById('header-main-menu-btn').style.display = 'none';
@@ -1533,7 +1755,6 @@ function exitKitchenMode(triggerHistoryBack = true) {
 
   if (db) {
     db.ref('orders').off();
-    db.ref('dailyMenu').off();
   }
 }
 
@@ -1542,32 +1763,50 @@ function exitKitchenMode(triggerHistoryBack = true) {
 // ==========================================================================
 function openKitchenOrdersPage() {
   toggleAppDropdown(false);
+  resetKitchenSearchState();
+  expandedKitchenOrderSections = {};
   history.pushState({ kitchenSubPage: 'orders' }, '', '#kitchen-orders');
+  document.getElementById('kitchen-dashboard-view').style.display = 'none';
   document.getElementById('kitchen-view').style.display = 'none';
+  document.getElementById('customer-data-view').style.display = 'none';
+  document.getElementById('payment-details-view').style.display = 'none';
   document.getElementById('kitchen-orders-view').style.display = 'flex';
+  renderKitchenOrdersAccordion();
 }
 
 function openCustomerDataPage() {
   toggleAppDropdown(false);
+  resetKitchenSearchState();
   history.pushState({ kitchenSubPage: 'customers' }, '', '#kitchen-customers');
+  document.getElementById('kitchen-dashboard-view').style.display = 'none';
   document.getElementById('kitchen-view').style.display = 'none';
+  document.getElementById('kitchen-orders-view').style.display = 'none';
+  document.getElementById('payment-details-view').style.display = 'none';
   document.getElementById('customer-data-view').style.display = 'flex';
   fetchAndRenderCustomerDirectory();
 }
 
 function openPaymentDetailsPage() {
   toggleAppDropdown(false);
+  resetKitchenSearchState();
   history.pushState({ kitchenSubPage: 'payments' }, '', '#kitchen-payments');
+  document.getElementById('kitchen-dashboard-view').style.display = 'none';
   document.getElementById('kitchen-view').style.display = 'none';
+  document.getElementById('kitchen-orders-view').style.display = 'none';
+  document.getElementById('customer-data-view').style.display = 'none';
   document.getElementById('payment-details-view').style.display = 'flex';
   fetchAndRenderPaymentLedger();
 }
 
 function closeKitchenSubPage(triggerBack = true) {
+  resetKitchenSearchState();
+  expandedKitchenOrderSections = {};
   document.getElementById('customer-data-view').style.display = 'none';
   document.getElementById('payment-details-view').style.display = 'none';
   document.getElementById('kitchen-orders-view').style.display = 'none';
-  if (isKitchenMode) document.getElementById('kitchen-view').style.display = 'flex';
+  if (isKitchenMode) {
+    showKitchenDashboardHub(false);
+  }
   if (triggerBack && (window.location.hash === '#kitchen-customers' || window.location.hash === '#kitchen-payments' || window.location.hash === '#kitchen-orders')) {
     history.back();
   }
@@ -1693,6 +1932,9 @@ window.addEventListener('popstate', (e) => {
   if (isKitchenMode) {
     if (window.location.hash === '#kitchen') {
       closeKitchenSubPage(false);
+    } else if (window.location.hash.startsWith('#kitchen-menu-')) {
+      const menuKey = window.location.hash.replace('#kitchen-menu-', '');
+      openKitchenMenuSection(menuKey, false);
     } else if (window.location.hash !== '#kitchen-customers' && window.location.hash !== '#kitchen-payments' && window.location.hash !== '#kitchen-orders') {
       exitKitchenMode(false);
     }
@@ -1704,35 +1946,81 @@ window.addEventListener('popstate', (e) => {
 });
 
 // ==========================================================================
-// 16. LIVE KITCHEN ORDER LISTENER
+// 16. LIVE KITCHEN ORDER LISTENER (CLOSED DROPDOWNS BY DEFAULT + BADGE)
 // ==========================================================================
-function listenForKitchenOrders() {
-  if (!db) return;
+let expandedKitchenOrderSections = {};
+let latestKitchenOrdersSnapshot = null;
+
+function toggleKitchenOrderSection(menuKey) {
+  expandedKitchenOrderSections[menuKey] = !expandedKitchenOrderSections[menuKey];
+  renderKitchenOrdersAccordion();
+}
+
+function renderKitchenOrdersAccordion() {
   const ordersContainer = document.getElementById('kitchen-orders-container');
-  
-  db.ref('orders').on('value', (snapshot) => {
-    if (!ordersContainer) return;
-    ordersContainer.innerHTML = '';
+  if (!ordersContainer) return;
+  ordersContainer.innerHTML = '';
 
-    const orders = snapshot.val();
-    if (!orders) {
-      ordersContainer.innerHTML = `<p style="text-align:center; padding:20px; color:#666;">No active incoming orders.</p>`;
-      return;
-    }
+  const orders = latestKitchenOrdersSnapshot;
+  if (!orders) {
+    ordersContainer.innerHTML = `<p style="text-align:center; padding:20px; color:#666;">No active incoming orders.</p>`;
+    return;
+  }
 
-    const ordersArray = Object.keys(orders).map(key => ({
-      firebaseKey: key,
-      ...orders[key]
-    })).filter(order => !order.archived);
+  const ordersArray = Object.keys(orders).map(key => ({
+    firebaseKey: key,
+    ...orders[key]
+  })).filter(order => !order.archived);
 
-    if (ordersArray.length === 0) {
-      ordersContainer.innerHTML = `<p style="text-align:center; padding:20px; color:#666;">No active incoming orders.</p>`;
-      return;
-    }
+  if (ordersArray.length === 0) {
+    ordersContainer.innerHTML = `<p style="text-align:center; padding:20px; color:#666;">No active incoming orders.</p>`;
+    return;
+  }
 
-    ordersArray.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+  ordersArray.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
 
-    ordersArray.forEach((order) => {
+  const groupedBySection = {};
+  ordersArray.forEach((order) => {
+    const mKey = (order.menuKey && MENU_CONFIGS[order.menuKey]) ? order.menuKey : 'daily';
+    if (!groupedBySection[mKey]) groupedBySection[mKey] = [];
+    groupedBySection[mKey].push(order);
+  });
+
+  Object.keys(MENU_CONFIGS).forEach((menuKey) => {
+    const sectionOrders = groupedBySection[menuKey];
+    if (!sectionOrders || sectionOrders.length === 0) return;
+
+    const cfg = MENU_CONFIGS[menuKey];
+    const unattendedCount = sectionOrders.filter(o => o.status === 'PENDING').length;
+    const isExpanded = !!expandedKitchenOrderSections[menuKey];
+
+    const sectionBlock = document.createElement('div');
+    sectionBlock.className = 'orders-dropdown-section';
+
+    const headerBtn = document.createElement('button');
+    headerBtn.type = 'button';
+    headerBtn.className = `orders-dropdown-header${isExpanded ? ' is-open' : ''}`;
+    headerBtn.setAttribute('aria-expanded', isExpanded ? 'true' : 'false');
+    headerBtn.onclick = () => toggleKitchenOrderSection(menuKey);
+
+    const badgeHtml = unattendedCount > 0
+      ? `<span class="unattended-orders-badge">${unattendedCount}</span>`
+      : '';
+
+    headerBtn.innerHTML = `
+      <span class="orders-dropdown-title">${cfg.icon} ${cfg.label}</span>
+      <span class="orders-dropdown-right">
+        ${badgeHtml}
+        <span class="orders-dropdown-chevron">${isExpanded ? '▲' : '▼'}</span>
+      </span>
+    `;
+    sectionBlock.appendChild(headerBtn);
+
+    const bodyEl = document.createElement('div');
+    bodyEl.className = 'orders-dropdown-body';
+    bodyEl.style.display = isExpanded ? 'block' : 'none';
+
+    sectionOrders.forEach((order) => {
       const card = document.createElement('div');
       card.className = 'order-card';
       
@@ -1794,8 +2082,20 @@ function listenForKitchenOrders() {
         </div>
       `;
 
-      ordersContainer.appendChild(card);
+      bodyEl.appendChild(card);
     });
+
+    sectionBlock.appendChild(bodyEl);
+    ordersContainer.appendChild(sectionBlock);
+  });
+}
+
+function listenForKitchenOrders() {
+  if (!db) return;
+  
+  db.ref('orders').on('value', (snapshot) => {
+    latestKitchenOrdersSnapshot = snapshot.val();
+    renderKitchenOrdersAccordion();
   });
 }
 
@@ -1905,8 +2205,8 @@ function initFoodiesPoint() {
 
   setInterval(() => {
     checkDaily6PMReset();
-    if (!isKitchenMode && latestFirebaseMenuSnapshot) {
-      renderCustomerMenuFromSnapshot(latestFirebaseMenuSnapshot);
+    if (!isKitchenMode && currentAppView === 'live-menu' && activeCustomerMenuKey === 'daily') {
+      renderCustomerMenuFromSnapshot(menuSnapshotsByKey.daily);
     }
   }, 30000);
 }
