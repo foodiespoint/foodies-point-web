@@ -10,7 +10,7 @@
 
   <title>Foodies Point</title>
 
-  <link rel="manifest" href="/manifest.json?v=18">
+  <link rel="manifest" href="/manifest.json?v=19">
   <meta name="theme-color" content="#D9534F">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -48,7 +48,8 @@
     }
 
     /* SPLASH / LANDING SCREEN - Pure solid white */
-    #app-splash-screen, #menu-transition-splash {
+    #app-splash-screen {
+      display: none; 
       position: fixed;
       inset: 0;
       background: var(--white);
@@ -56,15 +57,7 @@
       transition: opacity 0.4s ease, visibility 0.4s ease;
     }
 
-    #app-splash-screen {
-      display: none; 
-    }
-
-    #menu-transition-splash {
-      display: none;
-    }
-
-    #app-splash-screen.fade-out, #menu-transition-splash.fade-out {
+    #app-splash-screen.fade-out {
       opacity: 0;
       visibility: hidden;
       pointer-events: none;
@@ -89,7 +82,7 @@
     }
 
     .splash-logo {
-      width: 46px; /* Scaled down */
+      width: 46px;
       height: auto;
     }
 
@@ -102,7 +95,7 @@
 
     .splash-title {
       color: var(--primary-color);
-      font-size: 1.8rem; /* Scaled down */
+      font-size: 1.8rem;
       font-weight: 800;
       letter-spacing: -0.5px;
       margin: 0;
@@ -111,16 +104,15 @@
 
     .splash-tagline {
       color: #666;
-      font-size: 0.85rem; /* Scaled down */
+      font-size: 0.85rem;
       font-weight: 500;
       margin: 4px 0 0 0;
     }
 
-    /* LOADING SPINNER BOXES - Starts Centered */
+    /* LOADING SPINNER BOX - Static at final top position (25%) */
     .splash-loader-box {
       position: absolute;
-      top: 50%;
-      transform: translateY(-50%);
+      top: 25%;
       left: 0;
       width: 100%;
       display: flex;
@@ -128,17 +120,10 @@
       align-items: center;
       justify-content: center;
       gap: 16px;
-      transition: top 0s, transform 0s;
     }
 
     #splash-loader-box {
       display: none; 
-    }
-
-    /* Snaps dynamically to 25% from top when ad appears */
-    .splash-loader-box.ad-snapped {
-      top: 25%;
-      transform: none;
     }
 
     .splash-loader {
@@ -341,7 +326,7 @@
       font-size: 1.2rem;
       font-weight: 700;
       color: var(--text-dark);
-      display: none; /* Hidden on customer dashboards by default */
+      display: none;
       align-items: center;
       justify-content: center;
       cursor: pointer;
@@ -354,61 +339,96 @@
       font-weight: 700;
     }
 
-    /* HOME DASHBOARD VIEW STYLES */
-    #home-dashboard-view {
+    /* HOME DASHBOARD & KITCHEN DASHBOARD HUB STYLES */
+    #home-dashboard-view, #kitchen-dashboard-view {
       display: none; 
       position: absolute;
       top: 56px;
       bottom: 0;
       left: 0;
       right: 0;
-      z-index: 1000;
       background: var(--bg-light);
       flex-direction: column;
       max-width: 600px;
       margin: 0 auto;
       padding: 24px 20px;
       overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    #home-dashboard-view {
+      z-index: 1000;
+    }
+
+    #kitchen-dashboard-view {
+      z-index: 1450;
     }
 
     .dash-welcome {
-      margin-bottom: 28px;
+      margin-bottom: 24px;
     }
 
     .dash-welcome h2 {
       font-size: 1.65rem;
       color: var(--text-dark);
-      margin-bottom: 6px;
       font-weight: 800;
+      letter-spacing: -0.3px;
     }
 
     .dash-welcome p {
       color: #666;
-      font-size: 1rem;
+      font-size: 0.95rem;
       font-weight: 500;
+      margin-top: 4px;
     }
 
     .dash-grid {
       display: flex;
       flex-direction: column;
       gap: 16px;
+      padding-bottom: 20px;
     }
 
     .dash-card {
+      position: relative;
       background: var(--white);
       border-radius: 18px;
       padding: 20px 18px;
       display: flex;
       align-items: center;
       box-shadow: 0 4px 12px rgba(0,0,0,0.04);
-      border: 1px solid var(--border-color);
+      border: 2px solid var(--border-color);
       cursor: pointer;
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.25s ease, background-color 0.25s ease;
       text-align: left;
     }
 
     .dash-card:active {
       transform: scale(0.97);
+    }
+
+    /* GREEN HIGHLIGHT & TEXTLESS BADGE DOT WHEN NEW ITEMS ARE POSTED */
+    .dash-card.has-new-items {
+      border-color: #2E7D32;
+      background: #F4FBF5;
+      box-shadow: 0 6px 16px rgba(46, 125, 50, 0.16);
+    }
+
+    .menu-new-badge {
+      display: none;
+      position: absolute;
+      top: -6px;
+      right: 16px;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #2E7D32;
+      border: 2.5px solid var(--white);
+      box-shadow: 0 2px 6px rgba(46, 125, 50, 0.45);
+    }
+
+    .dash-card.has-new-items .menu-new-badge {
+      display: block;
     }
 
     .dash-icon {
@@ -445,6 +465,10 @@
       font-size: 1.4rem;
       font-weight: bold;
       padding-left: 10px;
+    }
+
+    .dash-card.has-new-items .dash-arrow {
+      color: #2E7D32;
     }
 
     /* CUSTOMER MENU VIEW */
@@ -696,12 +720,13 @@
     }
     
     .search-bar-container {
+      position: relative;
       margin-bottom: 14px;
     }
     
     .search-bar-container input {
       width: 100%;
-      padding: 10px 14px;
+      padding: 10px 38px 10px 14px;
       border: 1px solid var(--border-color);
       border-radius: 8px;
       font-size: 0.95rem;
@@ -710,6 +735,30 @@
     
     .search-bar-container input:focus {
       border-color: var(--primary-color);
+    }
+
+    .btn-clear-search {
+      display: none;
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 24px;
+      height: 24px;
+      border: none;
+      border-radius: 50%;
+      background: #E0E0E0;
+      color: #555;
+      font-size: 0.8rem;
+      font-weight: 700;
+      cursor: pointer;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
+    }
+
+    .btn-clear-search:active {
+      background: #CCCCCC;
     }
 
     #kitchen-view {
@@ -745,8 +794,81 @@
       align-items: center;
     }
 
-    .order-card {
+    /* INCOMING ORDERS SECTION DROPDOWN ACCORDION */
+    .orders-dropdown-section {
+      margin-bottom: 12px;
+      border-radius: 14px;
+      background: var(--white);
+      border: 1px solid var(--border-color);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+      overflow: hidden;
+    }
+
+    .orders-dropdown-header {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 15px 16px;
+      background: var(--white);
+      border: none;
+      cursor: pointer;
+      text-align: left;
+      font-size: 1rem;
+      font-weight: 800;
+      color: var(--text-dark);
+    }
+
+    .orders-dropdown-header:active {
       background: var(--bg-light);
+    }
+
+    .orders-dropdown-header.is-open {
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .orders-dropdown-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex: 1;
+      padding-right: 10px;
+    }
+
+    .orders-dropdown-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+
+    .unattended-orders-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 24px;
+      height: 24px;
+      padding: 0 7px;
+      border-radius: 12px;
+      background: var(--primary-color);
+      color: var(--white);
+      font-size: 0.78rem;
+      font-weight: 800;
+      box-shadow: 0 2px 5px rgba(217, 83, 79, 0.35);
+    }
+
+    .orders-dropdown-chevron {
+      font-size: 0.75rem;
+      color: #888;
+    }
+
+    .orders-dropdown-body {
+      padding: 12px 12px 2px 12px;
+      background: var(--bg-light);
+    }
+
+    .order-card {
+      background: var(--white);
       border-left: 4px solid var(--primary-color);
       border-radius: 8px;
       padding: 14px;
@@ -965,7 +1087,7 @@
   <!-- APP LANDING / SPLASH SCREEN -->
   <div id="app-splash-screen">
     
-    <!-- TITLE & LOGO AT THE TOP (Moved to 5% Down) -->
+    <!-- TITLE & LOGO AT THE TOP (5% Down) -->
     <div id="splash-header-box" class="splash-header-box">
       <div class="splash-brand-row">
         <img id="splash-logo" class="splash-logo" src="/icon.png" alt="Foodies Point Logo">
@@ -976,7 +1098,7 @@
       </div>
     </div>
 
-    <!-- LOADER BOX: Starts Centered, Snaps to Top 25% -->
+    <!-- LOADER BOX: Static at 25% Top -->
     <div id="splash-loader-box" class="splash-loader-box">
       <span class="splash-loading-text">Connecting to kitchen...</span>
       <div class="splash-loader"></div>
@@ -987,17 +1109,6 @@
       Login & Enter
     </a>
 
-  </div>
-
-  <!-- INTERNAL MENU AD TRANSITION SPLASH -->
-  <div id="menu-transition-splash">
-    <!-- Clean white screen: NO logo or title in this transition -->
-
-    <!-- LOADER STARTS DEAD CENTER, SNAPS TO 25% TOP WHEN AD APPEARS -->
-    <div id="menu-splash-loader-box" class="splash-loader-box" style="display:flex;">
-      <span class="splash-loading-text">Loading Live Menu...</span>
-      <div class="splash-loader"></div>
-    </div>
   </div>
 
   <!-- IRREMOVABLE INSTALL GATE OVERLAY -->
@@ -1029,25 +1140,24 @@
         <!-- DYNAMIC APP TITLE & VERSION BADGE -->
         <div class="app-title" id="main-app-title">
           <span id="main-app-title-text">Foodies Point</span>
-          <span id="kitchen-version-badge">v18</span>
+          <span id="kitchen-version-badge">v19</span>
         </div>
 
         <div class="header-right-group">
-          <!-- HAMBURGER ICON ONLY SHOWN IN KITCHEN MODE NOW -->
           <button class="btn-menu-icon" id="header-main-menu-btn" onclick="toggleAppDropdown()" aria-label="Menu" style="display: none;">☰</button>
         </div>
       </header>
 
-      <!-- HOME DASHBOARD HUB -->
+      <!-- HOME DASHBOARD HUB (CUSTOMERS) -->
       <main id="home-dashboard-view">
         <div class="dash-welcome">
-          <h2>Welcome back! 👋</h2>
-          <p>What are you craving today?</p>
+          <h2>What are you craving today?</h2>
         </div>
 
         <div class="dash-grid">
-          <!-- Button 1: Live Menu (TRIGGERS AD TRANSITION) -->
-          <div class="dash-card" onclick="triggerMenuAdTransition()">
+          <!-- Button 1: Daily Live Menu -->
+          <div class="dash-card" id="dash-card-daily" onclick="openMenuCategory('daily')">
+            <span class="menu-new-badge" id="dash-badge-daily"></span>
             <div class="dash-icon" style="background: #FFF3E0; color: #E65100;">🍲</div>
             <div class="dash-text">
               <h3>Daily Live Menu</h3>
@@ -1057,7 +1167,8 @@
           </div>
 
           <!-- Button 2: Festive Special -->
-          <div class="dash-card" onclick="openFestiveSpecial()">
+          <div class="dash-card" id="dash-card-festive" onclick="openMenuCategory('festive')">
+            <span class="menu-new-badge" id="dash-badge-festive"></span>
             <div class="dash-icon" style="background: #E8F5E9; color: #2E7D32;">🎉</div>
             <div class="dash-text">
               <h3>Festive Special</h3>
@@ -1066,12 +1177,35 @@
             <div class="dash-arrow">➔</div>
           </div>
           
-          <!-- Future Button Placeholder -->
-          <div class="dash-card" onclick="alert('Party Orders module coming soon!')">
+          <!-- Button 3: Bulk / Party Orders -->
+          <div class="dash-card" id="dash-card-party" onclick="openMenuCategory('party')">
+            <span class="menu-new-badge" id="dash-badge-party"></span>
             <div class="dash-icon" style="background: #E3F2FD; color: #1565C0;">🎊</div>
             <div class="dash-text">
               <h3>Bulk / Party Orders</h3>
               <p>For your special events</p>
+            </div>
+            <div class="dash-arrow">➔</div>
+          </div>
+
+          <!-- Button 4: Preserved Food and Condiments -->
+          <div class="dash-card" id="dash-card-preserved" onclick="openMenuCategory('preserved')">
+            <span class="menu-new-badge" id="dash-badge-preserved"></span>
+            <div class="dash-icon" style="background: #FFF8E1; color: #F57F17;">🫙</div>
+            <div class="dash-text">
+              <h3>Preserved Food and Condiments</h3>
+              <p>Homemade pickles, chutneys & spreads</p>
+            </div>
+            <div class="dash-arrow">➔</div>
+          </div>
+
+          <!-- Button 5: Bakery Products -->
+          <div class="dash-card" id="dash-card-bakery" onclick="openMenuCategory('bakery')">
+            <span class="menu-new-badge" id="dash-badge-bakery"></span>
+            <div class="dash-icon" style="background: #FCE4EC; color: #C2185B;">🥐</div>
+            <div class="dash-text">
+              <h3>Bakery Products</h3>
+              <p>Fresh cakes, cupcakes & baked treats</p>
             </div>
             <div class="dash-arrow">➔</div>
           </div>
@@ -1081,7 +1215,7 @@
       <!-- CUSTOMER ORDER VIEW -->
       <main id="customer-view">
         <div class="customer-half customer-upper">
-          <h2 class="section-title" style="flex-shrink: 0;">Today's Live Menu</h2>
+          <h2 class="section-title" id="customer-menu-section-title" style="flex-shrink: 0;">Today's Live Menu</h2>
           <div class="menu-scroll-area">
             <div class="menu-list" id="customer-menu-container">
               <p style="text-align:center; padding: 30px; color:#666;">Loading live menu...</p>
@@ -1103,16 +1237,77 @@
         </div>
       </main>
 
-      <!-- FULL PAGE MENU CONSOLE -->
+      <!-- KITCHEN CONSOLE SECTION HUB -->
+      <section id="kitchen-dashboard-view">
+        <div class="dash-welcome">
+          <h2>Kitchen Console</h2>
+          <p>Select a menu section to manage and publish</p>
+        </div>
+
+        <div class="dash-grid">
+          <!-- Kitchen Card 1: Daily Live Menu -->
+          <div class="dash-card" onclick="openKitchenMenuSection('daily')">
+            <div class="dash-icon" style="background: #FFF3E0; color: #E65100;">🍲</div>
+            <div class="dash-text">
+              <h3>Daily Live Menu</h3>
+              <p>Fresh meals, updated daily</p>
+            </div>
+            <div class="dash-arrow">➔</div>
+          </div>
+
+          <!-- Kitchen Card 2: Festive Special -->
+          <div class="dash-card" onclick="openKitchenMenuSection('festive')">
+            <div class="dash-icon" style="background: #E8F5E9; color: #2E7D32;">🎉</div>
+            <div class="dash-text">
+              <h3>Festive Special</h3>
+              <p>Exclusive combos & sweets</p>
+            </div>
+            <div class="dash-arrow">➔</div>
+          </div>
+          
+          <!-- Kitchen Card 3: Bulk / Party Orders -->
+          <div class="dash-card" onclick="openKitchenMenuSection('party')">
+            <div class="dash-icon" style="background: #E3F2FD; color: #1565C0;">🎊</div>
+            <div class="dash-text">
+              <h3>Bulk / Party Orders</h3>
+              <p>For your special events</p>
+            </div>
+            <div class="dash-arrow">➔</div>
+          </div>
+
+          <!-- Kitchen Card 4: Preserved Food and Condiments -->
+          <div class="dash-card" onclick="openKitchenMenuSection('preserved')">
+            <div class="dash-icon" style="background: #FFF8E1; color: #F57F17;">🫙</div>
+            <div class="dash-text">
+              <h3>Preserved Food and Condiments</h3>
+              <p>Homemade pickles, chutneys & spreads</p>
+            </div>
+            <div class="dash-arrow">➔</div>
+          </div>
+
+          <!-- Kitchen Card 5: Bakery Products -->
+          <div class="dash-card" onclick="openKitchenMenuSection('bakery')">
+            <div class="dash-icon" style="background: #FCE4EC; color: #C2185B;">🥐</div>
+            <div class="dash-text">
+              <h3>Bakery Products</h3>
+              <p>Fresh cakes, cupcakes & baked treats</p>
+            </div>
+            <div class="dash-arrow">➔</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- FULL PAGE MENU CONSOLE (SECTION EDITOR) -->
       <section id="kitchen-view">
-        <h2 class="section-title" style="margin: 4px 0 10px 0;">Kitchen Console - Menu</h2>
+        <h2 class="section-title" id="kitchen-section-title" style="margin: 4px 0 10px 0;">Kitchen Console - Menu</h2>
         <div class="kitchen-menu-actions">
           <button class="btn-clear-menu" onclick="clearDailyMenu()">🗑 Clear</button>
           <button class="btn-add-item" onclick="openAddItemModal()">+ Add Item</button>
           <button class="btn-publish" onclick="publishDailyMenu()">Publish Menu</button>
         </div>
-        <div class="search-bar-container">
-          <input type="text" id="kitchen-menu-search" placeholder="Search menu..." onkeyup="renderKitchenMenu()">
+        <div class="search-bar-container" id="kitchen-search-bar-container">
+          <input type="text" id="kitchen-menu-search" placeholder="Search menu..." oninput="renderKitchenMenu()">
+          <button type="button" id="clear-kitchen-search" class="btn-clear-search" onclick="clearKitchenSearch()" aria-label="Clear search">✕</button>
         </div>
         <div class="menu-list" id="kitchen-menu-container"></div>
       </section>
@@ -1168,7 +1363,7 @@
         <span class="form-label">Dish Name:</span>
         <input type="text" id="add-item-name" placeholder="e.g. Masala Dosa">
 
-        <span class="form-label" style="margin-top: 8px;">Category:</span>
+        <span class="form-label" id="add-item-category-label" style="margin-top: 8px;">Category:</span>
         <select id="add-item-category-select" onchange="handleCategorySelectChange()"></select>
         <input type="text" id="add-item-category-new" style="margin-top: 8px; display: none;" placeholder="Enter new category name">
         
@@ -1286,6 +1481,6 @@
     </div>
   </div>
 
-  <script src="/app.js?v=18"></script>
+  <script src="/app.js?v=19"></script>
 </body>
 </html>
